@@ -3,7 +3,7 @@ name: autopilot-local
 on:
   push:
     tags:
-      - 'ele-autopilot-local/v*'
+      - 'v*'
 
 concurrency:
   group: autopilot-local-${{ github.ref }}
@@ -33,9 +33,8 @@ jobs:
         run: |
           pkg_version="$(python3 -c 'import tomllib; print(tomllib.load(open("pyproject.toml","rb"))["project"]["version"])')"
           tag="${{ github.ref_name }}"
-          ver="${tag##*/}"; ver="${ver#v}"
-          if [ "${ver}" != "${pkg_version}" ]; then
-            echo "error: tag ${tag} version ${ver} does not match pyproject.toml version ${pkg_version}" >&2
+          if [ "v${pkg_version}" != "${tag}" ]; then
+            echo "error: tag ${tag} does not match pyproject.toml version v${pkg_version}" >&2
             exit 1
           fi
 
@@ -61,7 +60,7 @@ jobs:
           set -euo pipefail
           cd dist
           tag="${{ github.ref_name }}"
-          VER="${tag##*/}"; VER="${VER#v}"
+          VER="${tag#v}"
           BUCKET="ele-autopilot-releases"
           WRANGLER="npx -y wrangler@latest"
 

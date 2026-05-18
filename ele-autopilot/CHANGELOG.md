@@ -2,17 +2,22 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
-## [1.5.1] - 2026-05-19
+## [1.5.2] - 2026-05-19
+
+### Changed
+
+- `app/routes/help.tsx` 84 行 inline `style={}` 重构为 AntD Card / Space / Typography + Tailwind class, 与项目主体 (Tailwind + AntD) 视觉一致, 命令块用 `Text code copyable` 内置一键复制.
+- `app/routes/releases.local.$.tsx` `cacheControlFor` 冗余判断 (`key === 'local/latest.txt'` 已被 `endsWith('/latest.txt')` 覆盖) 清理.
 
 ### Fixed
 
-- Workflow trigger 从统一 `v*` 改为 namespace `ele-autopilot/v*`, 避免跨子项目 fan-out 部署 (三个 workflow 全部 listen `v*` → 任意 tag 同时触发 autopilot / autopilot-local / autotesting 重新部署).
-- `app/routes/releases.local.$.tsx` `cacheControlFor` 冗余判断 (`key === 'local/latest.txt'` 已被 `endsWith('/latest.txt')` 覆盖) 清理.
+- 撤销 1.5.1 引入的 per-project namespace tag (`ele-autopilot/v*` 等) — 工程改为全局 **lockstep**: 三子项目版本号始终统一, 单一 `v*` tag 触发三 workflow (autopilot / autopilot-local / autotesting) 同步 redeploy. workflow trigger + verify 步骤全部回到 `v*` 体系. 详见根 `AGENTS.md` "Git / 发布约定". 1.5.1 段从本 CHANGELOG 移除, 1.5.1 内容并入 1.5.2.
 
 ### Docs
 
-- `AGENTS.md` / `CLAUDE.md` Key Files 段补 `RELEASES` R2 binding 描述 (1.5.0 漏改).
-- `deploy.md` tag 格式从 `vX.Y.Z` 同步为 `ele-autopilot/vX.Y.Z`, workflow 路径从 `release.yml` 更正为根仓库 `autopilot.yml`.
+- 根 `AGENTS.md` "AI 操作规则" + "Git / 发布约定" 重写为 lockstep 模型 (旧 per-project namespace 规则废弃).
+- `AGENTS.md` / `CLAUDE.md` Key Files 段补 `RELEASES` R2 binding 描述 (1.5.0 漏改); Release 段 workflow 路径更正为根仓库 `autopilot.yml`.
+- `deploy.md` 加 Lockstep 说明; `ele-autopilot-local/CHANGELOG.md` 1.5.0 死链 (`../../releases/tag/v1.5.0`) 移除.
 
 ## [1.5.0] - 2026-05-19
 

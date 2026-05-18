@@ -47,17 +47,16 @@ QA AutoPilot 系统的合并仓库. **三个独立子项目共存**, 不是 mono
 1. **改子项目前先 cd**: `cd <子目录>` 然后读子目录 `AGENTS.md` / `CLAUDE.md`. 子目录文档是该项目事实源, 顶层文档只做导航.
 2. **不要跨项目共享构建**: 三种包管理器不可合并为单一 workspace, 不要尝试建顶层 `package.json` / `pyproject.toml`.
 3. **跨工程契约**: `ele-autopilot` ↔ `ele-autopilot-local` 的 HTTP API 双向耦合, 修改一端时**两端类型必须同步**. 未来建议抽 `contracts/` (OpenAPI) 作为单一事实源.
-4. **不主动跨子项目重构**: 用户未要求时, 不要"顺手"把 ele-autotesting 的 Vue 改 React, 不要"统一" Bun→pnpm. 三个项目独立演进.
+4. **代码逻辑独立, 版本号/tag lockstep**: 用户未要求时, 不要"顺手"把 ele-autotesting 的 Vue 改 React, 不要"统一" Bun→pnpm. 三个项目代码独立演进; 但**版本号与发布 tag 强制 lockstep** (见下文 "Git / 发布约定").
 
 ## Git / 发布约定
 
-- **Tag 命名空间**: 单一 git history 下版本号必须可区分, 发布 tag 格式 `<project>/vX.Y.Z`:
-  - `ele-autopilot/v0.3.3`
-  - `ele-autopilot-local/v0.1.5`
-  - `ele-autotesting/v1.4.9`
-- **GitHub Actions**: workflow 必须放根 `.github/workflows/`, 子目录的 workflow 文件 GitHub 不识别. 用 `on.push.paths` 和 `on.push.tags` 过滤路由到对应子项目.
-- **CHANGELOG**: 各子目录独立维护, 不合并.
-- **Commit 风格**: Conventional Commits (`feat | fix | chore: ...`). 跨多子项目的改动用 `scope` 标注, 如 `feat(autopilot): ...` / `fix(local): ...` / `chore(autotesting): ...`.
+- **Tag + 版本号 lockstep (强约束)**: 整个工程视为一体 release. 单一发布 tag 格式 `vX.Y.Z` (无 namespace). 三子项目 `ele-autopilot/package.json#version` / `ele-autopilot-local/pyproject.toml#version` / `ele-autotesting/package.json#version` **必须始终保持完全一致**, 任何 release 三项目同步 bump 到同一新版本号, 即使某项目本次无业务改动也要跟着 bump (该项目 CHANGELOG 段标注 `lockstep 同步, 与上游 vX.Y.Z 一同发布`).
+  - 旧 per-project namespace tag (`<project>/vX.Y.Z`) 已废弃, 不再使用. 历史里如残留, 视为发布事故.
+  - 工程含义: 任一 `v*` tag push → 三 workflow (autopilot / autopilot-local / autotesting) **全部触发并 redeploy**, 这是 lockstep 的代价也是它的承诺 — 全工程同步上线.
+- **GitHub Actions**: workflow 必须放根 `.github/workflows/`, 子目录的 workflow 文件 GitHub 不识别. 三 workflow 均 listen `v*` tag (lockstep), 各自跑各自的构建+部署. 业务代码改动靠 commit 影响行决定真实变更面, tag 只是统一触发器.
+- **CHANGELOG**: 各子目录独立维护, 不合并. 每次 lockstep release 三项目 CHANGELOG 都新增同一版本号段; 无业务改动项目标注 `lockstep 同步` 占位.
+- **Commit 风格**: Conventional Commits (`feat | fix | chore: ...`). Release commit 统一 `release: vX.Y.Z`. 非 release 跨子项目改动用 `scope` 标注: `feat(autopilot): ...` / `fix(local): ...` / `chore(autotesting): ...`.
 - **ele-autopilot-local 产物去 R2** (不挂 GitHub Release): workflow `wrangler r2 object put` 推到 `ele-autopilot-releases/local/<ver>/{wheel, sdist, checksums.txt}` + `local/latest.txt` 指针. ele-autopilot Worker 暴露 `/releases/local/*` (R2 代理) + `/install.sh` (动态生成, BASE 自带) + `/help` (Web 后台教学页) 给用户.
 
 ## 仓库基础设施

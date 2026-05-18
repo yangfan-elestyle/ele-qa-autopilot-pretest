@@ -2,16 +2,20 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
-## [1.5.1] - 2026-05-19
+## [1.5.2] - 2026-05-19
+
+### Changed
+
+- `CHANGELOG.md` 1.5.0 链接 (`../../releases/tag/v1.5.0`) 移除 — R2 渠道不再产生 GitHub Release URL.
 
 ### Fixed
 
-- Workflow trigger 从统一 `v*` 改为 namespace `ele-autopilot-local/v*`, 避免跨子项目 fan-out 部署. R2 上传步骤的版本号提取适配 namespace tag (`tag##*/` 去 namespace + `#v` 去 v).
-- `CHANGELOG.md` 1.5.0 链接 (`../../releases/tag/v1.5.0`) 移除 — R2 渠道不再产生 GitHub Release URL.
+- 撤销 1.5.1 引入的 per-project namespace tag (`ele-autopilot-local/v*`) — 工程改为全局 **lockstep**: 三子项目版本号统一, 单一 `v*` tag 触发三 workflow 同步 redeploy. workflow trigger + R2 上传步骤的 `VER` 提取全部回到 `${tag#v}`. 1.5.1 段从本 CHANGELOG 移除, 1.5.1 内容并入 1.5.2.
 
 ### Docs
 
-- `deploy.md` / `AGENTS.md` tag 格式从 `vX.Y.Z` 同步为 `ele-autopilot-local/vX.Y.Z`.
+- 根 `AGENTS.md` "Git / 发布约定" 重写为 lockstep 模型.
+- `deploy.md` 加 Lockstep 说明, tag 格式回到 `vX.Y.Z`.
 
 ## [1.5.0] - 2026-05-19
 

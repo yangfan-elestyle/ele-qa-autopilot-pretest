@@ -1,3 +1,8 @@
+# 2026.05.19 (lockstep v1.5.2)
+
+1. 版本号 lockstep 同步 1.5.0 → 1.5.2, 与上游 ele-autopilot / ele-autopilot-local v1.5.2 一同发布; 本项目无业务改动.
+2. 工程层撤销 per-project namespace tag (`ele-autotesting/v*`) 回到统一 `v*` lockstep tag: `.github/workflows/autotesting.yml` trigger + verify 改回 `v*`; `Deploy.md` / `CLAUDE.md` tag 格式与 workflow 路径同步. 详见根 `AGENTS.md` "Git / 发布约定".
+
 # 2025.11.10
 
 1. confluence office api upgraded.

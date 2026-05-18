@@ -13,7 +13,7 @@ pnpm monorepo + Cloudflare Workers (Hono + D1 + Container). 改完代码 → 按
 
 简言之: 用户角色 = 触发者 + 验收者, 不是协作开发者. 不要把人类拉进设计回路.
 
-`package.json#version` 与 git tag 一致 (tag 格式 `ele-autotesting/vX.Y.Z`, version 不含 namespace 和 `v`). 发版触发根仓库 `.github/workflows/autotesting.yml`.
+`package.json#version` 与 git tag 一致 (tag 含 `v`, version 不含). 发版触发根仓库 `.github/workflows/autotesting.yml`. **Lockstep**: 三子项目版本号统一, 任何 `v*` tag 三 workflow 同时构建. 见根 `AGENTS.md`.
 
 ## 工程关键字段
 
@@ -22,7 +22,7 @@ pnpm monorepo + Cloudflare Workers (Hono + D1 + Container). 改完代码 → 按
 - `package.json#name` / `#version`
 - `packages/server/wrangler.jsonc`: `name`、`d1_databases[0].database_id` (用 `npx wrangler d1 create <name>` 输出回填)、`assets.run_worker_first` 路径白名单
 - `packages/server/migrations/*.sql`: D1 schema, 新增 migration 走 `0002_xxx.sql` 递增
-- 根仓库 `.github/workflows/autotesting.yml`: 触发 `ele-autotesting/v*` tag、需要 repo secrets `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID`
+- 根仓库 `.github/workflows/autotesting.yml`: 触发统一 `v*` tag、需要 repo secrets `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID`
 
 ## 边界
 

@@ -100,7 +100,7 @@ bun run format         # prettier --write .
 
 ## Release
 
-- 触发: push `ele-autopilot/v*` tag. workflow: 根仓库 `.github/workflows/autopilot.yml`.
+- 触发: push 统一 `v*` tag (三子项目版本号 lockstep, 任一 `v*` 触发三 workflow 同步 redeploy; 详见根 `AGENTS.md`). workflow: 根仓库 `.github/workflows/autopilot.yml`.
 - 流程: 校验 tag 版本号 = `package.json#version` → bun install → build → `wrangler d1 migrations apply ele-autopilot --remote` → `wrangler deploy`.
 - D1 (`ele-autopilot`) / R2 (`ele-autopilot-screenshots` + `ele-autopilot-releases`) 已由人工预先创建, workflow 不再探测 / 创建.
 - 完整步骤 / amend 场景: [deploy.md](./deploy.md).
