@@ -1,0 +1,55 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build and publish release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: astral-sh/setup-uv@v8.1.0
+        with:
+          enable-cache: true
+
+      - name: Verify tag matches pyproject.toml version
+        run: |
+          pkg_version="$(python3 -c 'import tomllib; print(tomllib.load(open("pyproject.toml","rb"))["project"]["version"])')"
+          tag="${{ github.ref_name }}"
+          if [ "v${pkg_version}" != "${tag}" ]; then
+            echo "error: tag ${tag} does not match pyproject.toml version v${pkg_version}" >&2
+            exit 1
+          fi
+
+      - name: Build wheel and sdist
+        run: uv build
+
+      - name: Generate SHA256 checksums
+        working-directory: dist
+        run: |
+          shopt -s nullglob
+          files=( ele_autopilot_local-* )
+          [ ${#files[@]} -gt 0 ] || { echo "no build artifacts found in dist/" >&2; exit 1; }
+          sha256sum "${files[@]}" > checksums.txt
+          cat checksums.txt
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            dist/*

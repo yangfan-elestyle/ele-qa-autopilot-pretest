@@ -1,0 +1,1192 @@
+<template>
+  <div v-if="show" class="fixed inset-0 theme-mask z-[60] flex items-center justify-center p-4" @click="onMainBackdropClick">
+    <div class="relative theme-manager-container w-full max-w-3xl max-h-[90vh] m-4 flex flex-col overflow-hidden">
+      <div class="flex items-center justify-between p-6 border-b theme-manager-border flex-none">
+        <h2 class="text-xl font-semibold theme-manager-text">
+          模型管理
+        </h2>
+        <button @click="close" class="theme-manager-text-secondary hover:theme-manager-text transition-colors text-xl">×</button>
+      </div>
+
+      <!-- 可滚动内容区域 -->
+      <div class="flex-1 min-h-0 p-6 overflow-y-auto">
+        <!-- 已启用模型列表 -->
+        <div class="space-y-3">
+          <div class="flex justify-between items-center">
+            <h3 class="text-lg font-semibold theme-manager-text">
+              模型列表
+            </h3>
+            <button @click="showAddForm = true" class="flex text-sm items-center gap-1 theme-manager-button-secondary">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="h-4 w-4"
+              >
+                <path d="M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v4" />
+                <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+                <path d="M3 15h6" />
+                <path d="M6 12v6" />
+              </svg>
+              添加
+            </button>
+          </div>
+          <div class="space-y-3 pb-3">
+            <div
+              v-for="model in models"
+              :key="model.key"
+              :class="[
+                'p-4 rounded-xl border transition-colors',
+                model.enabled ? 'theme-manager-card' : 'theme-manager-card opacity-50 shadow-none hover:shadow-none',
+              ]"
+            >
+              <div class="flex items-center justify-between">
+                <div>
+                  <div class="flex items-center gap-2">
+                    <h4 class="font-medium" :class="model.enabled ? 'theme-manager-text' : 'theme-manager-text-disabled'">
+                      {{ model.name }}
+                    </h4>
+                    <span v-if="!model.enabled" class="inline-flex items-center theme-manager-tag">
+                      <span class="hidden sm:block">已禁用</span>
+                      <svg
+                        class="sm:hidden h-3.5 w-3.5"
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="15"
+                        height="15"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <path d="M20.5 14.9A9 9 0 0 0 9.1 3.5" />
+                        <path d="m2 2 20 20" />
+                        <path d="M5.6 5.6C3 8.3 2.2 12.5 4 16l-2 6 6-2c3.4 1.8 7.6 1.1 10.3-1.7" />
+                      </svg>
+                    </span>
+                  </div>
+                  <p class="text-sm" :class="model.enabled ? 'theme-manager-text-secondary' : 'theme-manager-text-disabled'">
+                    {{ model.model }}
+                  </p>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <button @click="editModel(model.key)" class="text-sm inline-flex items-center gap-1 theme-manager-button-edit">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"
+                      />
+                    </svg>
+                    <span class="hidden md:inline">编辑</span>
+                  </button>
+                  <button
+                    @click="model.enabled ? disableModel(model.key) : enableModel(model.key)"
+                    class="text-sm inline-flex items-center gap-1"
+                    :class="[model.enabled ? 'theme-manager-button-warning' : 'theme-manager-button-success']"
+                  >
+                    <svg
+                      v-if="model.enabled"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      class="h-4 w-4"
+                    >
+                      <path d="M12 6v.343" />
+                      <path d="M18.218 18.218A7 7 0 0 1 5 15V9a7 7 0 0 1 .782-3.218" />
+                      <path d="M19 13.343V9A7 7 0 0 0 8.56 2.902" />
+                      <path d="M22 22 2 2" />
+                    </svg>
+                    <svg
+                      v-else
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      class="h-4 w-4"
+                    >
+                      <rect x="5" y="2" width="14" height="20" rx="7" />
+                      <path d="M12 6v4" />
+                    </svg>
+                    <span class="hidden md:inline">{{ model.enabled ? '禁用' : '启用' }}</span>
+                  </button>
+                  <!-- 只对自定义模型显示删除按钮 -->
+                  <button
+                    v-if="!isDefaultModel(model.key)"
+                    @click="handleDelete(model.key)"
+                    class="text-sm inline-flex items-center gap-1 theme-manager-button-danger"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-4 w-4">
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"
+                      />
+                    </svg>
+                    <span class="hidden md:inline">删除</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 使用 Teleport 将模态框传送到 body -->
+        <Teleport to="body">
+          <!-- 编辑模型弹窗 -->
+          <div v-if="isEditing" class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <div class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
+
+            <div class="relative theme-manager-container w-full max-w-2xl max-h-[90vh] overflow-y-auto z-10" @click.stop>
+              <div class="p-6 space-y-6">
+                <div class="flex items-center justify-between">
+                  <h3 class="text-xl font-semibold theme-manager-text">
+                    编辑
+                  </h3>
+                  <button @click="cancelEdit" class="theme-manager-text-secondary hover:theme-manager-text transition-colors text-xl">×</button>
+                </div>
+
+                <form @submit.prevent="saveEdit" class="space-y-4">
+                  <div>
+                    <label class="block text-sm font-medium theme-manager-text mb-1.5">显示名称</label>
+                    <input
+                      v-model="editingModel.name"
+                      type="text"
+                      required
+                      class="theme-manager-input"
+                      placeholder="请输入显示名称"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium theme-manager-text mb-1.5"
+                      >API地址
+                      <span class="cursor-help ml-1" title="示例：https://api.example.com/v1；多数提供商地址通常以 /v1 结尾">?</span>
+                    </label>
+                    <input v-model="editingModel.baseURL" type="url" required class="theme-manager-input" placeholder="https://api.example.com/v1" />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium theme-manager-text mb-1.5">API密钥</label>
+                    <input v-model="editingModel.apiKey" type="text" class="theme-manager-input" placeholder="请输入API密钥（可选）" />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium theme-manager-text mb-1.5">默认模型</label>
+                    <InputWithSelect
+                      v-model="editingModel.defaultModel"
+                      :options="modelOptions"
+                      :is-loading="isLoadingModels"
+                      loading-text="正在加载模型选项..."
+                      no-options-text="没有可用模型"
+                      hint-text="点击箭头获取模型列表"
+                      required
+                      placeholder="输入或选择模型名称"
+                      @fetch-options="handleFetchEditingModels"
+                    />
+                  </div>
+
+                  <!-- Advanced Parameters Section -->
+                  <div class="pt-4 mt-4 border-t theme-manager-border">
+                    <div class="flex items-center justify-between mb-4">
+                      <div>
+                        <h4 class="text-md font-semibold theme-manager-text">
+                          高级参数
+                        </h4>
+                        <p class="text-xs theme-manager-text-secondary mt-1">
+                          当前提供商:
+                          <span class="font-medium text-purple-600">{{
+                            currentProviderType === 'custom' ? '自定义' : currentProviderType.toUpperCase()
+                          }}</span>
+                          <span v-if="availableLLMParamDefinitions.length > 0">
+                            ({{ availableLLMParamDefinitions.length }}个可选参数)</span
+                          >
+                          <span v-else class="text-yellow-600"> (无可选参数)</span>
+                        </p>
+                      </div>
+
+                      <!-- 参数选择器 -->
+                      <select
+                        v-model="selectedNewLLMParamId"
+                        @change="handleQuickAddParam"
+                        class="theme-manager-input text-sm py-1.5 px-3 min-w-[180px] max-w-[220px]"
+                      >
+                        <option disabled value="">
+                          选择参数
+                        </option>
+                        <option v-for="paramDef in availableLLMParamDefinitions" :key="paramDef.id" :value="paramDef.id">
+                          {{ paramDef.label || paramDef.name }}
+                        </option>
+                        <option value="custom">
+                          自定义参数
+                        </option>
+                      </select>
+                    </div>
+
+                    <div v-if="Object.keys(currentLLMParams || {}).length === 0" class="text-sm theme-manager-text-secondary mb-3">
+                      未配置高级参数
+                    </div>
+
+                    <!-- 参数显示 -->
+                    <div v-for="(value, key) in currentLLMParams" :key="key" class="mb-4">
+                      <div class="p-3 theme-manager-card rounded-lg border theme-manager-border">
+                        <!-- 参数标题行 -->
+                        <div class="flex items-center justify-between mb-2">
+                          <div class="flex items-center gap-2">
+                            <span class="text-sm font-medium theme-manager-text">
+                              {{ getParamMetadata(key)?.label || key }}
+                            </span>
+                            <span v-if="!getParamMetadata(key)" class="px-2 py-0.5 text-xs theme-manager-tag rounded">
+                              自定义
+                            </span>
+                          </div>
+                          <button
+                            @click="removeLLMParam(key)"
+                            type="button"
+                            class="w-6 h-6 text-red-500 hover:text-white hover:bg-red-500 rounded text-xs flex items-center justify-center transition-colors"
+                          >
+                            ×
+                          </button>
+                        </div>
+
+                        <!-- 参数描述 -->
+                        <p v-if="getParamMetadata(key)?.description" class="text-xs theme-manager-text-secondary mb-2">
+                          {{ getParamMetadata(key)?.description }}
+                        </p>
+
+                        <!-- 输入字段 -->
+                        <div class="w-full">
+                          <!-- Boolean 类型 -->
+                          <template v-if="getParamMetadata(key)?.type === 'boolean'">
+                            <label class="flex items-center cursor-pointer">
+                              <input
+                                v-model="currentLLMParams[key]"
+                                type="checkbox"
+                                :id="`llmparam-${isEditing ? 'edit' : 'add'}-${key}`"
+                                class="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
+                              />
+                              <span class="ml-2 text-sm theme-manager-text">
+                                {{ currentLLMParams[key] ? '已启用' : '已禁用' }}
+                              </span>
+                            </label>
+                          </template>
+
+                          <!-- Number/Integer 类型 -->
+                          <template
+                            v-else-if="
+                              getParamMetadata(key)?.type === 'number' ||
+                              (getParamMetadata(key)?.type === 'integer' && getParamMetadata(key)?.name !== 'stopSequences')
+                            "
+                          >
+                            <div class="space-y-2">
+                              <input
+                                v-model.number="currentLLMParams[key]"
+                                type="number"
+                                :min="getParamMetadata(key)?.minValue"
+                                :max="getParamMetadata(key)?.maxValue"
+                                :step="getParamMetadata(key)?.step"
+                                class="theme-manager-input w-full text-sm"
+                                :class="{
+                                  'border-red-500': isParamInvalid(key, currentLLMParams[key]),
+                                }"
+                                :placeholder="getParamMetadata(key)?.defaultValue !== undefined ? String(getParamMetadata(key)?.defaultValue) : ''"
+                              />
+
+                              <!-- 范围提示 -->
+                              <div
+                                v-if="getParamMetadata(key)?.minValue !== undefined && getParamMetadata(key)?.maxValue !== undefined"
+                                class="text-xs theme-manager-text-secondary"
+                              >
+                                范围: {{ getParamMetadata(key)?.minValue }} - {{ getParamMetadata(key)?.maxValue }}{{ getParamMetadata(key)?.unit || '' }}
+                              </div>
+
+                              <!-- 错误提示 -->
+                              <div v-if="isParamInvalid(key, currentLLMParams[key])" class="text-red-500 text-xs">
+                                {{ getParamValidationMessage(key, currentLLMParams[key]) }}
+                              </div>
+                            </div>
+                          </template>
+
+                          <!-- String 类型 -->
+                          <template v-else>
+                            <input
+                              v-model="currentLLMParams[key]"
+                              type="text"
+                              class="theme-manager-input w-full text-sm"
+                              :placeholder="
+                                getParamMetadata(key)?.name === 'stopSequences'
+                                  ? '输入停止序列（逗号分隔）'
+                                  : getParamMetadata(key)?.defaultValue !== undefined
+                                  ? String(getParamMetadata(key)?.defaultValue)
+                                  : ''
+                              "
+                            />
+                            <p v-if="getParamMetadata(key)?.name === 'stopSequences'" class="text-xs theme-manager-text-secondary mt-1">
+                              输入停止序列（逗号分隔）
+                            </p>
+                          </template>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="flex justify-end space-x-3 pt-4">
+                    <button type="button" @click="cancelEdit" class="theme-manager-button-secondary">
+                      取消
+                    </button>
+                    <button type="submit" class="theme-manager-button-primary">
+                      保存
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <!-- 添加模型弹窗 -->
+          <div v-if="showAddForm" class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <div class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
+
+            <div class="relative theme-manager-container w-full max-w-2xl max-h-[90vh] overflow-y-auto z-10" @click.stop>
+              <div class="p-6 space-y-6">
+                <div class="flex items-center justify-between">
+                  <h3 class="text-xl font-semibold theme-manager-text">
+                    添加
+                  </h3>
+                  <button @click="showAddForm = false" class="theme-manager-text-secondary hover:theme-manager-text transition-colors text-xl">×</button>
+                </div>
+
+                <form @submit.prevent="addCustomModel" class="space-y-4">
+                  <div>
+                    <label class="block text-sm font-medium theme-manager-text mb-1.5">模型标识</label>
+                    <input v-model="newModel.key" type="text" required class="theme-manager-input" placeholder="请输入模型标识" />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium theme-manager-text mb-1.5">显示名称</label>
+                    <input v-model="newModel.name" type="text" required class="theme-manager-input" placeholder="请输入显示名称" />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium theme-manager-text mb-1.5"
+                      >API地址
+                      <span class="cursor-help ml-1" title="示例：https://api.example.com/v1；多数提供商地址通常以 /v1 结尾">?</span>
+                    </label>
+                    <input v-model="newModel.baseURL" type="url" required class="theme-manager-input" placeholder="https://api.example.com/v1" />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium theme-manager-text mb-1.5">API密钥</label>
+                    <input v-model="newModel.apiKey" type="password" class="theme-manager-input" placeholder="请输入API密钥（可选）" />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium theme-manager-text mb-1.5">默认模型</label>
+                    <InputWithSelect
+                      v-model="newModel.defaultModel"
+                      :options="modelOptions"
+                      :is-loading="isLoadingModels"
+                      loading-text="正在加载模型选项..."
+                      no-options-text="没有可用模型"
+                      hint-text="点击箭头获取模型列表"
+                      required
+                      placeholder="输入或选择模型名称"
+                      @fetch-options="handleFetchNewModels"
+                    />
+                  </div>
+                  <!-- Advanced Parameters Section FOR ADD MODEL -->
+                  <div class="pt-4 mt-4 border-t theme-manager-border">
+                    <div class="flex items-center justify-between mb-4">
+                      <div>
+                        <h4 class="text-md font-semibold theme-manager-text">
+                          高级参数
+                        </h4>
+                        <p class="text-xs theme-manager-text-secondary mt-1">
+                          当前提供商:
+                          <span class="font-medium text-purple-600">{{
+                            currentProviderType === 'custom' ? '自定义' : currentProviderType.toUpperCase()
+                          }}</span>
+                          <span v-if="availableLLMParamDefinitions.length > 0">
+                            ({{ availableLLMParamDefinitions.length }}个可选参数)</span
+                          >
+                          <span v-else class="text-yellow-600"> (无可选参数)</span>
+                        </p>
+                      </div>
+
+                      <!-- 参数选择器 -->
+                      <select
+                        v-model="selectedNewLLMParamId"
+                        @change="handleQuickAddParam"
+                        class="theme-manager-input text-sm py-1.5 px-3 min-w-[180px] max-w-[220px]"
+                      >
+                        <option disabled value="">
+                          选择参数
+                        </option>
+                        <option v-for="paramDef in availableLLMParamDefinitions" :key="paramDef.id" :value="paramDef.id">
+                          {{ paramDef.label || paramDef.name }}
+                        </option>
+                        <option value="custom">
+                          自定义参数
+                        </option>
+                      </select>
+                    </div>
+
+                    <div v-if="Object.keys(currentLLMParams || {}).length === 0" class="text-sm theme-manager-text-secondary mb-3">
+                      未配置高级参数
+                    </div>
+
+                    <!-- 参数显示 -->
+                    <div v-for="(value, key) in currentLLMParams" :key="key" class="mb-4">
+                      <div class="p-3 theme-manager-card rounded-lg border theme-manager-border">
+                        <!-- 参数标题行 -->
+                        <div class="flex items-center justify-between mb-2">
+                          <div class="flex items-center gap-2">
+                            <span class="text-sm font-medium theme-manager-text">
+                              {{ getParamMetadata(key)?.label || key }}
+                            </span>
+                            <span v-if="!getParamMetadata(key)" class="px-2 py-0.5 text-xs theme-manager-tag rounded">
+                              自定义
+                            </span>
+                          </div>
+                          <button
+                            @click="removeLLMParam(key)"
+                            type="button"
+                            class="w-6 h-6 text-red-500 hover:text-white hover:bg-red-500 rounded text-xs flex items-center justify-center transition-colors"
+                          >
+                            ×
+                          </button>
+                        </div>
+
+                        <!-- 参数描述 -->
+                        <p v-if="getParamMetadata(key)?.description" class="text-xs theme-manager-text-secondary mb-2">
+                          {{ getParamMetadata(key)?.description }}
+                        </p>
+
+                        <!-- 输入字段 -->
+                        <div class="w-full">
+                          <!-- Boolean 类型 -->
+                          <template v-if="getParamMetadata(key)?.type === 'boolean'">
+                            <label class="flex items-center cursor-pointer">
+                              <input
+                                v-model="currentLLMParams[key]"
+                                type="checkbox"
+                                :id="`llmparam-${isEditing ? 'edit' : 'add'}-${key}`"
+                                class="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
+                              />
+                              <span class="ml-2 text-sm theme-manager-text">
+                                {{ currentLLMParams[key] ? '已启用' : '已禁用' }}
+                              </span>
+                            </label>
+                          </template>
+
+                          <!-- Number/Integer 类型 -->
+                          <template
+                            v-else-if="
+                              getParamMetadata(key)?.type === 'number' ||
+                              (getParamMetadata(key)?.type === 'integer' && getParamMetadata(key)?.name !== 'stopSequences')
+                            "
+                          >
+                            <div class="space-y-2">
+                              <input
+                                v-model.number="currentLLMParams[key]"
+                                type="number"
+                                :min="getParamMetadata(key)?.minValue"
+                                :max="getParamMetadata(key)?.maxValue"
+                                :step="getParamMetadata(key)?.step"
+                                class="theme-manager-input w-full text-sm"
+                                :class="{
+                                  'border-red-500': isParamInvalid(key, currentLLMParams[key]),
+                                }"
+                                :placeholder="getParamMetadata(key)?.defaultValue !== undefined ? String(getParamMetadata(key)?.defaultValue) : ''"
+                              />
+
+                              <!-- 范围提示 -->
+                              <div
+                                v-if="getParamMetadata(key)?.minValue !== undefined && getParamMetadata(key)?.maxValue !== undefined"
+                                class="text-xs theme-manager-text-secondary"
+                              >
+                                范围: {{ getParamMetadata(key)?.minValue }} - {{ getParamMetadata(key)?.maxValue }}{{ getParamMetadata(key)?.unit || '' }}
+                              </div>
+
+                              <!-- 错误提示 -->
+                              <div v-if="isParamInvalid(key, currentLLMParams[key])" class="text-red-500 text-xs">
+                                {{ getParamValidationMessage(key, currentLLMParams[key]) }}
+                              </div>
+                            </div>
+                          </template>
+
+                          <!-- String 类型 -->
+                          <template v-else>
+                            <input
+                              v-model="currentLLMParams[key]"
+                              type="text"
+                              class="theme-manager-input w-full text-sm"
+                              :placeholder="
+                                getParamMetadata(key)?.name === 'stopSequences'
+                                  ? '输入停止序列（逗号分隔）'
+                                  : getParamMetadata(key)?.defaultValue !== undefined
+                                  ? String(getParamMetadata(key)?.defaultValue)
+                                  : ''
+                              "
+                            />
+                            <p v-if="getParamMetadata(key)?.name === 'stopSequences'" class="text-xs theme-manager-text-secondary mt-1">
+                              输入停止序列（逗号分隔）
+                            </p>
+                          </template>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="flex justify-end space-x-3 pt-4">
+                    <button type="button" @click="showAddForm = false" class="theme-manager-button-secondary">
+                      取消
+                    </button>
+                    <button type="submit" class="theme-manager-button-primary">
+                      创建
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </Teleport>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted, watch, computed, inject } from 'vue'
+import { advancedParameterDefinitions } from '@prompt-optimizer/core'
+import { useToast } from '../composables/useToast'
+import InputWithSelect from './InputWithSelect.vue'
+
+const toast = useToast()
+const emit = defineEmits(['modelsUpdated', 'close', 'select', 'update:show'])
+
+// 组件属性
+const props = defineProps({
+  show: {
+    type: Boolean,
+    default: false,
+  },
+})
+
+// 关闭模态框
+const close = () => {
+  emit('update:show', false)
+  emit('close')
+}
+
+const onMainBackdropClick = (event) => {
+  if (event.target === event.currentTarget) {
+    close()
+  }
+}
+
+// 通过依赖注入获取服务
+const services = inject('services')
+if (!services) {
+  throw new Error('Services not provided!')
+}
+const modelManager = services.value.modelManager
+const llmService = services.value.llmService
+
+// =============== 状态变量 ===============
+const isEditing = ref(false)
+const showAddForm = ref(false)
+const modelOptions = ref([])
+const isLoadingModels = ref(false)
+const selectedNewLLMParamId = ref('')
+const customLLMParam = ref({ key: '', value: '' })
+
+const models = ref([])
+const editingModel = ref(null)
+
+// 表单状态
+const newModel = ref({
+  key: '',
+  name: '',
+  baseURL: '',
+  defaultModel: '',
+  apiKey: '',
+  provider: 'custom',
+  llmParams: {},
+})
+
+// =============== 初始化和辅助函数 ===============
+
+// 加载所有模型
+const loadModels = async () => {
+  try {
+    // 强制刷新模型数据，使用异步调用
+    const allModels = await modelManager.getAllModels()
+
+    // 使用深拷贝确保响应式更新
+    models.value = JSON.parse(JSON.stringify(allModels)).sort((a, b) => {
+      // 启用的模型排在前面
+      if (a.enabled !== b.enabled) {
+        return a.enabled ? -1 : 1
+      }
+      // 默认模型排在前面
+      if (isDefaultModel(a.key) !== isDefaultModel(b.key)) {
+        return isDefaultModel(a.key) ? -1 : 1
+      }
+      return 0
+    })
+
+    console.log(
+      '处理后的模型列表:',
+      models.value.map((m) => ({
+        key: m.key,
+        name: m.name,
+        enabled: m.enabled,
+        hasApiKey: !!m.apiKey,
+      })),
+    )
+
+    emit('modelsUpdated', models.value[0]?.key)
+  } catch (error) {
+    console.error('加载模型列表失败:', error)
+    toast.error('加载模型列表失败')
+  }
+}
+
+// 判断是否为默认模型
+const isDefaultModel = (key) => {
+  return ['openai', 'gemini', 'custom'].includes(key)
+}
+
+// =============== 模型管理函数 ===============
+// 处理删除
+const handleDelete = async (key) => {
+  if (confirm('确定要删除此模型吗？此操作不可恢复。')) {
+    try {
+      await modelManager.deleteModel(key)
+      await loadModels()
+      toast.success('删除成功')
+    } catch (error) {
+      console.error('删除模型失败:', error)
+      toast.error(`删除失败：${error.message}`)
+    }
+  }
+}
+
+// 启用模型
+const enableModel = async (key) => {
+  try {
+    const model = await modelManager.getModel(key)
+    if (!model) throw new Error('没有可用模型')
+
+    await modelManager.enableModel(key)
+    await loadModels()
+    emit('modelsUpdated', key)
+    toast.success('启用成功')
+  } catch (error) {
+    console.error('启用模型失败:', error)
+    toast.error(`启用失败：${error.message}`)
+  }
+}
+
+// 禁用模型
+const disableModel = async (key) => {
+  try {
+    const model = await modelManager.getModel(key)
+    if (!model) throw new Error('没有可用模型')
+
+    await modelManager.disableModel(key)
+    await loadModels()
+    emit('modelsUpdated', key)
+    toast.success('禁用成功')
+  } catch (error) {
+    console.error('禁用模型失败:', error)
+    toast.error(`禁用失败：${error.message}`)
+  }
+}
+
+// =============== 编辑相关函数 ===============
+// 编辑模型
+const editModel = async (key) => {
+  const model = await modelManager.getModel(key)
+  if (model) {
+    // 为API密钥创建加密显示文本
+    let maskedApiKey = ''
+    if (model.apiKey) {
+      // 显示密钥的前四位和后四位，中间用星号代替
+      const keyLength = model.apiKey.length
+      if (keyLength <= 8) {
+        maskedApiKey = '*'.repeat(keyLength)
+      } else {
+        const visiblePart = 4
+        const prefix = model.apiKey.substring(0, visiblePart)
+        const suffix = model.apiKey.substring(keyLength - visiblePart)
+        const maskedLength = keyLength - visiblePart * 2
+        maskedApiKey = `${prefix}${'*'.repeat(maskedLength)}${suffix}`
+      }
+    }
+
+    editingModel.value = {
+      originalKey: key,
+      name: model.name,
+      baseURL: model.baseURL,
+      defaultModel: typeof model.defaultModel === 'string' ? model.defaultModel : model.defaultModel?.value || model.defaultModel?.id || '',
+      apiKey: maskedApiKey,
+      displayMaskedKey: true,
+      originalApiKey: model.apiKey,
+      provider: model.provider || 'custom',
+      enabled: model.enabled,
+      llmParams: model.llmParams ? JSON.parse(JSON.stringify(model.llmParams)) : {},
+    }
+
+    modelOptions.value = model.defaultModel ? [{ value: model.defaultModel, label: model.defaultModel }] : []
+
+    isEditing.value = true
+  }
+}
+
+// 公共错误处理函数
+const handleModelFetchError = (error) => {
+  console.error('获取模型列表失败:', error)
+
+  // 获取错误信息
+  const errorMessage = error && error.message ? error.message : '未知错误'
+
+  // 根据标准化的错误类型进行国际化处理
+  let userMessage = ''
+
+  if (errorMessage.includes('CROSS_ORIGIN_CONNECTION_FAILED:')) {
+    userMessage = '跨域连接失败，请检查网络连接'
+  } else if (errorMessage.includes('CONNECTION_FAILED:')) {
+    userMessage = '连接失败，请检查API地址和网络连接'
+  } else if (errorMessage.includes('MISSING_V1_SUFFIX:')) {
+    userMessage = 'API地址格式错误，OpenAI兼容API需要包含"/v1"后缀'
+  } else if (errorMessage.includes('INVALID_RESPONSE_FORMAT:')) {
+    userMessage = 'API返回格式不兼容，请检查API服务是否为OpenAI兼容格式'
+  } else if (errorMessage.includes('EMPTY_MODEL_LIST:')) {
+    userMessage = 'API返回空的模型列表，该服务可能没有可用模型'
+  } else if (errorMessage.includes('API_ERROR:')) {
+    // 提取API_ERROR:后面的内容
+    const apiErrorStart = errorMessage.indexOf('API_ERROR:') + 10
+    userMessage = `API错误：${errorMessage.substring(apiErrorStart)}`
+  } else {
+    userMessage = errorMessage // 其他错误直接显示
+  }
+
+  toast.error(userMessage)
+
+  // 清空模型选项，让用户知道获取失败
+  modelOptions.value = []
+}
+
+const handleFetchEditingModels = async () => {
+  if (!editingModel.value) {
+    return
+  }
+
+  isLoadingModels.value = true
+
+  try {
+    // 获取要使用的配置
+    let apiKey = editingModel.value.apiKey
+    const baseURL = editingModel.value.baseURL
+
+    // 如果是掩码密钥，使用原始密钥
+    if (editingModel.value.displayMaskedKey && editingModel.value.originalKey) {
+      const originalModel = await modelManager.getModel(editingModel.value.originalKey)
+      if (originalModel && originalModel.apiKey) {
+        apiKey = originalModel.apiKey
+      }
+    }
+
+    // 检查必要的参数 - API key允许为空
+    if (!baseURL) {
+      toast.error('请先填写API地址')
+      return
+    }
+
+    const customConfig = {
+      baseURL: baseURL,
+      apiKey: apiKey,
+      provider: editingModel.value.provider || 'custom',
+    }
+
+    const providerKey = editingModel.value.originalKey || editingModel.value.key
+
+    // 获取模型列表
+    const models = await llmService.fetchModelList(providerKey, customConfig)
+
+    // 现在后端会在没有模型时直接抛出错误，所以这里只处理成功的情况
+    modelOptions.value = models
+    toast.success(`成功获取 ${models.length} 个模型`)
+
+    // 如果当前选择的模型不在列表中，默认选择第一个
+    if (models.length > 0 && !models.some((m) => m.value === editingModel.value.defaultModel)) {
+      editingModel.value.defaultModel = models[0].value
+    }
+  } catch (error) {
+    // 使用公共错误处理函数
+    handleModelFetchError(error)
+  } finally {
+    isLoadingModels.value = false
+  }
+}
+const handleFetchNewModels = async () => {
+  if (!newModel.value) {
+    return
+  }
+
+  const apiKey = newModel.value.apiKey
+  const baseURL = newModel.value.baseURL
+  const provider = newModel.value.key || 'custom'
+
+  // 检查必要的参数 - API key允许为空
+  if (!baseURL) {
+    toast.error('请先填写API地址')
+    return
+  }
+
+  isLoadingModels.value = true
+
+  try {
+    const customConfig = {
+      baseURL: baseURL,
+      apiKey: apiKey,
+      provider: currentProviderType.value || 'custom',
+    }
+
+    const models = await llmService.fetchModelList(provider, customConfig)
+
+    // 现在后端会在没有模型时直接抛出错误，所以这里只处理成功的情况
+    modelOptions.value = models
+    toast.success(`成功获取 ${models.length} 个模型`)
+
+    // 默认选择第一个模型
+    if (models.length > 0) {
+      newModel.value.defaultModel = models[0].value
+    }
+  } catch (error) {
+    // 使用公共错误处理函数
+    handleModelFetchError(error)
+  } finally {
+    isLoadingModels.value = false
+  }
+}
+
+// 取消编辑
+const cancelEdit = () => {
+  isEditing.value = false
+  editingModel.value = null
+  modelOptions.value = []
+}
+
+// 保存编辑
+const saveEdit = async () => {
+  try {
+    if (!editingModel.value || !editingModel.value.originalKey) {
+      throw new Error('编辑会话无效')
+    }
+
+    const originalKey = editingModel.value.originalKey
+
+    // 创建更新配置对象，ElectronProxy会自动处理序列化
+    const config = {
+      name: editingModel.value.name,
+      baseURL: editingModel.value.baseURL,
+      // 掩码密钥时回填原始密钥
+      apiKey: editingModel.value.displayMaskedKey ? editingModel.value.originalApiKey : editingModel.value.apiKey,
+      defaultModel: editingModel.value.defaultModel,
+      models: modelOptions.value.length > 0 ? modelOptions.value.map((opt) => opt.value) : [editingModel.value.defaultModel],
+      provider: editingModel.value.provider || 'custom',
+      enabled: editingModel.value.enabled ?? true,
+      llmParams: editingModel.value.llmParams || {},
+    }
+
+    // 直接更新原始模型
+    await modelManager.updateModel(originalKey, config)
+
+    // 重新加载模型列表
+    await loadModels()
+
+    // 触发更新事件
+    emit('modelsUpdated', originalKey)
+
+    // 清理临时状态
+    isEditing.value = false
+    editingModel.value = null
+
+    toast.success('更新成功')
+  } catch (error) {
+    console.error('更新模型失败:', error)
+    toast.error(`更新失败：${error.message}`)
+  }
+}
+
+// =============== 添加相关函数 ===============
+const addCustomModel = async () => {
+  try {
+    const config = {
+      name: newModel.value.name,
+      baseURL: newModel.value.baseURL,
+      models: modelOptions.value.length > 0 ? modelOptions.value.map((opt) => opt.value) : [newModel.value.defaultModel],
+      defaultModel: newModel.value.defaultModel,
+      apiKey: newModel.value.apiKey,
+      enabled: true,
+      provider: currentProviderType.value || 'custom',
+      llmParams: newModel.value.llmParams || {},
+    }
+
+    await modelManager.addModel(newModel.value.key, config)
+    await loadModels()
+    showAddForm.value = false
+    emit('modelsUpdated', newModel.value.key)
+    newModel.value = {
+      key: '',
+      name: '',
+      baseURL: '',
+      defaultModel: '',
+      apiKey: '',
+      provider: 'custom',
+      llmParams: {},
+    }
+    toast.success('模型添加成功')
+  } catch (error) {
+    console.error('添加模型失败:', error)
+    toast.error(`添加模型失败: ${error.message}`)
+  }
+}
+
+// =============== 监听器 ===============
+// 当编辑或创建表单打开/关闭时，重置状态
+watch(
+  () => editingModel.value?.apiKey,
+  (newValue) => {
+    if (editingModel.value && newValue) {
+      // 如果新输入的密钥不包含星号，标记为非掩码
+      editingModel.value.displayMaskedKey = newValue.includes('*')
+    }
+  },
+)
+
+// =============== Advanced Parameters Computed Properties ===============
+const currentLLMParams = computed(() => {
+  return isEditing.value ? editingModel.value?.llmParams || {} : newModel.value.llmParams
+})
+
+const currentProviderType = computed(() => {
+  if (isEditing.value) {
+    return editingModel.value?.provider || 'custom'
+  }
+  // 新建模型时，根据 key 推断 provider；命中默认 provider 则使用对应类型，否则 custom
+  const knownProviders = ['openai', 'gemini']
+  if (newModel.value.key && knownProviders.includes(newModel.value.key.toLowerCase())) {
+    return newModel.value.key.toLowerCase()
+  }
+  return newModel.value.provider || 'custom'
+})
+
+const getParamMetadata = (paramName) => {
+  if (!advancedParameterDefinitions) return null
+  // Ensure currentProviderType.value is valid before using in .includes()
+  const provider = currentProviderType.value || 'custom'
+  const definition = advancedParameterDefinitions.find((def) => def.name === paramName && def.appliesToProviders.includes(provider))
+
+  if (definition) {
+    return {
+      ...definition,
+      label: definition.label || definition.name,
+      description: definition.description || `(${paramName})`,
+      unit: definition.unit || '',
+    }
+  }
+  return null // For custom params or if not found
+}
+
+const availableLLMParamDefinitions = computed(() => {
+  if (!advancedParameterDefinitions) return []
+  const currentParams = currentLLMParams.value || {}
+  const provider = currentProviderType.value || 'custom'
+
+  return advancedParameterDefinitions.filter((def) => def.appliesToProviders.includes(provider) && !Object.keys(currentParams).includes(def.name))
+})
+
+const removeLLMParam = (paramKey) => {
+  if (currentLLMParams.value) {
+    delete currentLLMParams.value[paramKey]
+    // Vue 3 might need a bit more help for reactivity on nested objects if not using Vue.set or Vue.delete
+    // However, direct deletion and assignment for the whole llmParams object during save should be fine.
+    // For local reactivity within the form, this should work.
+  }
+}
+
+const quickAddLLMParam = () => {
+  const paramsObject = currentLLMParams.value
+  if (!paramsObject) return // Should not happen if initialized correctly
+
+  if (selectedNewLLMParamId.value === 'custom') {
+    if (customLLMParam.value.key && !paramsObject[customLLMParam.value.key]) {
+      // For custom params, initially store value as string.
+      // Type conversion can be attempted by user or upon processing if needed.
+      paramsObject[customLLMParam.value.key] = customLLMParam.value.value
+    }
+    customLLMParam.value = { key: '', value: '' } // Reset custom input
+  } else {
+    const definition = advancedParameterDefinitions.find((def) => def.id === selectedNewLLMParamId.value)
+    if (definition && !paramsObject[definition.name]) {
+      let val = definition.defaultValue
+      // Basic type handling for default values
+      if (definition.type === 'boolean') {
+        val = val === undefined ? false : Boolean(val)
+      } else if (definition.type === 'integer' && val !== undefined) {
+        val = parseInt(String(val), 10)
+      } else if (definition.type === 'number' && val !== undefined) {
+        val = parseFloat(String(val))
+      } else if (definition.name === 'stopSequences') {
+        // Special handling for stopSequences
+        val = Array.isArray(val)
+          ? val
+          : typeof val === 'string' && val
+          ? val
+              .split(',')
+              .map((s) => s.trim())
+              .filter((s) => s)
+          : []
+      }
+      // All other types, including string, or if val is undefined, will use val as is.
+      paramsObject[definition.name] = val
+    }
+  }
+  selectedNewLLMParamId.value = '' // Reset select
+}
+
+// 处理快速添加参数（选择后立即添加；选中"自定义参数"时由后续输入触发添加）
+const handleQuickAddParam = () => {
+  if (selectedNewLLMParamId.value !== 'custom') {
+    quickAddLLMParam()
+  }
+}
+
+// 验证参数是否有效
+const isParamInvalid = (paramName, value) => {
+  const metadata = getParamMetadata(paramName)
+  // 如果是自定义参数（没有metadata），只做基础验证
+  if (!metadata) {
+    // 对自定义参数进行基础验证：不能为空且不能包含危险字符
+    if (value === undefined || value === null || value === '') return false
+
+    // 检查是否包含潜在危险的参数名
+    const dangerousNames = ['eval', 'exec', 'script', '__proto__', 'constructor']
+    if (dangerousNames.some((dangerous) => paramName.toLowerCase().includes(dangerous))) {
+      return true
+    }
+
+    return false
+  }
+
+  if (value === undefined || value === null || value === '') return false
+
+  if (metadata.type === 'number' || metadata.type === 'integer') {
+    const numValue = Number(value)
+    if (isNaN(numValue)) return true
+
+    if (metadata.minValue !== undefined && numValue < metadata.minValue) return true
+    if (metadata.maxValue !== undefined && numValue > metadata.maxValue) return true
+
+    if (metadata.type === 'integer' && !Number.isInteger(numValue)) return true
+  }
+
+  return false
+}
+
+// 获取参数验证错误信息
+const getParamValidationMessage = (paramName, value) => {
+  const metadata = getParamMetadata(paramName)
+  // 自定义参数的错误信息
+  if (!metadata) {
+    const dangerousNames = ['eval', 'exec', 'script', '__proto__', 'constructor']
+    if (dangerousNames.some((dangerous) => paramName.toLowerCase().includes(dangerous))) {
+      return '此参数名称包含潜在危险字符，不允许使用'
+    }
+    return ''
+  }
+
+  if (metadata.type === 'number' || metadata.type === 'integer') {
+    const numValue = Number(value)
+    if (isNaN(numValue)) {
+      return `参数值必须是有效的${metadata.type === 'integer' ? '整数' : '数字'}`
+    }
+
+    if (metadata.minValue !== undefined && numValue < metadata.minValue) {
+      return `参数值不能小于 ${metadata.minValue}`
+    }
+    if (metadata.maxValue !== undefined && numValue > metadata.maxValue) {
+      return `参数值不能大于 ${metadata.maxValue}`
+    }
+
+    if (metadata.type === 'integer' && !Number.isInteger(numValue)) {
+      return '参数值必须是整数'
+    }
+  }
+
+  return ''
+}
+
+watch(
+  () => newModel.value.key,
+  (newKey) => {
+    // If the key changes and implies a different provider type for a new model,
+    // it might be good to reset llmParams or re-evaluate defaults.
+    // For simplicity now, we can reset if the key change might imply a different context.
+    // This is a basic reset; more sophisticated logic could merge common params if desired.
+    const knownProviders = ['openai', 'gemini']
+    let newProvider = 'custom'
+    if (newKey && knownProviders.includes(newKey.toLowerCase())) {
+      newProvider = newKey.toLowerCase()
+    }
+
+    if (newModel.value.provider !== newProvider) {
+      // If provider type effectively changes, reset llmParams.
+      // This helps if user types "openai", then changes mind to "gemini".
+      // The UI will then show relevant default params for "gemini".
+      newModel.value.llmParams = {}
+      newModel.value.provider = newProvider // Update the provider field too
+    } else if (newModel.value.provider === 'custom' && newProvider === 'custom' && newModel.value.key !== '') {
+      // If still custom but key has changed, it's a new custom model, reset llmParams
+      newModel.value.llmParams = {}
+    }
+  },
+)
+
+// =============== 生命周期钩子 ===============
+// 初始化
+onMounted(() => {
+  loadModels()
+})
+</script>
+
+<style scoped>
+/* 添加过渡动画 */
+.modal-enter-active,
+.modal-leave-active {
+  transition: all 0.3s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+/* 文本截断样式 */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+</style>

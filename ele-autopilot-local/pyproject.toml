@@ -1,0 +1,22 @@
+[project]
+name = "ele-autopilot-local"
+version = "0.1.4"
+description = "Local autopilot service for browser automation"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "browser-use>=0.12.5",
+    "fastapi>=0.135.2",
+    "langchain-openai>=1.1.9",
+    "uvicorn[standard]>=0.42.0",
+]
+
+[project.scripts]
+ele-autopilot = "autopilot.cli:cli"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["autopilot", "langchain", "middleware", "patches", "routers", "schemas", "utils"]
