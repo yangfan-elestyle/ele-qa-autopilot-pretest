@@ -2,6 +2,18 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.5.1] - 2026-05-19
+
+### Fixed
+
+- Workflow trigger 从统一 `v*` 改为 namespace `ele-autopilot/v*`, 避免跨子项目 fan-out 部署 (三个 workflow 全部 listen `v*` → 任意 tag 同时触发 autopilot / autopilot-local / autotesting 重新部署).
+- `app/routes/releases.local.$.tsx` `cacheControlFor` 冗余判断 (`key === 'local/latest.txt'` 已被 `endsWith('/latest.txt')` 覆盖) 清理.
+
+### Docs
+
+- `AGENTS.md` / `CLAUDE.md` Key Files 段补 `RELEASES` R2 binding 描述 (1.5.0 漏改).
+- `deploy.md` tag 格式从 `vX.Y.Z` 同步为 `ele-autopilot/vX.Y.Z`, workflow 路径从 `release.yml` 更正为根仓库 `autopilot.yml`.
+
 ## [1.5.0] - 2026-05-19
 
 ### Added

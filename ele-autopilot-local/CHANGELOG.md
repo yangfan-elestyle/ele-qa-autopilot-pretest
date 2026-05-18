@@ -2,6 +2,17 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.5.1] - 2026-05-19
+
+### Fixed
+
+- Workflow trigger 从统一 `v*` 改为 namespace `ele-autopilot-local/v*`, 避免跨子项目 fan-out 部署. R2 上传步骤的版本号提取适配 namespace tag (`tag##*/` 去 namespace + `#v` 去 v).
+- `CHANGELOG.md` 1.5.0 链接 (`../../releases/tag/v1.5.0`) 移除 — R2 渠道不再产生 GitHub Release URL.
+
+### Docs
+
+- `deploy.md` / `AGENTS.md` tag 格式从 `vX.Y.Z` 同步为 `ele-autopilot-local/vX.Y.Z`.
+
 ## [1.5.0] - 2026-05-19
 
 ### Changed
@@ -31,6 +42,5 @@
 - `deploy.md` 发布流程文档 (含 amend 修上版 bug SOP)
 - 本 CHANGELOG (Keep a Changelog 1.1.0 + SemVer 风格)
 
-[1.5.0]: ../../releases/tag/v1.5.0
 [0.1.4]: https://github.com/yangfan-elestyle/ele-autopilot-local-pretest/releases/tag/v0.1.4
 [0.1.3]: https://github.com/yangfan-elestyle/ele-autopilot-local-pretest/releases/tag/v0.1.3

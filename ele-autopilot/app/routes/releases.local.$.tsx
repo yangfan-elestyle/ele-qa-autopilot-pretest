@@ -13,7 +13,7 @@ function contentTypeFor(name: string): string {
 
 function cacheControlFor(key: string): string {
   // latest.txt 短缓存让发版后快速反映; 其他按版本路径不可变, 长缓存.
-  if (key.endsWith('/latest.txt') || key === 'local/latest.txt') {
+  if (key.endsWith('/latest.txt')) {
     return 'public, max-age=60';
   }
   return 'public, max-age=31536000, immutable';

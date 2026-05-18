@@ -3,7 +3,7 @@ name: autopilot
 on:
   push:
     tags:
-      - 'v*'
+      - 'ele-autopilot/v*'
 
 permissions:
   contents: read
@@ -44,8 +44,9 @@ jobs:
         run: |
           pkg_version="$(jq -r .version package.json)"
           tag="${{ github.ref_name }}"
-          if [ "v${pkg_version}" != "${tag}" ]; then
-            echo "error: tag ${tag} does not match package.json version v${pkg_version}" >&2
+          ver="${tag##*/}"; ver="${ver#v}"
+          if [ "${ver}" != "${pkg_version}" ]; then
+            echo "error: tag ${tag} version ${ver} does not match package.json version ${pkg_version}" >&2
             exit 1
           fi
 

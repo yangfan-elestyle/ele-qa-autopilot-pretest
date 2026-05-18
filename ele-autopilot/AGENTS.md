@@ -23,7 +23,7 @@ React Router v7 (Framework mode) Web 应用 — QA 任务管理后台. 文件夹
 - `app/admin/`: 管理后台 UI 模块 (`_components/` / `_data/` / `_hooks/` / `_services/` / `_utils/` / `_theme/`).
 - `app/lib/api-shared.ts`: 资源路由通用 helper (`jsonResponse` / `parseListParams` / `withContentRange` / `mapDbErrorToStatus`).
 - `lib/db/`: D1 数据访问层 (异步 prepared statement, 仅在 loader/action 内调用; 客户端必须通过 fetch API 访问).
-- `lib/bindings.ts`: `AsyncLocalStorage<{DB, SCREENSHOTS}>` 容器, 请求级别注入 Cloudflare bindings.
+- `lib/bindings.ts`: `AsyncLocalStorage<{DB, SCREENSHOTS, RELEASES}>` 容器, 请求级别注入 Cloudflare bindings.
 - `lib/screenshots.ts`: R2 截图读写 (base64 解码 → R2.put, key = `<jobTaskId>/<i>.png`).
 - `workers/app.ts`: Workers fetch handler 入口, `runWithBindings()` wrap + RR7 `createRequestHandler`.
 - `migrations/`: D1 SQL 迁移 (`NNNN_description.sql`, `wrangler d1 migrations apply` 顺序执行).
@@ -31,10 +31,10 @@ React Router v7 (Framework mode) Web 应用 — QA 任务管理后台. 文件夹
 
 ## Key Files
 
-- `wrangler.jsonc`: Workers 配置 — `main: ./workers/app.ts`, `compatibility_flags: ["nodejs_compat"]`, d1 binding `DB` (含真实 `database_id`), r2 binding `SCREENSHOTS`.
+- `wrangler.jsonc`: Workers 配置 — `main: ./workers/app.ts`, `compatibility_flags: ["nodejs_compat"]`, d1 binding `DB` (含真实 `database_id`), r2 bindings `SCREENSHOTS` + `RELEASES`.
 - `react-router.config.ts`: `ssr: true`, `appDirectory: 'app'`, `future.v8_viteEnvironmentApi: true` (与 `@cloudflare/vite-plugin` 集成必需).
 - `vite.config.ts`: `cloudflare({ viteEnvironment: { name: 'ssr' } })` + `tailwindcss()` + `reactRouter()`; `@/*` 别名通过 Vite 内置 `resolve.tsconfigPaths`.
-- `worker-configuration.d.ts`: `wrangler types` 生成, 含 `Env` (DB / SCREENSHOTS) + runtime types. **不要手编辑**, 改 `wrangler.jsonc` 后跑 `bun run typegen`.
+- `worker-configuration.d.ts`: `wrangler types` 生成, 含 `Env` (DB / SCREENSHOTS / RELEASES) + runtime types. **不要手编辑**, 改 `wrangler.jsonc` 后跑 `bun run typegen`.
 - `app/routes.ts`: 路由总表 (新增页面 / API 必须同步登记).
 - `lib/db/index.ts`: 公共导出聚合; 业务调 `import { getTaskById } from '@/lib/db'`.
 - `lib/db/connection.ts`: `getDb()` 从 ALS 取 D1 实例.
@@ -100,9 +100,9 @@ bun run format         # prettier --write .
 
 ## Release
 
-- 触发: push `v*` tag. workflow: `.github/workflows/release.yml`.
-- 流程: 校验 `package.json#version` = tag → bun install → build → `wrangler d1 migrations apply ele-autopilot --remote` → `wrangler deploy`.
-- D1 (`ele-autopilot`) / R2 (`ele-autopilot-screenshots`) 已由人工预先创建, workflow 不再探测 / 创建.
+- 触发: push `ele-autopilot/v*` tag. workflow: 根仓库 `.github/workflows/autopilot.yml`.
+- 流程: 校验 tag 版本号 = `package.json#version` → bun install → build → `wrangler d1 migrations apply ele-autopilot --remote` → `wrangler deploy`.
+- D1 (`ele-autopilot`) / R2 (`ele-autopilot-screenshots` + `ele-autopilot-releases`) 已由人工预先创建, workflow 不再探测 / 创建.
 - 完整步骤 / amend 场景: [deploy.md](./deploy.md).
 
 ## Security & Configuration
