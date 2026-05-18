@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "qa",
+  "main": "./src/index.ts",
+  "compatibility_date": "2025-11-01",
+  "workers_dev": true,
+  "observability": {
+    "enabled": true
+  },
+  "services": [
+    { "binding": "AUTOPILOT", "service": "ele-autopilot" },
+    { "binding": "AUTOTEST", "service": "ele-autotesting" }
+  ]
+}

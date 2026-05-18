@@ -2,8 +2,8 @@ import { type RouteConfig, route, index } from '@react-router/dev/routes';
 
 export default [
   index('routes/_index.tsx'),
-  route('admin', 'routes/admin._index.tsx'),
-  route('admin/preview/:taskId', 'routes/admin.preview.$taskId.tsx'),
+  route('autopilot', 'routes/autopilot._index.tsx'),
+  route('autopilot/preview/:taskId', 'routes/autopilot.preview.$taskId.tsx'),
   route('help', 'routes/help.tsx'),
 
   // Admin REST API

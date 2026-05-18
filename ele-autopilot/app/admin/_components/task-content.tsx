@@ -124,7 +124,7 @@ export default function TaskContent({
             <Button
               type="text"
               icon={<EyeOutlined />}
-              onClick={() => window.open(`/admin/preview/${record.id}`, '_blank')}
+              onClick={() => window.open(`/autopilot/preview/${record.id}`, '_blank')}
               className="!h-10 !w-10"
             />
           </Tooltip>
@@ -209,7 +209,7 @@ export default function TaskContent({
             onChange: (keys) => onSelectionChange(keys as Id[]),
           }}
           onRow={(record) => ({
-            onClick: () => window.open(`/admin/preview/${record.id}`, '_blank'),
+            onClick: () => window.open(`/autopilot/preview/${record.id}`, '_blank'),
             className: 'cursor-pointer',
           })}
           size="middle"

@@ -35,7 +35,7 @@ export default function HelpPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-10">
-      <Link to="/admin">← 回到 Admin</Link>
+      <Link to="/autopilot">← 回到 AutoPilot</Link>
 
       <Title level={2} className="!mb-1 !mt-4">
         ele-autopilot 本地命令

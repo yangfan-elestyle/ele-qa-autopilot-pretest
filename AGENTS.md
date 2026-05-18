@@ -1,6 +1,6 @@
 # ele-qa-autopilot
 
-QA AutoPilot 合并仓库. **三个独立子项目共存**, 不是 monorepo workspace — 三种包管理器 (Bun / uv / pnpm) 各管各, 互不依赖构建.
+QA AutoPilot 合并仓库. **四个独立子项目共存** (三个业务 + 一个 gateway), 不是 monorepo workspace — 业务三种包管理器 (Bun / uv / pnpm) + gateway (Bun) 各管各, 互不依赖构建.
 
 ## AI-only 工程声明
 
@@ -11,26 +11,36 @@ QA AutoPilot 合并仓库. **三个独立子项目共存**, 不是 monorepo work
 ## 系统拓扑
 
 ```
-[ele-autotesting]         [ele-autopilot] ◄────────┐
- (独立, 生成用例)          (Web 后台 / 任务中心)     │ POST /api/jobs/:id/callback/{task,complete}
-                                 │  ▲                │
-                                 ▼  │ 创建 Job        │
-                          [ele-autopilot-local] ─────┘
-                          (本地 :8000, 驱动 Chrome)
+                  https://qa.<account-sub>.workers.dev   (唯一对外公网入口)
+                                  │
+                          [gateway "qa"]
+                          /          \
+                         /            \
+   (其他/透传) │            │ /autotest/* (strip 前缀)
+                 ▼            ▼
+       [ele-autopilot]   [ele-autotesting]    (workers_dev:false, 仅 service binding)
+        (Web 后台)         (用例生成)
+                 │  ▲
+   创建 Job  │  │ POST /api/jobs/:id/callback/{task,complete}
+                 ▼  │
+       [ele-autopilot-local]
+       (本地 :8000, 驱动 Chrome)
 ```
 
+- `gateway`: `/` landing 双卡片 (AutoPilot / AutoTest); `/autotest/*` → AUTOTEST (strip 前缀转发); 其他 → AUTOPILOT (透传, 含 `/autopilot*` / `/help` / `/api/*` / `/screenshots/*` / `/releases/*` / `/install.sh`).
 - `ele-autopilot` 前端默认调本地 `http://127.0.0.1:8000` 创建 Job (`app/admin/_services/local-api.ts`).
-- `ele-autopilot-local` 通过 `autopilot/callback.py` 回调 `ele-autopilot` 上报状态与截图.
-- `ele-autotesting` 与上述两者**运行时无耦合**, 仅同属 QA 工具族.
+- `ele-autopilot-local` 通过 `autopilot/callback.py` 回调 `ele-autopilot` 上报状态与截图; 回调 base URL 由 ele-autopilot 后端动态下发 = 当前请求 origin (经 gateway 自动变为 `qa.<sub>.workers.dev`).
+- `ele-autotesting` 与 autopilot 当前**运行时无耦合**, 仅同属 QA 工具族; 未来联动通过加 service binding 实现.
 
 ## 子项目入口
 
 <!-- prettier-ignore -->
 | 子目录 | 角色 | 语言/包管 | 部署目标 | 详细文档 |
 |---|---|---|---|---|
-| `ele-autopilot/` | 任务管理中心 + Web 后台 | TS / Bun | CF Workers + D1 + R2 | [`./ele-autopilot/AGENTS.md`](./ele-autopilot/AGENTS.md) |
+| `gateway/` | 唯一公网入口 + 路径分发 | TS / Bun | CF Workers (`qa`, workers_dev) | [`./gateway/AGENTS.md`](./gateway/AGENTS.md) |
+| `ele-autopilot/` | 任务管理中心 + Web 后台 | TS / Bun | CF Workers + D1 + R2 (`workers_dev:false`) | [`./ele-autopilot/AGENTS.md`](./ele-autopilot/AGENTS.md) |
 | `ele-autopilot-local/` | 浏览器执行 agent (macOS) | Python 3.12 / uv | 本机 0.0.0.0:8000 | [`./ele-autopilot-local/AGENTS.md`](./ele-autopilot-local/AGENTS.md) |
-| `ele-autotesting/` | AI 测试用例生成工具 | TS / pnpm | CF Workers + Container | [`./ele-autotesting/CLAUDE.md`](./ele-autotesting/CLAUDE.md) |
+| `ele-autotesting/` | AI 测试用例生成工具 | TS / pnpm | CF Workers + Container (`workers_dev:false`) | [`./ele-autotesting/CLAUDE.md`](./ele-autotesting/CLAUDE.md) |
 
 ## AI 操作规则
 
@@ -43,8 +53,8 @@ QA AutoPilot 合并仓库. **三个独立子项目共存**, 不是 monorepo work
 
 完整实操流程见 [./deploy.md](./deploy.md). 核心约束:
 
-- **单一 tag, 三项目同步 bump**: 发布 tag 格式 `vX.Y.Z` (无 namespace). `ele-autopilot/package.json#version` / `ele-autopilot-local/pyproject.toml#version` / `ele-autotesting/package.json#version` **必须始终完全一致**. 任一 release 三项目同步 bump, 无业务改动的项目 CHANGELOG 标注 `lockstep 同步, 与上游 vX.Y.Z 一同发布`.
-- **任一 `v*` tag → 三 workflow 全部触发**: 根 `.github/workflows/{autopilot,autopilot-local,autotesting}.yml` 均 listen `v*`, 各自跑各自构建+部署. 真实变更面由 commit 影响行决定, tag 只是统一触发器.
+- **单一 tag, 四项目同步 bump**: 发布 tag 格式 `vX.Y.Z` (无 namespace). `gateway/package.json#version` / `ele-autopilot/package.json#version` / `ele-autopilot-local/pyproject.toml#version` / `ele-autotesting/package.json#version` **必须始终完全一致**. 任一 release 四项目同步 bump, 无业务改动的项目 CHANGELOG 标注 `lockstep 同步, 与上游 vX.Y.Z 一同发布`.
+- **任一 `v*` tag → 四 workflow 全部触发**: 根 `.github/workflows/{gateway,autopilot,autopilot-local,autotesting}.yml` 均 listen `v*`, 各自跑各自构建+部署. 真实变更面由 commit 影响行决定, tag 只是统一触发器.
 - 旧 per-project namespace tag (`<project>/vX.Y.Z`) 已废弃, 历史里如残留视为发布事故.
 - **CHANGELOG**: 各子目录独立维护, 三项目每次 release 都新增同一版本号段.
 - **Commit 风格**: Conventional Commits. Release commit 统一 `release: vX.Y.Z`. 跨子项目改动用 scope: `feat(autopilot): ...` / `fix(local): ...` / `chore(autotesting): ...`.
@@ -62,4 +72,4 @@ QA AutoPilot 合并仓库. **三个独立子项目共存**, 不是 monorepo work
 
 - **没有 monorepo 工具** (Turborepo / Nx / Bazel) — 部署独立, 引入收益小于成本.
 - **没有顶层 workspace** — pnpm 不识别 Python, uv 不识别 Node, 别折腾.
-- **不在顶层放业务代码** — 顶层只能有: `.github/` / `.gitignore` / `README.md` / `AGENTS.md` / `CLAUDE.md` (symlink) / `deploy.md` / 未来的 `contracts/`.
+- **不在顶层放业务代码** — 顶层只能有: `.github/` / `.gitignore` / `README.md` / `AGENTS.md` / `CLAUDE.md` (symlink) / `deploy.md` / `gateway/` (新增, 极薄的路由层) / 未来的 `contracts/`.

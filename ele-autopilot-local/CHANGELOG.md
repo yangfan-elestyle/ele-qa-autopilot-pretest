@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.5.3] - 2026-05-19
+
+### Changed
+
+- lockstep 同步, 与上游 ele-autopilot / ele-autotesting / gateway v1.5.3 一同发布; 本项目无业务改动. 上游变化: 新增 `qa` gateway Worker 统一公网入口 `https://qa.<account-sub>.workers.dev`, 业务 Worker 关闭 `workers_dev`. 安装入口 (`/install.sh`) 与回调 URL 均通过 gateway 自动透传, 本端无需修改 — `callback_url` 由 ele-autopilot 后端动态下发, install 脚本由 Worker 动态生成 base URL.
+
 ## [1.5.2] - 2026-05-19
 
 ### Changed

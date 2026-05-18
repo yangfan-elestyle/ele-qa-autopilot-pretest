@@ -1,3 +1,12 @@
+# 2026.05.19 (lockstep v1.5.3)
+
+1. 版本号 lockstep 同步 1.5.2 → 1.5.3, 与上游 ele-autopilot / ele-autopilot-local / gateway v1.5.3 一同发布.
+2. `packages/server/wrangler.jsonc` 加 `workers_dev: false` — Worker 不再暴露 `*.workers.dev` 公网, 仅可经新增 gateway Worker (`qa`) 通过 service binding 访问.
+3. `packages/web/vite.config.ts` `base` 选项: 生产构建走 `/autotest/`, dev 保持 `/` — 配合 gateway 把 `/autotest/*` 路径 strip 后转发到本 Worker.
+4. `packages/server/src/index.ts` 末尾加 `env.ASSETS.fetch(request)` fallback (仅 Hono 404 时触发) — service binding 调用会绕过平台层 Static Assets 处理, 需要 Worker 内手动 fallback 才能让静态资源 + SPA `not_found_handling` 工作.
+5. 修复 Web SPA 调远端存储 API 漏 `/autotest` 前缀导致 404 (`/api/sync/items/*` 等被 gateway 默认转给 AUTOPILOT, AUTOTEST 不接到流量). `useAppInitializer` 改为接收 `apiBase` 参数, web 侧由 `import.meta.env.BASE_URL` 注入 (生产 `/autotest`, dev `''`), 与 vite `base` 锁步. 影响: `packages/ui/src/composables/useAppInitializer.ts` + `packages/web/src/App.vue`.
+6. 修复 LLM 流式 / HTTP 代理 (`/stream-proxy`, `/http-proxy`) 同样漏 `/autotest` 前缀导致优化按钮触发 404 (与第 5 条同型). core 包加 `setProxyBasePath(basePath)` module setter, `getProxyUrl` 拼 URL 时带上前缀; `useAppInitializer` 在 setup() 同步阶段调用 setter (早于 `createLLMService`). 影响: `packages/core/src/utils/environment.ts` + `packages/core/src/index.ts` + `packages/ui/src/index.ts` + `packages/ui/src/composables/useAppInitializer.ts`.
+
 # 2026.05.19 (lockstep v1.5.2)
 
 1. 版本号 lockstep 同步 1.5.0 → 1.5.2, 与上游 ele-autopilot / ele-autopilot-local v1.5.2 一同发布; 本项目无业务改动.

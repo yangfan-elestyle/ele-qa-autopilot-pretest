@@ -454,7 +454,7 @@ export default function AdminTaskExplorer() {
             },
           );
           // 跳转到 preview 页面
-          window.open(`/admin/preview/${task.id}`, '_blank');
+          window.open(`/autopilot/preview/${task.id}`, '_blank');
         } catch {
           // 错误已在 onError 回调中处理
         }

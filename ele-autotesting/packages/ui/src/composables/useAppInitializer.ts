@@ -12,6 +12,7 @@ import {
   createCompareService,
   DataManager,
   createPreferenceService,
+  setProxyBasePath,
 } from '../' // 从UI包的index导入所有核心模块
 import type { AppServices } from '../types/services'
 import type { IModelManager, ITemplateManager, IHistoryManager, ILLMService, IPromptService, IDataManager } from '@prompt-optimizer/core'
@@ -125,9 +126,20 @@ async function migrateDexieToRemoteIfNeeded(remote: RemoteStorageProvider, owner
 /**
  * 应用服务统一初始化器。
  * 负责根据运行环境 Web 创建和初始化所有核心服务。
+ *
+ * @param apiBase 远端存储 API 前缀, 应当与 SPA 挂载子路径一致 (生产 `/autotest`, dev `''`).
+ *                由 web 包通过 `import.meta.env.BASE_URL` 注入 — ui 包是 lib 独立 build,
+ *                自己读 BASE_URL 拿到的永远是 ui 自身的 base ('/'), 不能用.
  * @returns { services, isInitializing, error }
  */
-export function useAppInitializer() {
+export function useAppInitializer(apiBase: string = '') {
+  // setup() 同步时机就把 SPA 子路径 (`/autotest` 或 '') 告诉 core, 让 core 内的
+  // `getProxyUrl` 后续拼出带前缀的 `/autotest/{stream,http}-proxy?...` URL —
+  // 否则 LLM 流式 / HTTP 代理请求被 gateway 默认转给 AUTOPILOT, 404.
+  // 必须早于任何 createLLMService 调用, onMounted 内已经够早 (composable 顺序保证).
+  const normalizedBase = apiBase.replace(/\/+$/, '')
+  setProxyBasePath(normalizedBase)
+
   const services = ref<AppServices | null>(null)
   const isInitializing = ref(true)
   const error = ref<Error | null>(null)
@@ -148,7 +160,7 @@ export function useAppInitializer() {
       // 在Web环境中，所有数据走 Cloudflare D1 远程存储.
       // 身份: V1 全局共享单一 owner (方便端到端验证), V2 切 Google id_token.
       // 详见上方 SHARED_OWNER_ID 注释 + packages/server/src/middleware/auth.ts.
-      const remoteProvider = StorageFactory.createRemote('', () => ({
+      const remoteProvider = StorageFactory.createRemote(normalizedBase, () => ({
         'X-Device-Id': SHARED_OWNER_ID,
       }))
 

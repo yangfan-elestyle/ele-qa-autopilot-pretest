@@ -166,7 +166,10 @@ import type { IPromptService } from '@prompt-optimizer/core'
 const toast = useToast()
 
 // 2. 初始化应用服务
-const { services, isInitializing, error } = useAppInitializer()
+// SPA 生产挂载在 /autotest/ 子路径下 (vite base), 远端存储 API 必须带同样前缀,
+// 否则 gateway 把请求当成 /api/* 默认转给 AUTOPILOT, 命中 404 (sync 路由在 AUTOTEST).
+const apiBase = (import.meta.env.BASE_URL ?? '/').replace(/\/+$/, '')
+const { services, isInitializing, error } = useAppInitializer(apiBase)
 
 // 3. 向子组件提供服务
 provide('services', services)

@@ -2,6 +2,18 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.5.3] - 2026-05-19
+
+### Changed
+
+- Page path `/admin` → `/autopilot` (`app/routes.ts` 两条 route + 文件重命名 `routes/admin.*.tsx` → `routes/autopilot.*.tsx`); `_index.tsx` redirect / `help.tsx` 回退 Link / `task-content.tsx` 与 `admin-task-explorer.tsx` `window.open` 同步更新.
+- `wrangler.jsonc` 加 `workers_dev: false` — Worker 不再暴露 `*.workers.dev` 公网, 仅可经新增 gateway Worker (`qa`) 经 service binding 访问.
+- API path `/api/admin/*` / callback `/api/jobs/*` / root level (`/screenshots/*` / `/releases/*` / `/install.sh` / `/help`) 全部保留, 兼容现网 ele-autopilot-local 端契约.
+
+### Added
+
+- 新增根仓库 `gateway/` 子项目 (Cloudflare Worker `qa`), 唯一对外公网入口 `https://qa.<account-sub>.workers.dev`, 提供 `/` landing 双卡片 (AutoPilot / AutoTest) + 路径分发. 详见 `gateway/AGENTS.md`.
+
 ## [1.5.2] - 2026-05-19
 
 ### Changed

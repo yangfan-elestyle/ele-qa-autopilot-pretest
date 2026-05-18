@@ -56,6 +56,7 @@ export {
   createPromptService,
   createPreferenceService,
   createCompareService,
+  setProxyBasePath,
 } from '@prompt-optimizer/core'
 
 // 导出类型
