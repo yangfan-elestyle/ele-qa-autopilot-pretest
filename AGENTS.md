@@ -58,6 +58,7 @@ QA AutoPilot 系统的合并仓库. **三个独立子项目共存**, 不是 mono
 - **GitHub Actions**: workflow 必须放根 `.github/workflows/`, 子目录的 workflow 文件 GitHub 不识别. 用 `on.push.paths` 和 `on.push.tags` 过滤路由到对应子项目.
 - **CHANGELOG**: 各子目录独立维护, 不合并.
 - **Commit 风格**: Conventional Commits (`feat | fix | chore: ...`). 跨多子项目的改动用 `scope` 标注, 如 `feat(autopilot): ...` / `fix(local): ...` / `chore(autotesting): ...`.
+- **ele-autopilot-local 产物去 R2** (不挂 GitHub Release): workflow `wrangler r2 object put` 推到 `ele-autopilot-releases/local/<ver>/{wheel, sdist, checksums.txt}` + `local/latest.txt` 指针. ele-autopilot Worker 暴露 `/releases/local/*` (R2 代理) + `/install.sh` (动态生成, BASE 自带) + `/help` (Web 后台教学页) 给用户.
 
 ## 仓库基础设施
 

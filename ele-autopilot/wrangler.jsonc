@@ -20,6 +20,10 @@
     {
       "binding": "SCREENSHOTS",
       "bucket_name": "ele-autopilot-screenshots"
+    },
+    {
+      "binding": "RELEASES",
+      "bucket_name": "ele-autopilot-releases"
     }
   ]
 }

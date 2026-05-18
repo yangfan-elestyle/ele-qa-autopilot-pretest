@@ -23,8 +23,9 @@ const requestHandler = createRequestHandler(
 
 export default {
   async fetch(request, env, ctx) {
-    return runWithBindings({ DB: env.DB, SCREENSHOTS: env.SCREENSHOTS }, () =>
-      requestHandler(request, { cloudflare: { env, ctx } }),
+    return runWithBindings(
+      { DB: env.DB, SCREENSHOTS: env.SCREENSHOTS, RELEASES: env.RELEASES },
+      () => requestHandler(request, { cloudflare: { env, ctx } }),
     );
   },
 } satisfies ExportedHandler<CloudflareEnvironment>;

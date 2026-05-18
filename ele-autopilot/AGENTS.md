@@ -60,10 +60,11 @@ React Router v7 (Framework mode) Web 应用 — QA 任务管理后台. 文件夹
 
 ## Storage (R2)
 
-- `ele-autopilot-screenshots` bucket, key 格式 `<jobTaskId>/<stepIndex>.png`.
+- `ele-autopilot-screenshots` bucket (binding `SCREENSHOTS`), key 格式 `<jobTaskId>/<stepIndex>.png`.
 - 写: callback 收到 base64 → `lib/screenshots.ts#externalizeScreenshots` → `R2.put`, DB 存路径字符串 `/screenshots/<jobTaskId>/<i>.png`.
 - 读: `/screenshots/*` 路由 → `R2.get(key).body` → Response (1y immutable cache).
 - 路径越狱防护: `r2KeyFromRelPath()` 校验 `..`/控制字符/非法字符.
+- `ele-autopilot-releases` bucket (binding `RELEASES`), 存 ele-autopilot-local 发布产物. Path `local/<ver>/<file>` + `local/latest.txt`. 由 `/releases/local/*` 路由代理只读; 写入由 ele-autopilot-local workflow 经 `wrangler r2 object put`.
 
 ## Build & Development
 

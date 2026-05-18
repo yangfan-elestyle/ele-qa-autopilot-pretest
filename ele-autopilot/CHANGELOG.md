@@ -2,6 +2,16 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.5.0] - 2026-05-19
+
+### Added
+
+- R2 binding `RELEASES` → bucket `ele-autopilot-releases` (`wrangler.jsonc` / `lib/bindings.ts` / `workers/app.ts` 同步).
+- 路由 `/releases/local/*` (`app/routes/releases.local.$.tsx`): 代理 R2 对象, 按扩展名映射 Content-Type, `latest.txt` 短缓存 (60s), 其他 immutable.
+- 路由 `/install.sh` (`app/routes/install-script.tsx`): Worker 动态生成安装脚本, base URL 来自 `request.url.origin` (无须硬编码).
+- 路由 `/help` (`app/routes/help.tsx`): 极简教学页, loader 读 `local/latest.txt` 展示最新版本号 + 三段命令 (uv 装 / install / 启动) 含复制按钮.
+- 管理后台右上角 Help 入口 (`admin-task-explorer.tsx` fixed 浮动按钮 → `/help`).
+
 ## [0.3.2] - 2026-05-19
 
 ### Fixed

@@ -2,6 +2,18 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.5.0] - 2026-05-19
+
+### Changed
+
+- 发布渠道从 GitHub Release 迁到 Cloudflare R2 (`ele-autopilot-releases` bucket). Workflow 不再创建 Release, 改为 `wrangler r2 object put` 上传 wheel / sdist / `checksums.txt` / `local/latest.txt` 指针.
+- 安装入口从 GitHub raw `install.sh` 改为 ele-autopilot Worker 动态生成 (`/install.sh`, base URL 自带).
+
+### Removed
+
+- `install.sh` (转移到 ele-autopilot Worker 路由 `app/routes/install-script.tsx`, 单一事实源).
+- workflow `softprops/action-gh-release` 步骤 + `contents: write` 权限.
+
 ## [0.1.4] - 2026-05-18
 
 ### Removed
@@ -19,5 +31,6 @@
 - `deploy.md` 发布流程文档 (含 amend 修上版 bug SOP)
 - 本 CHANGELOG (Keep a Changelog 1.1.0 + SemVer 风格)
 
+[1.5.0]: ../../releases/tag/v1.5.0
 [0.1.4]: https://github.com/yangfan-elestyle/ele-autopilot-local-pretest/releases/tag/v0.1.4
 [0.1.3]: https://github.com/yangfan-elestyle/ele-autopilot-local-pretest/releases/tag/v0.1.3

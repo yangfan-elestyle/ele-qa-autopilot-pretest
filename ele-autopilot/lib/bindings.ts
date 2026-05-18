@@ -3,6 +3,7 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 export type AppBindings = {
   DB: D1Database;
   SCREENSHOTS: R2Bucket;
+  RELEASES: R2Bucket;
 };
 
 const storage = new AsyncLocalStorage<AppBindings>();

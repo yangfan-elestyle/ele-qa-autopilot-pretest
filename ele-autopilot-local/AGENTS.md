@@ -22,6 +22,7 @@
 - `headless=false` 是默认 (用户可视化操作); `JobConfig.headless=true` 切无头.
 - 装/跑都要 `uv`. 缺则: `curl -LsSf https://astral.sh/uv/install.sh | sh`.
 - 不提交 `dist/`、`.venv/`、`.env` (已在 `.gitignore`).
+- 发布渠道: Cloudflare R2 bucket `ele-autopilot-releases` (不走 GitHub Release). 用户通过 ele-autopilot Web 后台 `/help` 页 / Worker `/install.sh` 一键安装.
 
 ## 架构
 

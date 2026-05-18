@@ -4,6 +4,7 @@ export default [
   index('routes/_index.tsx'),
   route('admin', 'routes/admin._index.tsx'),
   route('admin/preview/:taskId', 'routes/admin.preview.$taskId.tsx'),
+  route('help', 'routes/help.tsx'),
 
   // Admin REST API
   route('api/admin/folders', 'routes/api.admin.folders.tsx'),
@@ -23,4 +24,10 @@ export default [
 
   // Static screenshot files (R2 bucket ele-autopilot-screenshots, URL 形如 /screenshots/{job_task_id}/{i}.png)
   route('screenshots/*', 'routes/screenshots.$.tsx'),
+
+  // ele-autopilot-local 发布产物代理 (R2 bucket ele-autopilot-releases, URL 形如 /releases/local/{version}/{file})
+  route('releases/local/*', 'routes/releases.local.$.tsx'),
+
+  // ele-autopilot-local 安装脚本 (Worker 动态生成, BASE_URL 自带)
+  route('install.sh', 'routes/install-script.tsx'),
 ] satisfies RouteConfig;
