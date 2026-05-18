@@ -1,0 +1,106 @@
+# 根级防御性 .gitignore. 子目录各自的 .gitignore 是事实源, 此处兜底.
+# 顺序: OS → 依赖 → 构建产物 → 缓存 → 环境/密钥 → 子项目专用 → 工具.
+
+# OS / 编辑器
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+*~
+
+# IDE
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+*.code-workspace
+
+# 依赖
+node_modules/
+**/node_modules/
+.pnpm-store/
+.pnp.*
+.yarn/cache
+.yarn/install-state.gz
+
+# Python
+__pycache__/
+*.py[codz]
+*.egg-info/
+.venv/
+**/.venv/
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+.pdm-build/
+
+# 构建产物
+build/
+dist/
+**/dist/
+**/build/
+.next/
+.output/
+
+# Cache / incremental
+.cache/
+.vite/
+.turbo/
+.eslintcache
+.stylelintcache
+*.tsbuildinfo
+.react-router/
+.rollup.cache
+
+# Cloudflare / Wrangler
+.wrangler/
+**/.wrangler/
+.dev.vars
+.dev.vars.*
+
+# Secrets / env
+.env
+.env.local
+.env.*.local
+*.local
+!*.template
+!*.example
+!env.local.example
+
+# 日志
+*.log
+logs/
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 测试 / 覆盖率
+coverage/
+**/coverage/
+.nyc_output/
+test-results/
+playwright-report/
+
+# SQLite (历史本地数据)
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.db
+
+# 证书 / 密钥
+*.pem
+*.key
+*.crt
+*.p12
+
+# Claude / 本地 AI 工具状态 (ele-autopilot/.claude/settings.local.json 已 tracked, 不受影响)
+/.claude/
+ele-autopilot-local/.claude/
+ele-autotesting/.claude/
