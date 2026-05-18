@@ -4,7 +4,7 @@
 
 ## 安装
 
-打开 ele-autopilot Web 后台 → 右上 ?  → `/help` 页, 复制命令执行. 等价于:
+打开 ele-autopilot Web 后台 → 右上 `?` → `/help` 页, 复制命令执行. 等价于:
 
 ```bash
 curl -fsSL <ele-autopilot host>/install.sh | bash
@@ -18,7 +18,7 @@ curl -fsSL <ele-autopilot host>/install.sh | bash
 ELE_LLM_API_KEY=<your-gemini-api-key> ele-autopilot
 ```
 
-直接启动 FastAPI HTTP 服务于 `0.0.0.0:8000`. 无参数无子命令. 启动后 API 文档: `http://localhost:8000/docs`.
+启动 FastAPI HTTP 服务于 `0.0.0.0:8000`. 无参数无子命令. API 文档: `http://localhost:8000/docs`.
 
 ## 自更新
 
@@ -31,7 +31,3 @@ uv sync
 uv run ele-autopilot                                  # 直接启动 (无 reload)
 uv run uvicorn autopilot.cli:app --reload             # 开发模式 (热重载)
 ```
-
-## 发布
-
-push `v*` tag 触发 [`.github/workflows/autopilot-local.yml`](../.github/workflows/autopilot-local.yml). 流程见 [deploy.md](./deploy.md), 改动记录见 [CHANGELOG.md](./CHANGELOG.md).
