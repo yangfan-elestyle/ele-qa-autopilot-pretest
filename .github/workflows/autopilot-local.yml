@@ -1,20 +1,24 @@
-name: Release
+name: autopilot-local
 
 on:
   push:
     tags:
-      - "v*"
+      - 'v*'
 
 permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: autopilot-local-${{ github.ref }}
   cancel-in-progress: false
+
+defaults:
+  run:
+    working-directory: ele-autopilot-local
 
 jobs:
   release:
-    name: Build and publish release
+    name: Build and publish ele-autopilot-local
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -36,7 +40,7 @@ jobs:
         run: uv build
 
       - name: Generate SHA256 checksums
-        working-directory: dist
+        working-directory: ele-autopilot-local/dist
         run: |
           shopt -s nullglob
           files=( ele_autopilot_local-* )
@@ -52,4 +56,4 @@ jobs:
           generate_release_notes: true
           fail_on_unmatched_files: true
           files: |
-            dist/*
+            ele-autopilot-local/dist/*

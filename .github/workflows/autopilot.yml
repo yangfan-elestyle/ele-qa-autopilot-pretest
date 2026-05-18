@@ -1,4 +1,4 @@
-name: Release
+name: autopilot
 
 on:
   push:
@@ -8,9 +8,17 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: autopilot-${{ github.ref }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    working-directory: ele-autopilot
+
 jobs:
   deploy:
-    name: Build & Deploy to Cloudflare Workers
+    name: Build & Deploy ele-autopilot
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
