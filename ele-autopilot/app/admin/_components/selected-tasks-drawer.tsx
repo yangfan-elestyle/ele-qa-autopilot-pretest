@@ -97,14 +97,7 @@ export default function SelectedTasksDrawer({
       ) : (
         <div className="space-y-2">
           {!readonly && (
-            <div
-              className="mb-3 rounded-md border px-3 py-2 text-[12px]"
-              style={{
-                background: 'var(--ds-brand-50)',
-                borderColor: 'rgba(99, 102, 241, 0.18)',
-                color: 'var(--ds-brand-700)',
-              }}
-            >
+            <div className="ds-banner ds-banner-info mb-3">
               拖动可排序，创建任务链时将按当前顺序处理。
             </div>
           )}
@@ -155,28 +148,11 @@ export default function SelectedTasksDrawer({
                         setDragOverId(null);
                       }
                 }
-                className="flex flex-wrap items-start gap-3 rounded-lg border bg-white px-3 py-2.5 transition-all sm:flex-nowrap"
-                style={{
-                  borderColor: over
-                    ? 'var(--ds-brand-500)'
-                    : dragging
-                      ? 'var(--ds-brand-300, #a5b4fc)'
-                      : 'var(--ds-border-soft)',
-                  boxShadow: over
-                    ? '0 0 0 4px rgba(99, 102, 241, 0.18)'
-                    : 'var(--ds-shadow-xs)',
-                  opacity: dragging ? 0.6 : 1,
-                }}
+                className={`ds-dnd-item flex flex-wrap items-start gap-3 px-3 py-2.5 sm:flex-nowrap ${
+                  over ? 'ds-dnd-item-over' : ''
+                } ${dragging ? 'ds-dnd-item-dragging' : ''}`}
               >
-                <span
-                  className="ds-text-mono flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[11px] font-semibold"
-                  style={{
-                    background: 'var(--ds-brand-50)',
-                    color: 'var(--ds-brand-700)',
-                  }}
-                >
-                  {index + 1}
-                </span>
+                <span className="ds-num-square ds-num-square-brand">{index + 1}</span>
                 {!readonly && (
                   <span className="shrink-0 cursor-grab pt-1 text-(--ds-text-tertiary) active:cursor-grabbing">
                     <HolderOutlined />

@@ -1,4 +1,16 @@
-# 2026.05.20 (lockstep v1.8.5)
+# 2026.05.20 (lockstep v1.8.6)
+
+1. lockstep 同步至 v1.8.6, 与 gateway / ele-autopilot / ele-autopilot-local 一同发布. AutoTest 前端本轮跟随上游持续扩充 utility 类系统, 视觉契约本端 (`packages/ui/src/styles/theme.css`) 同步引入 3 组等价 class.
+
+2. `packages/ui/src/styles/theme.css` 增量同步与 ele-autopilot 同名 / 同语义 utility 类 (跨产品视觉契约):
+   - `.ds-skeleton` + `@keyframes ds-skeleton-shimmer`: 通用 shimmer 骨架条 (200% background gradient + 1.6s ease 循环), 替代未来 boot skeleton inline `<style>` 注入.
+   - `.ds-num-square` + `ds-num-square-{neutral / brand}` 2 变体: 24x24 圆角方块, mono 11px 等宽数字索引块.
+   - `.ds-banner` + `ds-banner-{info / success / warning / danger}` 4 变体: 12px 字号行内提示横幅 (inset 1px ring + 软底).
+   - `.ds-dnd-item` + `.ds-dnd-item-over` + `.ds-dnd-item-dragging` 拖拽卡片 3 态: default / over (brand-500 边 + 4px brand-soft ring) / dragging (0.6 opacity + scale(0.99)).
+
+3. AutoTest 前端无业务改动; 等价 utility 已就绪, 任何未来涉及序号 / 提示 / 拖拽场景都可直接复用, 与 ele-autopilot 视觉完全一致.
+
+
 
 1. lockstep 同步至 v1.8.5, 与 gateway / ele-autopilot / ele-autopilot-local 一同发布; AutoTest 前端本轮无业务改动.
 

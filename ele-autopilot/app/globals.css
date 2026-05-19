@@ -456,6 +456,83 @@ body {
     }
   }
 
+  /* —— Numbered square (index 1 / 2 / 3 ... 内联序号块) —— */
+  .ds-num-square {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    border-radius: var(--ds-radius-sm);
+    font-family: var(--ds-font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+    font-feature-settings: 'tnum' 1;
+  }
+  .ds-num-square-neutral {
+    background: var(--ds-surface-subtle);
+    color: var(--ds-text-secondary);
+  }
+  .ds-num-square-brand {
+    background: var(--ds-brand-50);
+    color: var(--ds-brand-700);
+  }
+
+  /* —— Banner (inline page notice 行内提示横幅) —— */
+  .ds-banner {
+    padding: 8px 12px;
+    border-radius: var(--ds-radius-md);
+    font-size: 12px;
+    line-height: 1.55;
+  }
+  .ds-banner-info {
+    background: var(--ds-brand-50);
+    color: var(--ds-brand-700);
+    box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.18);
+  }
+  .ds-banner-success {
+    background: rgba(22, 163, 74, 0.1);
+    color: #15803d;
+    box-shadow: inset 0 0 0 1px rgba(22, 163, 74, 0.22);
+  }
+  .ds-banner-warning {
+    background: rgba(217, 119, 6, 0.1);
+    color: #b45309;
+    box-shadow: inset 0 0 0 1px rgba(217, 119, 6, 0.22);
+  }
+  .ds-banner-danger {
+    background: rgba(220, 38, 38, 0.08);
+    color: #b91c1c;
+    box-shadow: inset 0 0 0 1px rgba(220, 38, 38, 0.22);
+  }
+
+  /* —— Drag-and-drop item (selected-tasks-drawer / 任务链排序卡片) —— */
+  .ds-dnd-item {
+    background: var(--ds-surface-elevated);
+    border: 1px solid var(--ds-border-soft);
+    border-radius: var(--ds-radius-md);
+    box-shadow: var(--ds-shadow-xs);
+    transition:
+      border-color var(--ds-motion-base) var(--ds-ease-standard),
+      box-shadow var(--ds-motion-base) var(--ds-ease-standard),
+      opacity var(--ds-motion-fast) var(--ds-ease-standard),
+      transform var(--ds-motion-fast) var(--ds-ease-standard);
+  }
+  .ds-dnd-item:hover {
+    border-color: var(--ds-border-default);
+  }
+  .ds-dnd-item-over {
+    border-color: var(--ds-brand-500);
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.18);
+  }
+  .ds-dnd-item-dragging {
+    opacity: 0.6;
+    border-color: var(--ds-brand-400);
+    transform: scale(0.99);
+  }
+
   /* —— Job history card (preview workspace) —— */
   .ds-job-card {
     position: relative;

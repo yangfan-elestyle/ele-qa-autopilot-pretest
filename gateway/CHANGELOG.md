@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.8.6] - 2026-05-20
+
+### Changed
+
+- lockstep 同步, 与上游 ele-autopilot / ele-autotesting v1.8.6 一同发布; 本项目无业务改动. 上游 ele-autopilot globals.css 新增 `.ds-num-square` (索引方块) / `.ds-banner` (行内提示横幅 4 变体) / `.ds-dnd-item` (拖拽卡片 3 态), selected-tasks-drawer 与 preview workspace job-detail-panel 抽出全部内联视觉; ele-autotesting theme.css 同步引入等价 utility 类保持设计契约对齐. landing 页路由分发 / `/autotest/*` strip / SSR loader / service bindings 行为不变.
+
 ## [1.8.5] - 2026-05-20
 
 ### Changed

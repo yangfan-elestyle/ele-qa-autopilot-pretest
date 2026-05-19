@@ -2,6 +2,27 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.8.6] - 2026-05-20
+
+### Added
+
+- `app/globals.css` 新增 3 组复用 utility class, 收敛 drawer / preview / 任务链管理界面的散落 inline 视觉:
+  - `.ds-num-square` + `ds-num-square-{neutral / brand}` 2 variant: 24x24 圆角方块, mono 11px 等宽数字, neutral 走 surface-subtle 灰底, brand 走 brand-50 软底 + brand-700 文字; 替代原本 selected-tasks-drawer / job-detail-panel JobTaskLabel 各自 inline 复刻的 `h-6 w-6 + background + color` 索引块.
+  - `.ds-banner` + `ds-banner-{info / success / warning / danger}` 4 variant: 行内提示横幅, 12px 字号 + 8/12px padding + ds-radius-md + inset 1px ring 边框, 4 色软底全部走 token, 替代原本各 drawer / modal 顶部提示用 inline `border + bg + color` 三联手写.
+  - `.ds-dnd-item` + `.ds-dnd-item-over` + `.ds-dnd-item-dragging` 拖拽卡片 3 态:
+    - default: elevated 白底 + soft border + xs shadow, hover 切 border-default.
+    - over: 1px brand-500 + 4px brand-soft ring (drop 目标视觉提示).
+    - dragging: 0.6 opacity + `scale(0.99)` + brand-400 边框 (拖拽中视觉提示).
+    - 全部 transition 走 `--ds-motion-{fast/base} / --ds-ease-standard` token.
+
+### Changed
+
+- `app/admin/_components/selected-tasks-drawer.tsx` 抽出全部内联视觉:
+  - 顶部 "拖动可排序" 提示从 inline `border + bg + color` 3 行收敛到 `.ds-banner .ds-banner-info`.
+  - 拖拽卡片从 10 行三态 inline (`borderColor` 3 元 / `boxShadow` 2 元 / `opacity` 2 元) 收敛到 `ds-dnd-item ds-dnd-item-over ds-dnd-item-dragging` 三个 className 组合, hover 微动效 + over / dragging 状态全部走 token.
+  - 序号方块从 inline `h-6 w-6 + bg + color` 收敛到 `.ds-num-square .ds-num-square-brand`.
+- `app/admin/preview/_components/job-detail-panel.tsx` JobTaskLabel 索引方块从 inline `h-6 w-6 + bg-subtle + color-secondary` 收敛到 `.ds-num-square .ds-num-square-neutral`, 与 selected-tasks-drawer 序号方块视觉对称 (brand 软底 = 主动选择, neutral 灰底 = 执行历史).
+
 ## [1.8.5] - 2026-05-20
 
 ### Added

@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.8.6] - 2026-05-20
+
+### Changed
+
+- lockstep 同步, 与上游 gateway / ele-autopilot / ele-autotesting v1.8.6 一同发布; 本项目无业务改动. 上游 ele-autopilot 新增 `.ds-num-square` (索引方块) / `.ds-banner` (行内提示横幅 4 变体) / `.ds-dnd-item` (拖拽卡片 3 态) 共享 utility 类, selected-tasks-drawer 与 preview workspace job-detail-panel 抽出全部内联视觉; ele-autotesting 同步引入等价 class 保持设计契约对齐. FastAPI app / 路由 / 监听 / R2 wheel 发布链路不变.
+
 ## [1.8.5] - 2026-05-20
 
 ### Changed

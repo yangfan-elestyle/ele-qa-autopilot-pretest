@@ -337,15 +337,7 @@ function JobTaskLabel({
 
   return (
     <div className="flex w-full flex-wrap items-start gap-2 sm:flex-nowrap sm:gap-3">
-      <span
-        className="ds-text-mono flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[11px] font-semibold"
-        style={{
-          background: 'var(--ds-surface-subtle)',
-          color: 'var(--ds-text-secondary)',
-        }}
-      >
-        {index + 1}
-      </span>
+      <span className="ds-num-square ds-num-square-neutral">{index + 1}</span>
       <StatusPill status={task.status} size="sm" />
       <span className="min-w-0 flex-1 basis-full overflow-hidden text-[13px] leading-relaxed break-all sm:basis-auto">
         <TaskTitleTag title={task.task_title} />
