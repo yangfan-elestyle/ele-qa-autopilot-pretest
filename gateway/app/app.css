@@ -356,6 +356,38 @@ pre {
   border-radius: var(--r-md);
   padding: 12px 14px;
   background: var(--bg-subtle);
+  min-width: 0;
+}
+
+@media (max-width: 640px) {
+  .install {
+    padding: 18px 16px;
+  }
+  .install-head {
+    gap: 4px 10px;
+  }
+  .install-head .meta {
+    margin-left: 0;
+    width: 100%;
+  }
+  .install-desc {
+    margin-bottom: 14px;
+  }
+  .steps li {
+    padding: 10px 12px;
+  }
+}
+
+@media (max-width: 420px) {
+  .cmd-row {
+    flex-wrap: wrap;
+  }
+  .cmd {
+    flex-basis: 100%;
+  }
+  .copy {
+    margin-left: auto;
+  }
 }
 
 .step-title {

@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.5.16] - 2026-05-19
+
+### Changed
+
+- lockstep 同步, 与上游 gateway v1.5.16 一同发布; 本项目无业务改动. 上游修复: gateway landing `.install` 框小屏适配 (`@media (max-width: 640px)` `padding 18px 16px` + `.install-head` `meta` 取消 `margin-left: auto` 改 `width: 100%`, `.steps li` 加 `min-width: 0` 兜底 grid item 与 `.cmd` `nowrap` 长 URL 撑破场景, 同时 `padding 10px 12px`; `@media (max-width: 420px)` 极窄屏 `.cmd-row` `flex-wrap: wrap` + `.cmd flex-basis: 100%` + `.copy margin-left: auto` 让命令独占一行、复制按钮在第二行右侧). D1 / R2 / API / Worker 绑定无改动, `install.sh` 渲染 / R2 wheel 拉取 / SHA256 校验行为不变.
+
 ## [1.5.15] - 2026-05-19
 
 ### Changed

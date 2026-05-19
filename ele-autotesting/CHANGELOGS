@@ -1,3 +1,7 @@
+# 2026.05.19 (lockstep v1.5.16)
+
+1. 版本号 lockstep 同步 1.5.15 → 1.5.16, 与上游 gateway / ele-autopilot / ele-autopilot-local v1.5.16 一同发布; 本项目无业务改动. 上游变化: gateway landing `.install` 框补齐小屏适配 — `<= 640px` `padding 18px 16px`, `.install-head` `meta` 取消 `margin-left: auto` 改 `width: 100%` 独占一行, `.steps li` 加 `min-width: 0` 兜底 grid item 与 `.cmd white-space: nowrap` 长 URL 撑破场景且 `padding 10px 12px`, `.install-desc margin-bottom 14px`; `<= 420px` 极窄屏 `.cmd-row flex-wrap: wrap` + `.cmd flex-basis: 100%` + `.copy margin-left: auto` 让命令独占一行、复制按钮在第二行右侧. SPA `base=/autotest/` 经 gateway `/autotest/*` strip 转发的契约不变.
+
 # 2026.05.19 (lockstep v1.5.15)
 
 1. 版本号 lockstep 同步 1.5.14 → 1.5.15, 与上游 gateway / ele-autopilot / ele-autopilot-local v1.5.15 一同发布; 本项目无业务改动. 上游变化: ele-autopilot `install.sh` 加 `ensure_runtime` 前置, 缺失运行时时静默 bootstrap 并把日志捕获到 `mktemp`, 仅失败时回吐, 用户终端 `info` 文案统一中性话术; gateway landing 安装本地 agent 区块由三步改两步 (Step 1 安装命令、Step 2 启动命令), 删去原独立的运行时安装命令. SPA `base=/autotest/` 经 gateway `/autotest/*` strip 转发的契约不变.

@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.5.16] - 2026-05-19
+
+### Changed
+
+- lockstep 同步, 与上游 gateway v1.5.16 一同发布; 本项目无业务改动. 上游修复: gateway landing `.install` 框小屏适配 (内部 `padding` 收紧、`install-head` `meta` 不再 `margin-left: auto`、`.steps li` 补 `min-width: 0` 防 grid item + `.cmd nowrap` 长 URL 撑破; `<= 420px` 极窄屏 `.cmd-row flex-wrap`, 命令独占一行、复制按钮在第二行右侧). 本机 agent 安装命令文本 / `install.sh` 渲染 / `latest.txt` 路径 / SHA256 校验 / `uv tool install` 行为不变.
+
 ## [1.5.15] - 2026-05-19
 
 ### Changed

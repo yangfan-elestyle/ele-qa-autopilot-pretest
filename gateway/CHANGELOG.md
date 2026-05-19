@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.5.16] - 2026-05-19
+
+### Fixed
+
+- `app/app.css` landing 安装本地 agent 区块 (`.install` 框) 补齐小屏适配, 修复反馈 "宽度很大, 没做小屏适配": (1) `.install` `<= 640px` 视口 `padding` 由 `24px` 降为 `18px 16px`, 与 `.shell` 小屏 `padding 40px 20px 56px` 协调, 缓解窄屏内框 padding 占比过大; (2) `.install-head` 小屏 `gap` 改 `4px 10px` 并把 `.meta` 的 `margin-left: auto` 重置为 `0` + `width: 100%`, `meta` 不再 wrap 后甩到右侧造成头部两端拉伸的视觉宽; (3) `.steps li` 加 `min-width: 0` 兜底 grid item 默认 `min-width: auto` 在 `.cmd` `white-space: nowrap` 时长 URL (`curl -fsSL https://qa.<account-sub>.workers.dev/install.sh | bash`) 撑破 grid track / 父容器的边缘场景; 同时小屏 `.steps li` `padding` 由 `12px 14px` 降为 `10px 12px`, `.install-desc` `margin-bottom` 由 `16px` 降为 `14px`; (4) 极窄屏 `<= 420px` 加 `.cmd-row { flex-wrap: wrap }` + `.cmd { flex-basis: 100% }` + `.copy { margin-left: auto }`, 命令独占一行, 复制按钮自动落到第二行右侧, 避免两者挤在同一行触发 `.cmd` 内部横向滚动且复制按钮被挤出视区. SSR 输出 HTML 结构不变, 仅 `app/app.css` 改动; service binding / 路径分发 / 安装命令文本 / 版本号 fetch 行为不变.
+
 ## [1.5.15] - 2026-05-19
 
 ### Changed
@@ -120,6 +126,7 @@
 - Service bindings: `AUTOPILOT` → `ele-autopilot`, `AUTOTEST` → `ele-autotesting` (两业务 Worker 同步关闭 `workers_dev`).
 - 单文件 fetch handler, 无框架依赖, 内嵌 landing HTML.
 
+[1.5.16]: about:blank
 [1.5.15]: about:blank
 [1.5.14]: about:blank
 [1.5.13]: about:blank
