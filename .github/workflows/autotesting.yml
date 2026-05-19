@@ -46,9 +46,44 @@ jobs:
       - name: Build (core + ui + web)
         run: pnpm run build:cf
 
-      # wrangler 4 内置 Cloudflare Containers 推送链路, 本身依赖本机 docker daemon
-      # buildx 提供多架构 / amd64 跨平台构建能力 (Cloudflare Containers 要求 linux/amd64)
+      # wrangler 4 内置 Cloudflare Containers 推送链路, 本身依赖本机 docker daemon.
+      # buildx 提供多架构 / amd64 跨平台构建能力 (Cloudflare Containers 要求 linux/amd64).
+      # install: true 把 `docker build` 替换为 `docker buildx build`, 让 wrangler 调
+      # `docker build` 时自动走 BuildKit, 才能复用下面 warm 阶段加载到 buildkitd 的 layer cache.
       - uses: docker/setup-buildx-action@v3
+        with:
+          install: true
+
+      # 缓存 buildx 本地 layer cache (--cache-to type=local 产物), 跨 workflow run 持久化.
+      # key hash 整个 markitdown 目录 (含未来可能新增的 COPY 源文件); 精确未命中时
+      # restore-keys 回退到任意前一份 markitdown cache, 仍可部分复用 layer.
+      - name: Restore buildx layer cache
+        id: buildx-cache
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: buildx-markitdown-${{ hashFiles('ele-autotesting/containers/markitdown/**') }}
+          restore-keys: |
+            buildx-markitdown-
+
+      # 把磁盘 cache 喂进 buildkitd 内部 state. wrangler 之后调 `docker build`
+      # (实为 buildx) 时, 同 Dockerfile + 同 context → BuildKit 按 instruction hash
+      # 命中 daemon 内 layer cache, apt-get / pip install 不再重跑.
+      # wrangler 不传 --cache-from, 所以必须先 warm 让 cache 进 daemon, 不能只持久化到磁盘.
+      # 不论精确命中还是 restore-keys 兜底, 只要目录非空就 warm.
+      - name: Warm buildkit cache
+        run: |
+          if [ -d /tmp/.buildx-cache ] && [ -n "$(ls -A /tmp/.buildx-cache 2>/dev/null)" ]; then
+            docker buildx build \
+              --platform linux/amd64 \
+              --cache-from type=local,src=/tmp/.buildx-cache \
+              -f containers/markitdown/Dockerfile \
+              -t markitdown:warmup \
+              --load \
+              containers/markitdown
+          else
+            echo "No buildx cache present, skipping warm step."
+          fi
 
       # D1 schema 由 packages/server/migrations/*.sql 维护, wrangler deploy 不会自动 apply.
       # 这里在 deploy 之前对 remote DB 跑一次 migrations apply (幂等), 避免首次部署或
@@ -64,3 +99,18 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: pnpm --filter @prompt-optimizer/server exec wrangler deploy
+
+      # wrangler 的 docker build 不会 --cache-to, 新 layer 仅停留在 buildkitd 内.
+      # 显式跑一次 export-only build, 把当前 daemon 内 cache 落盘以喂下次 run.
+      # output type=cacheonly: 不产 image artifact, 只导出 BuildKit cache, 几秒.
+      - name: Persist buildx layer cache
+        if: always()
+        run: |
+          docker buildx build \
+            --platform linux/amd64 \
+            --cache-to type=local,dest=/tmp/.buildx-cache-new,mode=max \
+            -f containers/markitdown/Dockerfile \
+            --output type=cacheonly \
+            containers/markitdown
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache

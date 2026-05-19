@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.6.3] - 2026-05-19
+
+### Changed
+
+- lockstep 同步, 与上游 gateway / ele-autopilot-local / ele-autotesting v1.6.3 一同发布; 本项目无业务改动. 上游变化: `.github/workflows/autotesting.yml` (隔壁 ele-autotesting 子项目对应的 workflow) 接入 buildx layer cache 跨 workflow run 持久化 — `setup-buildx-action@v3` 加 `install: true` 让 `docker build` shim 到 `docker buildx build`, 新增 `Restore` (`actions/cache@v4`, key 基于 markitdown 目录 hashFiles + restore-keys 兜底) / `Warm` (deploy 前 `--cache-from type=local --load` 喂 buildkitd) / `Persist` (deploy 后 `if: always()` + `--cache-to type=local,mode=max --output type=cacheonly` 落盘) 三个步骤, 削掉 `MarkitdownContainer` 镜像每次 deploy 重跑 `apt-get install` / `pip install` 的耗时. D1 / R2 / API / Worker 绑定无改动, `install.sh` 渲染 / R2 wheel 拉取 / SHA256 校验行为不变.
+
 ## [1.5.18] - 2026-05-19
 
 ### Fixed
