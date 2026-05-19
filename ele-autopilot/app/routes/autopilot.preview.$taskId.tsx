@@ -137,24 +137,6 @@ export default function PreviewRoute() {
 function PreviewBootSkeleton() {
   return (
     <div className="ds-app-shell flex h-screen flex-col">
-      <style>{`
-        @keyframes ds-preview-shimmer {
-          0% { opacity: 0.55; }
-          50% { opacity: 1; }
-          100% { opacity: 0.55; }
-        }
-        .ds-preview-bar {
-          background: linear-gradient(
-            90deg,
-            var(--ds-surface-subtle) 0%,
-            var(--ds-surface-muted) 50%,
-            var(--ds-surface-subtle) 100%
-          );
-          background-size: 200% 100%;
-          animation: ds-preview-shimmer 1.6s ease-in-out infinite;
-          border-radius: 6px;
-        }
-      `}</style>
       <header
         className="flex shrink-0 items-center gap-3 border-b px-4 sm:px-6"
         style={{
@@ -164,17 +146,13 @@ function PreviewBootSkeleton() {
         }}
       >
         <div
-          className="h-8 w-8 rounded-lg"
-          style={{
-            background:
-              'linear-gradient(135deg, var(--ds-brand-500) 0%, var(--ds-brand-700) 100%)',
-            opacity: 0.85,
-          }}
+          className="ds-brand-mark h-8 w-8 rounded-lg"
+          style={{ opacity: 0.85 }}
           aria-hidden="true"
         />
-        <div className="ds-preview-bar h-3.5 w-40" />
+        <div className="ds-skeleton h-3.5 w-40" />
         <span className="flex-1" />
-        <div className="ds-preview-bar h-7 w-24 rounded" />
+        <div className="ds-skeleton h-7 w-24 rounded" />
       </header>
       <div
         className="flex flex-wrap items-start gap-3 border-b px-4 py-3 sm:px-6"
@@ -184,9 +162,9 @@ function PreviewBootSkeleton() {
         }}
       >
         <div className="min-w-0 flex-1 space-y-1.5">
-          <div className="ds-preview-bar h-3 w-24" />
-          <div className="ds-preview-bar h-4 w-2/3" />
-          <div className="ds-preview-bar h-3.5 w-1/2" />
+          <div className="ds-skeleton h-3 w-24" />
+          <div className="ds-skeleton h-4 w-2/3" />
+          <div className="ds-skeleton h-3.5 w-1/2" />
         </div>
       </div>
       <div className="flex min-h-0 flex-1">
@@ -201,8 +179,8 @@ function PreviewBootSkeleton() {
             className="flex h-12 shrink-0 items-center justify-between border-b px-4"
             style={{ borderColor: 'var(--ds-border-soft)' }}
           >
-            <div className="ds-preview-bar h-4 w-24" />
-            <div className="ds-preview-bar h-5 w-8 rounded-full" />
+            <div className="ds-skeleton h-4 w-24" />
+            <div className="ds-skeleton h-5 w-8 rounded-full" />
           </div>
           <div className="space-y-2 p-2">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -212,12 +190,12 @@ function PreviewBootSkeleton() {
                 style={{ borderColor: 'var(--ds-border-soft)' }}
               >
                 <div className="flex items-center justify-between">
-                  <div className="ds-preview-bar h-5 w-16 rounded-full" />
-                  <div className="ds-preview-bar h-3 w-10" />
+                  <div className="ds-skeleton h-5 w-16 rounded-full" />
+                  <div className="ds-skeleton h-3 w-10" />
                 </div>
                 <div className="mt-2 flex items-center justify-between gap-2">
-                  <div className="ds-preview-bar h-3 w-14" />
-                  <div className="ds-preview-bar h-3 w-20" />
+                  <div className="ds-skeleton h-3 w-14" />
+                  <div className="ds-skeleton h-3 w-20" />
                 </div>
               </div>
             ))}
@@ -229,23 +207,23 @@ function PreviewBootSkeleton() {
             aria-hidden="true"
           >
             <div className="flex items-center gap-2">
-              <div className="ds-preview-bar h-4 w-20" />
-              <div className="ds-preview-bar h-5 w-14 rounded-full" />
+              <div className="ds-skeleton h-4 w-20" />
+              <div className="ds-skeleton h-5 w-14 rounded-full" />
             </div>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
               {Array.from({ length: 5 }).map((_, i) => (
                 <div
                   key={i}
-                  className="ds-preview-bar"
+                  className="ds-skeleton"
                   style={{ height: 72, borderRadius: 12 }}
                 />
               ))}
             </div>
-            <div className="ds-preview-bar h-2 w-full rounded-full" />
-            <div className="ds-preview-bar h-3 w-3/5" />
+            <div className="ds-skeleton h-2 w-full rounded-full" />
+            <div className="ds-skeleton h-3 w-3/5" />
           </div>
           <div className="ds-surface-card p-4">
-            <div className="ds-preview-bar h-4 w-32" />
+            <div className="ds-skeleton h-4 w-32" />
             <div className="mt-3 space-y-2">
               {Array.from({ length: 4 }).map((_, i) => (
                 <div
@@ -254,11 +232,11 @@ function PreviewBootSkeleton() {
                   style={{ borderColor: 'var(--ds-border-soft)' }}
                 >
                   <div
-                    className="ds-preview-bar h-5 w-5"
+                    className="ds-skeleton h-5 w-5"
                     style={{ borderRadius: 6 }}
                   />
-                  <div className="ds-preview-bar h-3 flex-1" />
-                  <div className="ds-preview-bar h-3 w-16" />
+                  <div className="ds-skeleton h-3 flex-1" />
+                  <div className="ds-skeleton h-3 w-16" />
                 </div>
               ))}
             </div>

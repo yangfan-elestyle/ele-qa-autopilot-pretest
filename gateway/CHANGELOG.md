@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.8.5] - 2026-05-20
+
+### Changed
+
+- lockstep 同步, 与上游 ele-autopilot v1.8.5 一同发布; 本项目无业务改动. 上游: globals.css 提取通用 `.ds-skeleton` shimmer 骨架与 `.ds-job-card` 执行历史卡片状态机 (default / hover / focus-visible / selected 4 态 token 化), ConsoleBootSkeleton / PreviewBootSkeleton 删除组件内 `<style>` 注入, preview workspace 执行历史卡片 button inline style 全部抽出. landing 页路由分发 / `/autotest/*` strip / SSR loader / service bindings 行为不变.
+
 ## [1.8.4] - 2026-05-20
 
 ### Changed

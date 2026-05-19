@@ -82,25 +82,11 @@ export default function JobHistoryList({
               key={job.id}
               type="button"
               onClick={() => onSelect(job.id)}
-              className="relative block w-full cursor-pointer rounded-lg text-left transition-all"
-              style={{
-                border: isSelected
-                  ? '1px solid transparent'
-                  : '1px solid var(--ds-border-soft)',
-                background: isSelected
-                  ? 'var(--ds-brand-50)'
-                  : 'var(--ds-surface-elevated)',
-                boxShadow: isSelected
-                  ? '0 0 0 1px var(--ds-brand-500), 0 4px 12px rgba(99, 102, 241, 0.18)'
-                  : 'var(--ds-shadow-xs)',
-                marginBottom: 6,
-                padding: '10px 12px 10px 14px',
-                overflow: 'hidden',
-              }}
+              className={`ds-job-card ${isSelected ? 'ds-job-card-selected' : ''}`}
             >
               <span
                 aria-hidden="true"
-                className="pointer-events-none absolute top-2 bottom-2 left-0 w-[3px] rounded-full"
+                className="ds-job-card-accent"
                 style={{ background: accent, opacity: isSelected ? 1 : 0.85 }}
               />
               <div className="flex items-center justify-between gap-2">

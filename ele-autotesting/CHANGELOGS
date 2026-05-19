@@ -1,4 +1,10 @@
-# 2026.05.20 (lockstep v1.8.4)
+# 2026.05.20 (lockstep v1.8.5)
+
+1. lockstep 同步至 v1.8.5, 与 gateway / ele-autopilot / ele-autopilot-local 一同发布; AutoTest 前端本轮无业务改动.
+
+2. 上游 ele-autopilot 主要内容: globals.css 提取通用 `.ds-skeleton` shimmer 骨架 + `.ds-job-card / .ds-job-card-selected / .ds-job-card-accent` 执行历史卡片完整状态机, ConsoleBootSkeleton / PreviewBootSkeleton 删除组件内 inline `<style>` 注入与重复 keyframes / class 定义, preview workspace 执行历史 button 从 22 行 inline 三元判断收敛到 className 组合. 视觉契约本端 (`packages/ui/src/styles/theme.css`) 已在 v1.8.4 同步过等价 utility 类.
+
+
 
 1. lockstep 同步至 v1.8.4, 与 gateway / ele-autopilot / ele-autopilot-local 一同发布. AutoTest 工作台首次引入与 ele-autopilot 等价的共享 utility 类系统.
 

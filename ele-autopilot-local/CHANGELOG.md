@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.8.5] - 2026-05-20
+
+### Changed
+
+- lockstep 同步, 与上游 gateway / ele-autopilot / ele-autotesting v1.8.5 一同发布; 本项目无业务改动. 上游 ele-autopilot 提取 `.ds-skeleton` shimmer 骨架 + `.ds-job-card` 执行历史卡片状态机, ConsoleBootSkeleton / PreviewBootSkeleton 删除 inline `<style>` 注入, preview workspace 执行历史 button inline style 抽出. FastAPI app / 路由 / 监听 / R2 wheel 发布链路不变.
+
 ## [1.8.4] - 2026-05-20
 
 ### Changed

@@ -2,6 +2,25 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.8.5] - 2026-05-20
+
+### Added
+
+- `app/globals.css` 提取首屏骨架与 preview job 卡片为全局 token 类:
+  - `.ds-skeleton` + `@keyframes ds-skeleton-shimmer` 通用 shimmer 骨架条 (200% 200% background gradient + 1.6s ease-in-out 循环 + opacity / position 双轴动画), 替代原本 ConsoleBootSkeleton / PreviewBootSkeleton 各自 inline `<style>` 注入的 `.ds-boot-bar` + `.ds-preview-bar` 重复 keyframes 与 class 定义, SSR / hydration 一致.
+  - `.ds-job-card` + `.ds-job-card-selected` + `.ds-job-card-accent`: preview workspace 执行历史卡片完整状态机. 默认 elevated 白底 + soft border + xs shadow, hover `translateY(-1px)` + border-default + sm shadow, focus-visible 4px brand ring, selected 切 brand-50 软底 + 1px brand-500 + 0.18 透明品牌阴影 + 0.22 hover 阴影更强, accent 条由 3px 圆角 absolute 左侧条按 4 种 JobStatus 状态色驱动. 全部 transition 走 `--ds-motion-base / --ds-ease-standard` token.
+
+### Changed
+
+- `app/admin/_components/admin-task-explorer-page.tsx` `ConsoleBootSkeleton`:
+  - 删除组件内 `<style>` 注入 (4 行 keyframes + 12 行 `.ds-boot-bar`), 6 处 `ds-boot-bar` 全改用全局 `.ds-skeleton`.
+  - 顶栏 brand 方块从 inline `linear-gradient(135deg, ...)` 收敛到 `.ds-brand-mark` class, 保留 0.85 opacity (加载态视觉提示) 用 inline override.
+- `app/routes/autopilot.preview.$taskId.tsx` `PreviewBootSkeleton`: 同 ConsoleBootSkeleton (删除内 `<style>` + 全 `.ds-preview-bar` 改 `.ds-skeleton` + brand 块 `.ds-brand-mark`).
+- `app/admin/preview/_components/job-history-list.tsx` 执行历史卡片 button:
+  - 从 22 行 inline `border / background / boxShadow / marginBottom / padding / overflow` + 三元 selected 判断收敛到 `ds-job-card ds-job-card-selected` 一行 className 组合.
+  - 状态色 accent 左侧条改用全局 `.ds-job-card-accent` (3px 8px-inset 圆角 absolute), accent 色与 STATUS_ACCENT map 保持耦合.
+  - hover 微动效 (`translateY(-1px)`) + focus ring (brand-500 + 4px focus shadow) 首次接入历史卡片, 与任务列表表格的 hover 节奏对齐.
+
 ## [1.8.4] - 2026-05-20
 
 ### Changed

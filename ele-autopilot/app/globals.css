@@ -429,4 +429,84 @@ body {
       0 2px 6px rgba(99, 102, 241, 0.35),
       inset 0 0 0 1px rgba(255, 255, 255, 0.1);
   }
+
+  /* —— Skeleton shimmer bar (全局共享; replaces inline <style> injection) —— */
+  .ds-skeleton {
+    background: linear-gradient(
+      90deg,
+      var(--ds-surface-subtle) 0%,
+      var(--ds-surface-muted) 50%,
+      var(--ds-surface-subtle) 100%
+    );
+    background-size: 200% 100%;
+    animation: ds-skeleton-shimmer 1.6s ease-in-out infinite;
+    border-radius: var(--ds-radius-sm);
+  }
+  @keyframes ds-skeleton-shimmer {
+    0% {
+      background-position: 200% 0;
+      opacity: 0.55;
+    }
+    50% {
+      opacity: 1;
+    }
+    100% {
+      background-position: -200% 0;
+      opacity: 0.55;
+    }
+  }
+
+  /* —— Job history card (preview workspace) —— */
+  .ds-job-card {
+    position: relative;
+    display: block;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    padding: 10px 12px 10px 14px;
+    margin-bottom: 6px;
+    border-radius: var(--ds-radius-md);
+    background: var(--ds-surface-elevated);
+    border: 1px solid var(--ds-border-soft);
+    box-shadow: var(--ds-shadow-xs);
+    overflow: hidden;
+    transition:
+      background-color var(--ds-motion-base) var(--ds-ease-standard),
+      border-color var(--ds-motion-base) var(--ds-ease-standard),
+      box-shadow var(--ds-motion-base) var(--ds-ease-standard),
+      transform var(--ds-motion-fast) var(--ds-ease-standard);
+  }
+  .ds-job-card:hover {
+    border-color: var(--ds-border-default);
+    box-shadow: var(--ds-shadow-sm);
+    transform: translateY(-1px);
+  }
+  .ds-job-card:focus-visible {
+    outline: none;
+    border-color: var(--ds-brand-500);
+    box-shadow: var(--ds-shadow-focus);
+  }
+  .ds-job-card-selected {
+    background: var(--ds-brand-50);
+    border-color: transparent;
+    box-shadow:
+      0 0 0 1px var(--ds-brand-500),
+      0 6px 16px rgba(99, 102, 241, 0.18);
+    transform: translateY(-1px);
+  }
+  .ds-job-card-selected:hover {
+    border-color: transparent;
+    box-shadow:
+      0 0 0 1px var(--ds-brand-500),
+      0 8px 20px rgba(99, 102, 241, 0.22);
+  }
+  .ds-job-card-accent {
+    pointer-events: none;
+    position: absolute;
+    top: 8px;
+    bottom: 8px;
+    left: 0;
+    width: 3px;
+    border-radius: 999px;
+  }
 }
