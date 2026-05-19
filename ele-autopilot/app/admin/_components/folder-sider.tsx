@@ -253,7 +253,7 @@ export default function FolderSider({
             onOpenChange={setPopoverOpen}
             trigger="click"
             placement="topLeft"
-            title="Agent 连接配置"
+            title="本地 Agent 配置"
             content={
               <div className="w-80">
                 <Space orientation="vertical" size="small" className="w-full">
@@ -273,16 +273,14 @@ export default function FolderSider({
                   </Button>
                   {status === 'connected' && agentInfo && (
                     <div className="text-xs text-(--ant-color-text-secondary)">
-                      <div>
-                        服务: {agentInfo.service.name} v{agentInfo.service.version}
-                      </div>
-                      <div>运行: {Math.floor(agentInfo.uptime_seconds / 60)}分钟</div>
+                      <div>已连接到 {agentInfo.service.name}</div>
+                      <div>已运行 {Math.floor(agentInfo.uptime_seconds / 60)} 分钟</div>
                     </div>
                   )}
 
                   <div className="mt-2 border-t border-(--ant-color-split) pt-2">
                     <div className="mb-1 text-xs text-(--ant-color-text-secondary)">
-                      Job 配置 (JSON)
+                      执行参数 (JSON)
                     </div>
                     <TextArea
                       value={configText}
@@ -302,7 +300,7 @@ export default function FolderSider({
                       className="mt-2"
                       disabled={configError !== null}
                     >
-                      保存配置
+                      保存
                     </Button>
                   </div>
                 </Space>
@@ -313,15 +311,15 @@ export default function FolderSider({
               <Space size={4}>
                 {status === 'connected' ? (
                   <Tag icon={<CheckCircleOutlined />} color="success" className="m-0">
-                    Agent 已连接
+                    本地 Agent 已连接
                   </Tag>
                 ) : status === 'checking' ? (
                   <Tag icon={<LoadingOutlined />} color="processing" className="m-0">
-                    检测中
+                    正在检测
                   </Tag>
                 ) : (
                   <Tag icon={<CloseCircleOutlined />} color="error" className="m-0">
-                    Agent 未连接
+                    本地 Agent 未连接
                   </Tag>
                 )}
               </Space>

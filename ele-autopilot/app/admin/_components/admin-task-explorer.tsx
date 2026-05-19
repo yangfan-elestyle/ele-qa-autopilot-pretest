@@ -413,7 +413,7 @@ export default function AdminTaskExplorer() {
   async function handleExecuteTask(task: Task) {
     // 检查 Agent 连接状态
     if (agentStatus !== 'connected') {
-      message.error('Agent 未连接，请先在左下角配置并连接 Agent');
+      message.error('本地 Agent 未连接，请先在左下角配置并连接');
       return;
     }
 
@@ -444,7 +444,7 @@ export default function AdminTaskExplorer() {
             { taskId: task.id, config: latestConfig },
             {
               onJobCreated: (job) => {
-                message.success(`Job 已创建: ${job.id.slice(0, 8)}`);
+                message.success(`已派单执行 · ${job.id.slice(0, 8)}`);
               },
               onError: (error) => {
                 message.error(`执行失败: ${error.message}`);

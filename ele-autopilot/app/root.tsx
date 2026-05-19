@@ -11,16 +11,26 @@ import type { Route } from './+types/root';
 import './globals.css';
 
 export function links() {
-  return [{ rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' }];
+  return [
+    { rel: 'icon', href: '/favicon.svg', type: 'image/svg+xml' },
+    { rel: 'alternate icon', href: '/favicon.ico', sizes: 'any' },
+    { rel: 'apple-touch-icon', href: '/apple-touch-icon.png', sizes: '180x180' },
+    { rel: 'mask-icon', href: '/favicon.svg', color: '#0969da' },
+    { rel: 'manifest', href: '/site.webmanifest' },
+  ];
 }
 
 export function meta() {
-  return [{ title: 'Ele Autopilot' }, { name: 'description', content: 'Ele Autopilot' }];
+  return [
+    { title: 'QA AutoPilot · 任务后台' },
+    { name: 'description', content: 'QA AutoPilot 任务后台 — 编排测试任务并派单到本地 agent.' },
+    { name: 'theme-color', content: '#0969da' },
+  ];
 }
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" style={{ colorScheme: 'light' }} suppressHydrationWarning>
+    <html lang="zh-CN" style={{ colorScheme: 'light' }} suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -42,14 +52,14 @@ export default function App() {
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
-  let message = 'Oops!';
-  let details = 'An unexpected error occurred.';
+  let message = '出错了';
+  let details = '发生了未预期的错误.';
   let stack: string | undefined;
 
   if (isRouteErrorResponse(error)) {
-    message = error.status === 404 ? '404' : 'Error';
+    message = error.status === 404 ? '404' : '错误';
     details =
-      error.status === 404 ? 'The requested page could not be found.' : error.statusText || details;
+      error.status === 404 ? '请求的页面不存在.' : error.statusText || details;
   } else if (import.meta.env.DEV && error && error instanceof Error) {
     details = error.message;
     stack = error.stack;

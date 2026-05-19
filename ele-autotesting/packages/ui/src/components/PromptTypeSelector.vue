@@ -252,7 +252,7 @@ const updateUrl = (value: string) => {
 // 创建 MCP 服务实例（用于 text -> markdown 内容）
 const markitdownMcpService = createMcpServiceFor({
   serverUrl: '/mcps/markitdown/mcp',
-  client: { name: 'QA Test Case', version: '0.0.1' },
+  client: { name: 'qa-autotest', version: '1.0' },
 })
 
 const getImageResearchPrompt = () => IMAGE_RESEARCH_PROMPT.trim()

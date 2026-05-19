@@ -9,6 +9,10 @@ import TaskTitleTag from '@/app/admin/_components/task-title-tag';
 import { adminTheme } from '@/app/admin/_theme/antd-theme';
 import type { JobListItem, JobLite, JobTask, Task } from '@/app/admin/_types';
 
+export function meta() {
+  return [{ title: '任务执行历史 · QA AutoPilot' }];
+}
+
 const { Header, Sider, Content } = Layout;
 const { Title } = Typography;
 

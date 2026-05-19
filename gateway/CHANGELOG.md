@@ -2,6 +2,19 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.5.10] - 2026-05-19
+
+### Changed
+
+- landing 文案重写, 删除自我感动型与基础设施暴露型表述: `<title>` 从 `QA AutoPilot · 一个域名, 两个工具` 简化为 `QA AutoPilot`; meta description 从 `... 由 Cloudflare Workers 驱动` 改为 `任务编排与 AI 测试用例工作台`; hero H1 从 `一个域名, 两个工具.` 改写为 `QA 工作流, 一站做完.`; 子卡片描述去掉 `/autopilot` `/autotest` 路径裸标签, 卡片文案聚焦"做什么"; 安装区脚注移除 `安装脚本由 ele-autopilot Worker 动态生成, 产物存于 Cloudflare R2 ele-autopilot-releases`; footer 整条 `powered by Cloudflare Workers · qa gateway` 移除, 留版本号 pill + 导航; 状态徽章从 `operational` 改为 `运行中`; 顶部 eyebrow `qa gateway` 删除.
+- 品牌 logo 落地为图片: `.brand-mark` 不再是 CSS 渐变 `Q` 字, 而是 `<img src="/favicon.svg">` 真实矢量 logo (跟 favicon / apple-touch-icon / PWA 图标共用同一品牌资产), 移除自带渐变背景与字体定义.
+- 版本号显示位置: 从 install 区 `.install-head .ver` 移到 footer 左侧 `.footer-version`, 全站只此一处暴露版本.
+
+### Added
+
+- HTML `<head>` 加 `link rel=icon|alternate icon|apple-touch-icon|mask-icon|manifest` 五件套, 配合 ele-autopilot 提供的 PWA icon set (gateway public/ 仍保持空, 静态资源经 service binding 透传).
+- `<meta name=theme-color>` 浅 / 深双 media query (`#0969da` / `#0d1117`), 对应移动端浏览器 chrome 颜色.
+
 ## [1.5.9] - 2026-05-19
 
 ### Fixed
@@ -77,5 +90,6 @@
 - Service bindings: `AUTOPILOT` → `ele-autopilot`, `AUTOTEST` → `ele-autotesting` (两业务 Worker 同步关闭 `workers_dev`).
 - 单文件 fetch handler, 无框架依赖, 内嵌 landing HTML.
 
+[1.5.10]: about:blank
 [1.5.4]: about:blank
 [1.5.3]: about:blank

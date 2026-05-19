@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.5.10] - 2026-05-19
+
+### Changed
+
+- lockstep 同步, 与上游 gateway / ele-autopilot / ele-autotesting v1.5.10 一同发布; 本项目无业务改动. 上游变化集中在 web 工程的品牌资产 (favicon / apple-touch-icon / PWA maskable / site.webmanifest) 与 UI 文案 (gateway landing 删除 `一个域名两个工具` / `powered by Cloudflare Workers`; ele-autopilot admin `Job` → `执行`; autotest SPA title 改 `QA AutoPilot · AutoTest`); 本项目 CLI / `install.sh` 安装命令、`0.0.0.0:8000` HTTP 接口与回调契约不变. ele-autopilot `app/routes/install-script.tsx` 注释 `install <bin> from Cloudflare R2 (served by ele-autopilot Worker)` 改为 `install <bin> (QA AutoPilot local agent)`, 不影响脚本行为.
+
 ## [1.5.9] - 2026-05-19
 
 ### Changed

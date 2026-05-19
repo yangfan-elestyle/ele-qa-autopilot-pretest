@@ -5,7 +5,7 @@ const BIN_NAME = 'ele-autopilot';
 
 function renderScript(base: string): string {
   return `#!/usr/bin/env bash
-# install.sh — install ${BIN_NAME} from Cloudflare R2 (served by ele-autopilot Worker).
+# install.sh — install ${BIN_NAME} (QA AutoPilot local agent).
 #
 # Usage:
 #   curl -fsSL ${base}/install.sh | bash

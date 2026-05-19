@@ -4,8 +4,8 @@
     <header class="theme-header flex-none">
       <div class="w-full mx-auto px-2 sm:px-4 py-2 sm:py-3 flex justify-between items-center">
         <h1 class="text-lg sm:text-xl font-bold theme-title flex items-center gap-2">
-          <img src="../assets/logo.png" alt="Logo" class="h-8 w-8 rounded-lg" />
-          <slot name="title">Ele QA Test Case</slot>
+          <img src="../assets/logo.png" alt="" class="h-8 w-8 rounded-lg" />
+          <slot name="title">QA AutoPilot · AutoTest</slot>
         </h1>
         <div class="flex items-center gap-1 sm:gap-3">
           <slot name="actions"></slot>

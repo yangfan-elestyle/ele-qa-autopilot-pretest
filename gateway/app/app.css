@@ -142,13 +142,7 @@ pre {
   width: 28px;
   height: 28px;
   border-radius: 8px;
-  background: linear-gradient(135deg, #0969da 0%, #6f42c1 100%);
-  display: grid;
-  place-items: center;
-  color: #fff;
-  font-weight: 700;
-  font-size: 13px;
-  font-family: var(--font-mono);
+  display: block;
   box-shadow: var(--shadow-sm);
 }
 
@@ -189,18 +183,6 @@ pre {
 /* —— hero —— */
 .hero {
   margin-bottom: 56px;
-}
-
-.hero-eyebrow {
-  display: inline-block;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--accent);
-  background: var(--accent-soft);
-  padding: 4px 10px;
-  border-radius: var(--r-full);
-  margin-bottom: 16px;
-  letter-spacing: 0.01em;
 }
 
 .hero h1 {
@@ -351,19 +333,6 @@ pre {
   color: var(--fg);
 }
 
-.install-head .ver {
-  display: inline-flex;
-  align-items: center;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 500;
-  padding: 2px 8px;
-  border-radius: var(--r-full);
-  background: var(--bg-subtle);
-  color: var(--fg-subtle);
-  border: 1px solid var(--border);
-}
-
 .install-head .meta {
   font-size: 12px;
   color: var(--fg-subtle);
@@ -469,21 +438,6 @@ pre {
   background: var(--success-soft);
 }
 
-.install-foot {
-  font-size: 12px;
-  color: var(--fg-subtle);
-  margin-top: 16px;
-  line-height: 1.6;
-}
-
-.install-foot code {
-  background: var(--bg-subtle);
-  padding: 1px 6px;
-  border-radius: var(--r-sm);
-  color: var(--fg-muted);
-  font-size: 12px;
-}
-
 /* —— footer —— */
 .footer {
   margin-top: 56px;
@@ -498,10 +452,15 @@ pre {
   color: var(--fg-subtle);
 }
 
-.footer code {
+.footer-version {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: var(--r-full);
   background: var(--bg-subtle);
-  padding: 1px 6px;
-  border-radius: var(--r-sm);
+  color: var(--fg-subtle);
+  border: 1px solid var(--border);
 }
 
 .footer-links {

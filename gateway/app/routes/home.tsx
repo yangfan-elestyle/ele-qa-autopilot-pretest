@@ -3,11 +3,10 @@ import type { Route } from "./+types/home";
 
 export function meta(_args: Route.MetaArgs) {
   return [
-    { title: "QA AutoPilot · 一个域名, 两个工具" },
+    { title: "QA AutoPilot" },
     {
       name: "description",
-      content:
-        "QA AutoPilot: 任务管理后台 + AI 测试用例生成. 唯一对外公网入口, 由 Cloudflare Workers 驱动.",
+      content: "QA AutoPilot — 任务编排与 AI 测试用例工作台.",
     },
     { name: "robots", content: "index,follow" },
   ];
@@ -54,33 +53,31 @@ export default function Home({ loaderData }: Route.ComponentProps) {
       <div className="shell">
         <header className="topbar">
           <div className="brand">
-            <span className="brand-mark" aria-hidden="true">
-              Q
-            </span>
+            <img
+              className="brand-mark"
+              src="/favicon.svg"
+              alt=""
+              width={28}
+              height={28}
+            />
             <span>QA AutoPilot</span>
           </div>
-          <span
-            className="status"
-            title="gateway 健康"
-            aria-label="服务运行中"
-          >
+          <span className="status" aria-label="服务运行中">
             <span className="status-dot" aria-hidden="true" />
-            operational
+            运行中
           </span>
         </header>
 
         <section className="hero">
-          <span className="hero-eyebrow">qa gateway</span>
           <h1>
-            一个域名, <em>两个工具.</em>
+            QA 工作流, <em>一站做完.</em>
           </h1>
           <p>
-            QA 流程的统一入口. AutoPilot 编排任务并派单到本地 agent;
-            AutoTest 用 AI 把需求与设计稿翻成测试用例.
+            编排测试任务、派单到本地浏览器 agent, 同时用 AI 把需求与设计稿翻成可执行测试用例.
           </p>
         </section>
 
-        <section className="cards" aria-label="子工具入口">
+        <section className="cards" aria-label="工具入口">
           <a className="card" href="/autopilot">
             <span className="card-icon" aria-hidden="true">
               <svg
@@ -95,14 +92,12 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                 <path d="m9 12 2 2 4-4" />
               </svg>
             </span>
-            <h2>
-              AutoPilot <span className="card-path">/autopilot</span>
-            </h2>
+            <h2>AutoPilot</h2>
             <p>
-              QA 任务管理后台. 编排任务, 派单到本地 agent, 查看执行结果与截图.
+              编排 QA 任务、派单到本地浏览器 agent, 实时查看执行结果与截图.
             </p>
             <span className="card-arrow">
-              打开后台
+              打开任务后台
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
@@ -133,14 +128,12 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                 <path d="m9 13 2 2 4-4" />
               </svg>
             </span>
-            <h2>
-              AutoTest <span className="card-path">/autotest</span>
-            </h2>
+            <h2>AutoTest</h2>
             <p>
-              AI 测试用例生成. Confluence / Figma / 图像解析, 配套 Prompt 优化.
+              基于需求文档、Figma 与界面截图, 用 AI 直接生成结构化测试用例.
             </p>
             <span className="card-arrow">
-              进入工作台
+              进入用例工作台
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
@@ -159,20 +152,17 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 
         <section className="install" aria-labelledby="install-title">
           <div className="install-head">
-            <h2 id="install-title">本地 agent 安装</h2>
-            <span className="ver" aria-label="最新版本">
-              {version ? `v${version}` : "v—"}
-            </span>
-            <span className="meta">macOS 专用 · AutoPilot 派单时本机执行</span>
+            <h2 id="install-title">安装本地 agent</h2>
+            <span className="meta">macOS · AutoPilot 派单时由本机执行任务</span>
           </div>
           <p className="install-desc">
             三步完成. 启动后 agent 监听 <code>0.0.0.0:8000</code>,
-            等待 AutoPilot 派单.
+            等待任务派单.
           </p>
           <ol className="steps">
             <Step
               num={1}
-              title="装 uv (已装可跳过)"
+              title="安装 uv (已装可跳过)"
               cmd="curl -LsSf https://astral.sh/uv/install.sh | sh"
             />
             <Step num={2} title="安装 ele-autopilot" cmd={installCmd} />
@@ -182,20 +172,16 @@ export default function Home({ loaderData }: Route.ComponentProps) {
               cmd="ELE_LLM_API_KEY=<your-gemini-api-key> ele-autopilot"
             />
           </ol>
-          <p className="install-foot">
-            安装脚本由 ele-autopilot Worker 动态生成, 产物存于 Cloudflare R2
-            <code>ele-autopilot-releases</code>.
-          </p>
         </section>
 
         <footer className="footer">
-          <span>
-            powered by Cloudflare Workers · <code>qa</code> gateway
+          <span className="footer-version" aria-label="当前版本">
+            {version ? `v${version}` : "v—"}
           </span>
           <nav className="footer-links" aria-label="footer 链接">
-            <a href="/healthz">healthz</a>
-            <a href="/autopilot">autopilot</a>
-            <a href="/autotest">autotest</a>
+            <a href="/autopilot">AutoPilot</a>
+            <a href="/autotest">AutoTest</a>
+            <a href="/healthz">服务状态</a>
           </nav>
         </footer>
       </div>

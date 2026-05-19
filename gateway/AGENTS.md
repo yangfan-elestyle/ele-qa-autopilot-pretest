@@ -50,5 +50,5 @@ bunx wrangler deploy         # 常规走 Actions
 
 - 不在 gateway 放业务状态、数据库、R2、Container 或业务 API; RR loader 只允许通过 service binding 调下游 Worker.
 - 业务 Worker `workers_dev:false`; 公网只能经 gateway 访问.
-- public/ 目录刻意不创建; `/favicon.ico` 维持转发到 AUTOPILOT, 避免 assets binding 抢占路由.
+- public/ 目录刻意不创建; `/favicon.ico` 及全套 PWA icon (favicon.svg / apple-touch-icon.png / icon-192.png / icon-512.png / icon-maskable-*.png / site.webmanifest) 全部由 `ele-autopilot/public/` 单一供给, 经 gateway 透传 — 避免 assets binding 抢占路由, 同时让三个 web 工程 (landing / autopilot admin / autotest SPA) 共用同一品牌资产.
 - 互调 `autopilot <-> autotest` 暂未启用; 需要时在业务项目各自 `wrangler.jsonc` 加 service binding.

@@ -10,8 +10,7 @@
     <MainLayoutUI>
       <!-- Title Slot -->
       <template #title>
-        Ele QA Test Case
-        <span class="ml-2 text-xs opacity-50 align-middle">v{{ APP_VERSION }}</span>
+        QA AutoPilot · AutoTest
       </template>
 
       <!-- Actions Slot -->
@@ -128,8 +127,6 @@
 
 <script setup lang="ts">
 import { ref, watch, provide, computed, shallowRef, toRef } from 'vue'
-
-const APP_VERSION = __APP_VERSION__
 
 import {
   // UI Components

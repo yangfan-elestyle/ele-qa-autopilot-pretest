@@ -2,6 +2,20 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.5.10] - 2026-05-19
+
+### Added
+
+- `public/` 加全套 PWA / 多平台 icon, 由根 `<link>` 与 `site.webmanifest` 注入: `favicon.svg` (矢量主图, 浏览器优先), `favicon.ico` (16/32/48 multi-size), `apple-touch-icon.png` (180×180), `icon-192.png` / `icon-512.png` (any purpose), `icon-maskable-192.png` / `icon-maskable-512.png` (PWA maskable, 80% safe-zone). 资产视觉与 gateway landing brand mark 完全一致 (蓝紫渐变圆角方 + 白 `Q`), 经 gateway 透传同时服务于 landing、autopilot admin、autotest SPA 三个 web 工程的 favicon / Apple touch / Android Chrome / PWA 安装.
+- `app/root.tsx` `<link rel=icon|alternate icon|apple-touch-icon|mask-icon|manifest>` 五件套 + `<meta name=theme-color>`; `<title>` 由 `Ele Autopilot` 改为 `QA AutoPilot · 任务后台`, description 写明项目定位; `<html lang>` 改 `zh-CN`, ErrorBoundary 文案中文化.
+- `autopilot._index` / `autopilot.preview.$taskId` 各加 `meta()` 独立 `<title>` (`任务后台 · QA AutoPilot` / `任务执行历史 · QA AutoPilot`), 浏览器 tab 不再都显示同一个根 title.
+
+### Changed
+
+- 用户向 UI 文案清洗: `folder-sider.tsx` `Agent 连接配置` → `本地 Agent 配置`, `Agent 已连接 / Agent 未连接` → `本地 Agent 已连接 / 本地 Agent 未连接`, `检测中` → `正在检测`, popover 内 `服务: <name> v<version>` (版本号暴露) 与 `运行: N分钟` 改为 `已连接到 <name>` + `已运行 N 分钟` (与 gateway landing footer 唯一版本号显示去重), `Job 配置 (JSON)` → `执行参数 (JSON)`, `保存配置` → `保存`; `admin-task-explorer.tsx` `Agent 未连接，请先...连接 Agent` 文案压缩, `Job 已创建: <id8>` 改 `已派单执行 · <id8>`; `job-detail-panel.tsx` `Job ID` / `Job 错误` / `已发送停止 Job 信号` / `停止 Job 失败` / `停止整个 Job` / `停止 Job` / `无法加载 Job 信息` 全部去 `Job` 字样, 改为 `执行 ID` / `执行错误` / `已发送停止信号` / `停止失败` / `停止整个执行` / `停止执行` / `无法加载执行信息`.
+- `app/routes/install-script.tsx` install.sh 注释 `install <bin> from Cloudflare R2 (served by ele-autopilot Worker)` 改为 `install <bin> (QA AutoPilot local agent)`, 不再向终端用户暴露底层基础设施.
+- `public/favicon.ico` 替换为新品牌矢量派生 (16/32/48 multi-size, 716 B, 从 25.9 KB 旧 ico 压缩).
+
 ## [1.5.9] - 2026-05-19
 
 ### Changed

@@ -140,10 +140,10 @@ export default function JobDetailPanel({
     if (!job) return;
     try {
       await stopJobOnLocal(job.id);
-      message.success('已发送停止 Job 信号');
+      message.success('已发送停止信号');
       loadJob();
     } catch (error) {
-      message.error(`停止 Job 失败: ${(error as Error).message}`);
+      message.error(`停止失败: ${(error as Error).message}`);
     }
   }, [job, loadJob]);
 
@@ -192,7 +192,7 @@ export default function JobDetailPanel({
   }
 
   if (!job) {
-    return <Alert type="error" title="无法加载 Job 信息" />;
+    return <Alert type="error" title="无法加载执行信息" />;
   }
 
   const config = statusConfig[job.status];
@@ -231,7 +231,7 @@ export default function JobDetailPanel({
       {/* Job 概要信息 */}
       <Card size="small" title="执行概要">
         <Descriptions size="small" column={2}>
-          <Descriptions.Item label="Job ID">
+          <Descriptions.Item label="执行 ID">
             <Text copyable className="font-mono text-xs">
               {job.id}
             </Text>
@@ -257,7 +257,7 @@ export default function JobDetailPanel({
           </Descriptions.Item>
         </Descriptions>
         {job.error && (
-          <Alert type="error" title="Job 错误" description={job.error} className="mt-3" />
+          <Alert type="error" title="执行错误" description={job.error} className="mt-3" />
         )}
       </Card>
 
@@ -331,7 +331,7 @@ function JobTaskLabel({
             </Button>
           </Popconfirm>
           <Popconfirm
-            title="停止整个 Job"
+            title="停止整个执行"
             description="当前任务将失败，剩余所有任务将被跳过"
             onConfirm={onStopJob}
             okText="确定"
@@ -339,7 +339,7 @@ function JobTaskLabel({
             okButtonProps={{ danger: true }}
           >
             <Button size="small" type="text" danger icon={<StopOutlined />}>
-              停止 Job
+              停止执行
             </Button>
           </Popconfirm>
         </span>
