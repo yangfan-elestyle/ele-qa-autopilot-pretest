@@ -1341,6 +1341,504 @@ html * {
   .theme-manager-bg-active {
     background: var(--ds-brand-50);
   }
+
+  /* ============================== Segmented control (与 ele-autopilot 对齐) ============================== */
+  .ds-segmented {
+    display: inline-flex;
+    align-items: stretch;
+    padding: 3px;
+    border-radius: 8px;
+    background: var(--ds-surface-subtle);
+    border: 1px solid var(--ds-border-soft);
+    gap: 0;
+  }
+  .ds-segmented-btn {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    color: var(--ds-text-secondary);
+    cursor: pointer;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.4;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition:
+      background-color var(--ds-motion-fast) var(--ds-ease-standard),
+      color var(--ds-motion-fast) var(--ds-ease-standard),
+      box-shadow var(--ds-motion-fast) var(--ds-ease-standard);
+  }
+  .ds-segmented-btn:hover {
+    color: var(--ds-text-primary);
+  }
+  .ds-segmented-btn--active {
+    background: var(--ds-surface-elevated);
+    color: var(--ds-brand-700);
+    box-shadow:
+      0 1px 2px rgba(15, 23, 42, 0.05),
+      0 0 0 1px rgba(99, 102, 241, 0.22);
+    font-weight: 600;
+  }
+  .ds-segmented-btn:focus-visible {
+    outline: none;
+    box-shadow: var(--ds-focus-ring);
+  }
+
+  /* ============================== Output display toolbar ============================== */
+  .ds-output-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 12px;
+    background: linear-gradient(
+      180deg,
+      var(--ds-surface-elevated) 0%,
+      color-mix(in srgb, var(--ds-surface-subtle) 45%, transparent) 100%
+    );
+    border-bottom: 1px solid var(--ds-border-soft);
+    flex: none;
+    min-height: 44px;
+    flex-wrap: wrap;
+  }
+
+  .ds-output-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 100%;
+    min-height: 120px;
+    padding: 16px;
+    color: var(--ds-text-tertiary);
+    font-size: 13px;
+    letter-spacing: 0.01em;
+  }
+  .ds-output-placeholder-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--ds-brand-500);
+    animation: ds-output-placeholder-pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes ds-output-placeholder-pulse {
+    0%, 100% { opacity: 0.35; transform: scale(0.85); }
+    50% { opacity: 1; transform: scale(1.15); }
+  }
+
+  /* ============================== Reasoning collapse ============================== */
+  .ds-reasoning {
+    display: flex;
+    flex-direction: column;
+    flex: none;
+  }
+  .ds-reasoning-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 14px;
+    background: color-mix(in srgb, var(--ds-brand-50) 70%, var(--ds-surface-elevated));
+    border-bottom: 1px solid var(--ds-border-soft);
+    color: var(--ds-text-secondary);
+    font-size: 12.5px;
+    font-weight: 500;
+    cursor: pointer;
+    appearance: none;
+    border-left: 0;
+    border-right: 0;
+    border-top: 0;
+    text-align: left;
+    width: 100%;
+    transition:
+      background-color var(--ds-motion-fast) var(--ds-ease-standard),
+      color var(--ds-motion-fast) var(--ds-ease-standard);
+  }
+  .ds-reasoning-header:hover {
+    background: color-mix(in srgb, var(--ds-brand-100) 50%, var(--ds-surface-elevated));
+    color: var(--ds-text-primary);
+  }
+  .ds-reasoning-header:focus-visible {
+    outline: none;
+    box-shadow: var(--ds-focus-ring) inset;
+  }
+  .ds-reasoning-header.is-open {
+    color: var(--ds-brand-700);
+  }
+  .ds-reasoning-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .ds-reasoning-icon {
+    width: 14px;
+    height: 14px;
+    color: var(--ds-brand-600);
+  }
+  .ds-reasoning-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .ds-reasoning-streaming {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--ds-brand-600);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .ds-reasoning-streaming-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: var(--ds-brand-500);
+    animation: ds-output-placeholder-pulse 1.2s ease-in-out infinite;
+  }
+  .ds-reasoning-chevron {
+    width: 14px;
+    height: 14px;
+    color: var(--ds-text-tertiary);
+    transition: transform var(--ds-motion-base) var(--ds-ease-standard);
+  }
+  .ds-reasoning-chevron.is-open {
+    transform: rotate(180deg);
+    color: var(--ds-brand-600);
+  }
+  .ds-reasoning-pending {
+    padding: 12px 14px;
+    color: var(--ds-text-tertiary);
+    font-size: 13px;
+    font-style: italic;
+  }
+
+  /* ============================== Source chip (TestPanel data source pill) ============================== */
+  .ds-source-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 4px 3px 8px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 500;
+    line-height: 1.4;
+    border: 1px solid transparent;
+    flex-shrink: 0;
+    max-width: 240px;
+    transition:
+      background-color var(--ds-motion-fast) var(--ds-ease-standard),
+      border-color var(--ds-motion-fast) var(--ds-ease-standard);
+  }
+  .ds-source-chip--template {
+    background: var(--ds-brand-50);
+    color: var(--ds-brand-700);
+    border-color: rgba(99, 102, 241, 0.24);
+  }
+  .ds-source-chip--history {
+    background: rgba(22, 163, 74, 0.1);
+    color: #15803d;
+    border-color: rgba(22, 163, 74, 0.26);
+  }
+  .ds-source-chip-type {
+    flex-shrink: 0;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    opacity: 0.85;
+  }
+  .ds-source-chip-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+  .ds-source-chip-close {
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    color: currentColor;
+    border: 0;
+    cursor: pointer;
+    transition: background-color var(--ds-motion-fast) var(--ds-ease-standard);
+    flex-shrink: 0;
+  }
+  .ds-source-chip-close svg {
+    width: 10px;
+    height: 10px;
+  }
+  .ds-source-chip-close:hover {
+    background: rgba(15, 23, 42, 0.08);
+  }
+  :root.dark .ds-source-chip-close:hover {
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  /* ============================== Add source button (TestPanel) ============================== */
+  .ds-add-source-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    height: 30px;
+    border-radius: 999px;
+    background: var(--ds-surface-elevated);
+    color: var(--ds-text-secondary);
+    border: 1px dashed var(--ds-border-strong);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition:
+      background-color var(--ds-motion-fast) var(--ds-ease-standard),
+      color var(--ds-motion-fast) var(--ds-ease-standard),
+      border-color var(--ds-motion-fast) var(--ds-ease-standard),
+      box-shadow var(--ds-motion-fast) var(--ds-ease-standard);
+  }
+  .ds-add-source-btn:hover {
+    background: var(--ds-brand-50);
+    color: var(--ds-brand-700);
+    border-color: rgba(99, 102, 241, 0.45);
+    border-style: solid;
+  }
+  .ds-add-source-btn:focus-visible {
+    outline: none;
+    box-shadow: var(--ds-focus-ring);
+  }
+  .ds-add-source-btn.is-open {
+    background: var(--ds-brand-50);
+    color: var(--ds-brand-700);
+    border-color: var(--ds-brand-500);
+    border-style: solid;
+  }
+  .ds-add-source-btn-icon {
+    width: 12px;
+    height: 12px;
+  }
+  .ds-add-source-menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 6px);
+    width: 220px;
+    z-index: 50;
+  }
+  .ds-add-source-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 9px 12px;
+    border-radius: var(--ds-radius-md);
+    border: 0;
+    background: transparent;
+    color: var(--ds-text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    transition:
+      background-color var(--ds-motion-fast) var(--ds-ease-standard),
+      color var(--ds-motion-fast) var(--ds-ease-standard);
+  }
+  .ds-add-source-menu-item + .ds-add-source-menu-item {
+    margin-top: 2px;
+  }
+  .ds-add-source-menu-item:hover {
+    background: var(--ds-brand-50);
+    color: var(--ds-brand-700);
+  }
+  .ds-add-source-menu-item:focus-visible {
+    outline: none;
+    box-shadow: var(--ds-focus-ring);
+  }
+  .ds-add-source-menu-marker {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    flex-shrink: 0;
+  }
+  .ds-add-source-menu-marker--template {
+    background: var(--ds-brand-500);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
+  }
+  .ds-add-source-menu-marker--history {
+    background: var(--ds-success);
+    box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.18);
+  }
+  .ds-add-source-menu-label {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* ============================== Panel subtitle (strong) ============================== */
+  .ds-panel-subtitle-strong {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ds-text-secondary);
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    margin: 0;
+    flex-shrink: 0;
+  }
+
+  /* ============================== Text link ============================== */
+  .ds-text-link {
+    color: var(--ds-brand-600);
+    text-decoration: underline;
+    text-decoration-color: rgba(99, 102, 241, 0.32);
+    text-underline-offset: 2px;
+    transition:
+      color var(--ds-motion-fast) var(--ds-ease-standard),
+      text-decoration-color var(--ds-motion-fast) var(--ds-ease-standard);
+  }
+  .ds-text-link:hover {
+    color: var(--ds-brand-700);
+    text-decoration-color: var(--ds-brand-700);
+  }
+  .ds-text-link-danger {
+    display: inline-flex;
+    align-items: center;
+    height: 24px;
+    padding: 0 8px;
+    border-radius: var(--ds-radius-sm);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ds-text-tertiary);
+    background: transparent;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition:
+      background-color var(--ds-motion-fast) var(--ds-ease-standard),
+      color var(--ds-motion-fast) var(--ds-ease-standard),
+      border-color var(--ds-motion-fast) var(--ds-ease-standard);
+  }
+  .ds-text-link-danger:hover {
+    background: var(--ds-danger-soft);
+    color: var(--ds-danger);
+    border-color: rgba(220, 38, 38, 0.24);
+  }
+
+  /* ============================== History drawer extras ============================== */
+  .ds-drawer-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ds-text-primary);
+    letter-spacing: -0.01em;
+  }
+  .ds-history-version-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: background-color var(--ds-motion-fast) var(--ds-ease-standard);
+  }
+  .ds-history-version-row:hover {
+    background: color-mix(in srgb, var(--ds-brand-50) 60%, transparent);
+  }
+  .ds-history-version-tag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    height: 22px;
+    padding: 0 7px;
+    border-radius: var(--ds-radius-sm);
+    background: var(--ds-brand-50);
+    color: var(--ds-brand-700);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    flex-shrink: 0;
+  }
+  .ds-history-pill-btn {
+    display: inline-flex;
+    align-items: center;
+    height: 26px;
+    padding: 0 10px;
+    border-radius: 999px;
+    background: var(--ds-surface-subtle);
+    color: var(--ds-text-secondary);
+    border: 1px solid var(--ds-border-soft);
+    font-size: 11.5px;
+    font-weight: 500;
+    cursor: pointer;
+    transition:
+      background-color var(--ds-motion-fast) var(--ds-ease-standard),
+      color var(--ds-motion-fast) var(--ds-ease-standard),
+      border-color var(--ds-motion-fast) var(--ds-ease-standard);
+  }
+  .ds-history-pill-btn:hover {
+    background: var(--ds-surface-elevated);
+    color: var(--ds-text-primary);
+    border-color: var(--ds-border-default);
+  }
+  .ds-history-pill-btn:focus-visible {
+    outline: none;
+    box-shadow: var(--ds-focus-ring);
+  }
+  .ds-history-pill-btn--primary {
+    background: var(--ds-brand-600);
+    color: var(--ds-text-on-brand);
+    border-color: transparent;
+  }
+  .ds-history-pill-btn--primary:hover {
+    background: var(--ds-brand-700);
+    color: var(--ds-text-on-brand);
+    border-color: transparent;
+  }
+  .ds-history-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 64px 24px;
+    color: var(--ds-text-tertiary);
+    text-align: center;
+  }
+  .ds-history-empty-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--ds-brand-50);
+    color: var(--ds-brand-600);
+    box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.16);
+  }
+  .ds-history-empty-icon svg {
+    width: 26px;
+    height: 26px;
+  }
+  .ds-history-empty-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ds-text-secondary);
+  }
+  .ds-history-empty-hint {
+    font-size: 12.5px;
+    color: var(--ds-text-tertiary);
+    max-width: 280px;
+    line-height: 1.55;
+  }
 }
 
 /* ===== Pulse keyframes (loading) ===== */

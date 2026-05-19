@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.9.1] - 2026-05-20
+
+### Changed
+
+- lockstep 同步, 与上游 ele-autopilot / ele-autotesting v1.9.1 一同发布; 本项目无业务改动. 本轮上游聚焦"硌手细节抛光" Phase 1: ele-autopilot task 列表行的 5 个图标按钮 (派单 / 预览 / 任务链 / 编辑 / 删除) 收敛为 派单 + 预览 + 更多菜单 三按钮, 删除走 Popconfirm 防误触, 表格行加 left brand-accent bar hover 反馈; globals.css 新增 `.ds-row-actions` + `.ds-row-action-btn*` (30x30 圆角触达点, primary 变体 hover 切 brand 色 + 1px ring). ele-autotesting OutputDisplayCore 工具栏: 手工组装的"渲染 / 原文 / 对比" 按钮组改 `.ds-segmented` 段控件, 右侧 icon button 改 `.ds-icon-btn-sm`, 整条工具栏背景由 surface-subtle 改 ds-panel-head 同款渐变, 删除 `bg-gray-50` / `text-gray-500` / `bg-blue-500` 等硬编码灰蓝; reasoning header 重写为 ds-reasoning 子系统 (brand-tint 软背景 + chevron 旋转 + streaming pulse dot); TestPanel "添加数据源" 标签从 `bg-blue-100 text-blue-800` 改 `.ds-source-chip--template` / `--history` 双变体 + 类型 uppercase 前缀, 添加按钮改虚线 dashed pill + 展开态实线 brand ring, 下拉菜单标记圆点改 `.ds-add-source-menu-marker` + 3px soft glow; HistoryDrawer 紫色 tag 改 `.ds-chip-brand`, blue-600 链接改 `.ds-text-link` (brand 色 + underline), 删除按钮改 `.ds-text-link-danger` (hover danger-soft + ring), 版本行重写为 `.ds-history-version-row` + V-tag 等宽方块 + pill 按钮组, 空态从 emoji "📜" 改 svg 圆形 icon + 标题 + 解释 hint 三层; Modal 关闭按钮从 stone/slate 硬编码颜色改 `.ds-icon-btn-sm`. ele-autotesting theme.css 新增 `.ds-segmented*` / `.ds-output-toolbar` / `.ds-output-placeholder` / `.ds-reasoning*` / `.ds-source-chip*` / `.ds-add-source-btn` / `.ds-add-source-menu*` / `.ds-panel-subtitle-strong` / `.ds-text-link*` / `.ds-drawer-title` / `.ds-history-*` 共 10+ 组 utility, 全部用 design token, 与 ele-autopilot 对仗. landing 页路由分发 / `/autotest/*` strip / SSR loader / service bindings 行为不变.
+
 ## [1.9.0] - 2026-05-20
 
 ### Changed

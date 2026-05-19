@@ -5,16 +5,25 @@
       :class="show ? 'scale-100 opacity-100' : 'scale-95 opacity-0'"
     >
       <div class="h-full flex flex-col">
-        <div class="flex-none p-3 sm:p-4 theme-history-header flex items-center justify-between">
-          <div class="flex items-center gap-4">
-            <h2 class="text-lg font-semibold theme-manager-text">
-              上下文
+        <div class="flex-none px-4 py-3 sm:px-5 sm:py-4 theme-history-header flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <h2 class="ds-drawer-title">
+              <span class="ds-panel-title-dot" aria-hidden="true"></span>
+              上下文历史
             </h2>
+            <span v-if="sortedHistory && sortedHistory.length > 0" class="ds-chip ds-chip-neutral ds-text-mono">
+              {{ sortedHistory.length }} 条
+            </span>
             <button v-if="sortedHistory && sortedHistory.length > 0" @click.stop="handleClear" class="theme-history-empty-button">
               清空
             </button>
           </div>
-          <button @click.stop="close" class="theme-manager-text-secondary hover:theme-manager-text transition-colors text-xl">×</button>
+          <button @click.stop="close" class="ds-icon-btn-sm" title="关闭" aria-label="关闭历史抽屉">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
+            </svg>
+          </button>
         </div>
 
         <div class="flex-1 overflow-y-auto p-4 sm:p-6">
@@ -23,19 +32,19 @@
               <div v-for="chain in sortedHistory" :key="chain.chainId" class="theme-history-card">
                 <!-- 历史记录头部信息 -->
                 <div class="theme-history-card-header">
-                  <div class="flex items-center justify-between mb-2">
-                    <div class="flex items-center gap-2 text-sm theme-manager-text-secondary">
-                      <span>创建于 {{ formatDate(chain.rootRecord.timestamp) }}</span>
+                  <div class="flex items-center justify-between mb-2 gap-2 flex-wrap">
+                    <div class="flex items-center gap-2 text-xs theme-manager-text-secondary">
+                      <span class="ds-text-mono">{{ formatDate(chain.rootRecord.timestamp) }}</span>
                       <span
                         v-if="(chain.rootRecord as ContextConfig).contentType"
-                        class="text-xs theme-manager-tag bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
+                        class="ds-chip ds-chip-brand"
                         >{{ promptTypeLabel((chain.rootRecord as ContextConfig).contentType) }}</span
                       >
                     </div>
                     <button
                       @click.stop="deleteChain(chain.chainId)"
-                      class="text-xs theme-manager-button-secondary hover:text-red-500 transition-colors"
-                      title="删除"
+                      class="ds-text-link-danger"
+                      title="删除整条上下文"
                     >
                       删除
                     </button>
@@ -56,7 +65,7 @@
                       <a
                         :href="(chain.rootRecord as ContextConfig).contents"
                         target="_blank"
-                        class="ml-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 break-all"
+                        class="ml-1 ds-text-link break-all"
                       >
                         {{ truncateText(((chain.rootRecord as ContextConfig).contents || '').replace(/\s+/g, ' '), 200) }}
                       </a>
@@ -90,23 +99,23 @@
                 <div class="divide-y theme-manager-divider">
                   <div v-for="record in chain.versions.slice().reverse()" :key="record.id" class="relative">
                     <!-- 版本标题栏 -->
-                    <div class="p-3 flex items-center justify-between cursor-pointer hover:bg-gray-100/5 transition-colors" @click="toggleVersion(record.id)">
+                    <div class="ds-history-version-row" @click="toggleVersion(record.id)">
                       <div class="flex items-center gap-3 overflow-hidden">
-                        <span class="text-sm font-medium theme-manager-text flex-none">{{ `V${record.version}` }}</span>
-                        <span class="text-xs theme-manager-text-secondary flex-none">{{ formatDate(record.timestamp) }}</span>
-                        <span class="text-xs theme-manager-text-secondary flex-none">
-                          {{ truncateText((record.modelName || record.modelKey).replace(/\s+/g, ' '), 200) }}
+                        <span class="ds-history-version-tag ds-text-mono">V{{ record.version }}</span>
+                        <span class="text-xs theme-manager-text-secondary flex-none ds-text-mono">{{ formatDate(record.timestamp) }}</span>
+                        <span class="text-xs theme-manager-text-secondary flex-none truncate">
+                          {{ truncateText((record.modelName || record.modelKey).replace(/\s+/g, ' '), 80) }}
                         </span>
                         <span v-if="record.type === 'IterateRecordType' && record.iterationNote" class="text-xs theme-manager-text-secondary truncate">
-                          - {{ truncateText(record.iterationNote.replace(/\s+/g, ' '), 200) }}
+                          · {{ truncateText(record.iterationNote.replace(/\s+/g, ' '), 80) }}
                         </span>
                       </div>
-                      <div class="flex items-center gap-2 flex-none">
-                        <span v-if="record.type === 'IterateRecordType'" class="text-xs theme-manager-tag">迭代</span>
-                        <button @click.stop="reuse(record, chain)" class="text-xs theme-manager-button-secondary">
+                      <div class="flex items-center gap-1.5 flex-none">
+                        <span v-if="record.type === 'IterateRecordType'" class="ds-chip ds-chip-success">迭代</span>
+                        <button @click.stop="reuse(record, chain)" class="ds-history-pill-btn ds-history-pill-btn--primary">
                           使用
                         </button>
-                        <button class="text-xs theme-manager-button-secondary transition-colors">
+                        <button class="ds-history-pill-btn" :aria-expanded="!!expandedVersions[record.id]">
                           {{ expandedVersions[record.id] ? '收起' : '展开' }}
                         </button>
                       </div>
@@ -120,7 +129,7 @@
                         <div class="flex items-center gap-2">
                           <span
                             v-if="(record as ContextConfig).contentType"
-                            class="text-xs theme-manager-tag bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
+                            class="ds-chip ds-chip-brand"
                           >
                             {{ promptTypeLabel((record as ContextConfig).contentType) }}
                           </span>
@@ -136,7 +145,7 @@
                           <a
                             :href="(record as ContextConfig).contents"
                             target="_blank"
-                            class="ml-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 break-all"
+                            class="ml-1 ds-text-link break-all"
                           >
                             {{ truncateText(((record as ContextConfig).contents || '').replace(/\s+/g, ' '), 200) }}
                           </a>
@@ -172,7 +181,7 @@
                       </div>
                       <!-- 使用按钮 -->
                       <div class="flex justify-end">
-                        <button @click="reuse(record, chain)" class="text-xs theme-manager-button-secondary">
+                        <button @click="reuse(record, chain)" class="ds-history-pill-btn ds-history-pill-btn--primary">
                           使用此版本
                         </button>
                       </div>
@@ -183,11 +192,16 @@
             </div>
           </template>
           <template v-else>
-            <div class="flex flex-col items-center justify-center h-full py-12">
-              <div class="text-4xl mb-4 theme-manager-text-secondary">📜</div>
-              <div class="text-sm theme-manager-text-secondary">
-                暂无上下文
+            <div class="ds-history-empty">
+              <div class="ds-history-empty-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                  <path d="M3 3v5h5" />
+                  <path d="M12 7v5l4 2" />
+                </svg>
               </div>
+              <div class="ds-history-empty-title">暂无上下文历史</div>
+              <div class="ds-history-empty-hint">完成一次提示词优化后，记录会自动出现在这里</div>
             </div>
           </template>
         </div>

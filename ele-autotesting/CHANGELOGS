@@ -1,3 +1,44 @@
+# 2026.05.20 (lockstep v1.9.1)
+
+整体目标: 接 v1.9.0 工作台框架抬升, 进入"硌手细节抛光" Phase 1, 把 AutoTest 工作台高频接触点 (输出展示工具栏 / 测试数据源 / 历史抽屉 / 模态框关闭) 的视觉硬编码与不一致整体清理, 全部回归 design token 体系.
+
+1. `packages/ui/src/components/OutputDisplayCore.vue` 顶层工具栏重构:
+   - 左侧"渲染 / 原文 / 对比"按钮组从手工组装的 `px-3 py-1.5 + rounded-r-none border-r` 多按钮拼接改 `.ds-segmented` 段控件 (与 ele-autopilot 任务状态筛选 segmented 视觉契约一致), 移除 `:disabled` 阻断键盘 tab.
+   - 右侧 Excel / 复制 / 全屏 三个 icon button 从 `.theme-icon-button` (36px 高 + 1px border) 改 `.ds-icon-btn-sm` (32x32 无边框 hover surface-subtle), 与左侧 segmented 视觉密度对齐, 标题改"导出 Excel" / "复制内容" / "全屏查看" 显式动词.
+   - 整条工具栏背景从 `theme-toolbar-bg` 改 `.ds-output-toolbar` 渐变 (surface-elevated → 45% subtle), 与 `.ds-panel-head` 同款节奏; min-height 44 + 8/12 padding + flex-wrap.
+2. `packages/ui/src/components/OutputDisplayCore.vue` 推理区 (reasoning) 重构:
+   - 标题栏改 `<button>` 元素 + `.ds-reasoning-header` (brand-50 70% 软底, hover 切 brand-100 50%, 展开时 brand-700 文字), 自带 brand-tint 圆形 clock icon (强调"思考"语义).
+   - "生成中..." 文本改 `.ds-reasoning-streaming` + `.ds-reasoning-streaming-dot` (brand-500 7x7 圆点 + 1.2s pulse animation + uppercase 0.08em letter-spacing).
+   - chevron `.ds-reasoning-chevron` 默认 tertiary 灰, 展开旋转 180° 切 brand-600.
+   - 等待态文本 `text-gray-500 text-sm italic` 改 `.ds-reasoning-pending` 用 token 色.
+3. `packages/ui/src/components/OutputDisplayCore.vue` 空 / 加载占位:
+   - `loading-placeholder` / `empty-placeholder` 内 `text-gray-500` 改 `.ds-output-placeholder` (text-tertiary, min-height 120px), 加载态额外配 6x6 brand-500 圆点 + 1.4s scale pulse, 替代 "加载中..." 纯文本.
+4. `packages/ui/src/components/TestPanel.vue` 数据源 chip + 添加按钮重构:
+   - "已添加" tag 容器从 `bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200` (模板) / `bg-green-100 text-green-800` (上下文) 这种硬编码色改 `.ds-source-chip` + `--template` (brand-50 brand-700) / `--history` (success-soft, 22 163 74 文字色) 双变体, chip 内嵌 uppercase 类型前缀 "模板 / 上下文" + 右侧 18x18 圆形 × close 按钮, hover 切 8% 黑底 (深色 12% 白底).
+   - "添加数据源" 按钮从 `.theme-button-secondary + px-2 py-1` 硬覆盖改 `.ds-add-source-btn` 虚线 dashed pill (30px 高 999 圆角 elevated 底), hover 切 brand-50 软底 + 实线 brand-45% ring; 展开态 (`.is-open`) brand-500 实线 ring + brand-700 文字.
+   - 下拉菜单 `<div class="theme-dropdown">` 加 `.ds-add-source-menu` 重定位 (top 100% + 6px gap + 220px 宽), item 改 `.ds-add-source-menu-item` 9/12 padding + 13px primary, marker 圆点改 `.ds-add-source-menu-marker--template` (brand-500 + 3px brand-18% glow) / `--history` (success + 3px 22 163 74-18% glow), 替代 inline `bg-blue-500` / `bg-green-500`.
+   - 主标题 `生成结果` 从普通 h3 改 `.ds-panel-subtitle-strong` (uppercase 0.02em + brand 圆点 dot).
+5. `packages/ui/src/components/HistoryDrawer.vue` 历史抽屉视觉一致性:
+   - 头部 `<h2>上下文</h2>` 重写为 `.ds-drawer-title` + brand dot + 标题 + 条数 `.ds-chip-neutral`, 关闭 `×` 按钮 (硬编码灰文 + 大字号 ×) 改 `.ds-icon-btn-sm` + 4px svg cross 图标.
+   - 历史卡 header 内紫色 tag `bg-purple-100 text-purple-800 dark:bg-purple-900` 改 `.ds-chip-brand` (brand-50 brand-700 token), 时间从 14px secondary 改 11px secondary mono.
+   - 链接 `text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300` 改 `.ds-text-link` (brand 色 + 32% underline + offset 2px), 替代 5 处硬编码.
+   - "删除"整链按钮从 `text-xs theme-manager-button-secondary hover:text-red-500` 灰按钮改 `.ds-text-link-danger` (默认透明 tertiary 灰文, hover 切 danger-soft + danger 文字 + 1px 24% danger ring), 误触面缩小, 危险动作语义明确.
+   - 版本标题行从 `p-3 + hover:bg-gray-100/5` 改 `.ds-history-version-row` (brand-50 60% 软底 hover, 10/14 padding), V 号从 `text-sm font-medium` 文字改 `.ds-history-version-tag` (brand-50 brand-700 22px mono 方块 min-w 36px).
+   - "使用 / 展开 / 收起 / 使用此版本" 按钮从 `text-xs theme-manager-button-secondary` 多处复用改 `.ds-history-pill-btn` + `--primary` 变体 (26px 高 999 圆角, 主操作切 brand-600 实底 + on-brand 文字).
+   - 空态从 emoji `📜` + 单行灰文 改 `.ds-history-empty` 三层结构: brand-50 圆形 56px container 包 brand-600 svg clock-history icon + secondary 标题 + tertiary hint "完成一次提示词优化后, 记录会自动出现在这里".
+6. `packages/ui/src/components/Modal.vue` 关闭按钮 stone/slate 硬编码颜色改 `.ds-icon-btn-sm`, 4 处深浅色 hover 状态 (`text-stone-500 hover:bg-stone-200/60 dark:text-slate-400 dark:hover:bg-slate-700/60`) 全部回归 design token (4 个属性 → 0 个).
+7. `packages/ui/src/styles/theme.css` 新增 10+ 组共享 utility, 全部使用 `--ds-*` token, 与 ele-autopilot `globals.css` 视觉契约对仗:
+   - 控件: `.ds-segmented` + `.ds-segmented-btn` + `.ds-segmented-btn--active` (复用 ele-autopilot 同名实现).
+   - 输出区: `.ds-output-toolbar` (面板头同款渐变) + `.ds-output-placeholder` + `.ds-output-placeholder-dot`.
+   - 推理区: `.ds-reasoning` + `-header` + `-title` + `-icon` + `-meta` + `-streaming` + `-streaming-dot` + `-chevron` + `-pending` 子系统.
+   - 数据源 chip: `.ds-source-chip` + `--template` + `--history` + `-type` + `-name` + `-close`.
+   - 添加按钮: `.ds-add-source-btn` + `.is-open` 态 + `-icon` + `-menu` + `-menu-item` + `-menu-marker` + `--template` / `--history` + `-menu-label`.
+   - 排版辅助: `.ds-panel-subtitle-strong` (uppercase 节略小标题).
+   - 文本链接: `.ds-text-link` (brand underline) + `.ds-text-link-danger` (默认透明灰文, hover danger-soft).
+   - 抽屉 / 历史: `.ds-drawer-title` (15px primary + brand dot) + `.ds-history-version-row` + `.ds-history-version-tag` + `.ds-history-pill-btn` + `--primary` + `.ds-history-empty` + `-icon` + `-title` + `-hint`.
+
+8. **零 API 改动**: 服务端 Hono / D1 / Container / 路由 / Static Assets 行为完全不变. 仅 web 端 UI 视觉与交互层抛光.
+
 # 2026.05.20 (lockstep v1.9.0)
 
 1. lockstep 同步至 v1.9.0, 与 gateway / ele-autopilot / ele-autopilot-local 一同发布. 本端 AutoTest 工作台本轮**有实质 UX 升级**, 同步 ele-autopilot 的"工作台拔升"动作, 让两个工作台体感统一到"成熟科技公司管理后台" 层级.

@@ -4,49 +4,53 @@
     <div
       v-if="hasToolbar"
       data-testid="output-display-toolbar"
-      class="theme-toolbar-bg flex items-center justify-between px-3 py-2 border-b"
-      :class="themeToolbarBorder"
+      class="ds-output-toolbar"
     >
-      <!-- 左侧：视图控制按钮组 -->
-      <div class="flex items-center border rounded-md" :class="themeToolbarBorder">
+      <!-- 左侧：视图控制按钮组 (segmented) -->
+      <div class="ds-segmented" role="tablist" aria-label="显示模式">
         <button
+          type="button"
+          role="tab"
+          :aria-selected="internalViewMode === 'render'"
           @click="internalViewMode = 'render'"
-          :disabled="internalViewMode === 'render'"
-          class="px-3 py-1.5 text-sm rounded-r-none border-r"
-          :class="[themeToolbarButton, themeToolbarBorder, { [themeToolbarButtonActive]: internalViewMode === 'render' }]"
+          class="ds-segmented-btn"
+          :class="{ 'ds-segmented-btn--active': internalViewMode === 'render' }"
         >
           渲染
         </button>
         <button
+          type="button"
+          role="tab"
+          :aria-selected="internalViewMode === 'source'"
           @click="internalViewMode = 'source'"
-          :disabled="internalViewMode === 'source'"
-          class="px-3 py-1.5 text-sm rounded-none"
-          :class="[themeToolbarButton, { [themeToolbarButtonActive]: internalViewMode === 'source' }]"
+          class="ds-segmented-btn"
+          :class="{ 'ds-segmented-btn--active': internalViewMode === 'source' }"
         >
           原文
         </button>
         <button
           v-if="isActionEnabled('diff') && originalContent"
+          type="button"
+          role="tab"
+          :aria-selected="internalViewMode === 'diff'"
           @click="internalViewMode = 'diff'"
-          :disabled="internalViewMode === 'diff' || !originalContent"
-          :title="!originalContent ? '没有原始内容可供对比' : ''"
-          class="px-3 py-1.5 text-sm rounded-l-none border-l"
-          :class="[themeToolbarButton, themeToolbarBorder, { [themeToolbarButtonActive]: internalViewMode === 'diff' }]"
+          :title="!originalContent ? '没有原始内容可供对比' : '与上一版对比'"
+          class="ds-segmented-btn"
+          :class="{ 'ds-segmented-btn--active': internalViewMode === 'diff' }"
         >
           对比
         </button>
       </div>
 
       <!-- 右侧：操作按钮 -->
-      <!-- TODO: 添加下载 excel 的一个按钮 -->
-      <div class="flex items-center gap-2">
-        <button v-if="isActionEnabled('excel')" @click="handleExcel" class="theme-icon-button" title="导出Excel">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <div class="flex items-center gap-1">
+        <button v-if="isActionEnabled('excel')" @click="handleExcel" class="ds-icon-btn-sm" title="导出 Excel" aria-label="导出 Excel">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
           </svg>
         </button>
-        <button v-if="isActionEnabled('copy')" @click="handleCopy('content')" class="theme-icon-button" title="复制">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <button v-if="isActionEnabled('copy')" @click="handleCopy('content')" class="ds-icon-btn-sm" title="复制内容" aria-label="复制内容">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -54,8 +58,8 @@
             />
           </svg>
         </button>
-        <button v-if="isActionEnabled('fullscreen')" @click="handleFullscreen" class="theme-icon-button" title="全屏">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <button v-if="isActionEnabled('fullscreen')" @click="handleFullscreen" class="ds-icon-btn-sm" title="全屏查看" aria-label="全屏查看">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -67,33 +71,42 @@
     </div>
 
     <!-- 推理内容区域 -->
-    <div v-if="shouldShowReasoning">
+    <div v-if="shouldShowReasoning" class="ds-reasoning">
       <!-- 推理面板标题栏 -->
-      <div
-        class="reasoning-header flex items-center justify-between px-3 py-2 border-b cursor-pointer theme-toolbar-bg theme-toolbar-hover-bg"
-        :class="themeToolbarBorder"
+      <button
+        type="button"
+        class="ds-reasoning-header"
+        :class="{ 'is-open': isReasoningExpanded }"
+        :aria-expanded="isReasoningExpanded"
         @click="toggleReasoning"
       >
-        <span class="text-sm font-medium theme-label">
+        <span class="ds-reasoning-title">
+          <svg class="ds-reasoning-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 7v5l3 2" />
+          </svg>
           思考过程
         </span>
-        <div class="flex items-center gap-2">
-          <div v-if="isReasoningStreaming" class="streaming-indicator">
-            <span class="text-xs">生成中...</span>
-          </div>
+        <span class="ds-reasoning-meta">
+          <span v-if="isReasoningStreaming" class="ds-reasoning-streaming">
+            <span class="ds-reasoning-streaming-dot" aria-hidden="true"></span>
+            生成中
+          </span>
           <svg
-            class="reasoning-toggle w-4 h-4 transition-transform duration-200"
-            :class="{ 'rotate-180': isReasoningExpanded }"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
+            class="ds-reasoning-chevron"
+            :class="{ 'is-open': isReasoningExpanded }"
             viewBox="0 0 24 24"
+            fill="none"
             stroke="currentColor"
-            stroke-width="2"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
           >
             <polyline points="6,9 12,15 18,9"></polyline>
           </svg>
-        </div>
-      </div>
+        </span>
+      </button>
 
       <!-- 推理内容区 -->
       <div v-if="isReasoningExpanded" class="output-display__reasoning" :class="{ streaming: streaming }">
@@ -104,8 +117,8 @@
             :streaming="streaming"
             class="theme-markdown-content prose-sm max-w-none px-3 py-2"
           />
-          <div v-else-if="streaming" class="text-gray-500 text-sm italic px-3 py-2">
-            思考中...
+          <div v-else-if="streaming" class="ds-reasoning-pending">
+            思考中…
           </div>
         </div>
       </div>
@@ -145,10 +158,11 @@
         :class="isEmpty ? 'theme-input !border-none !shadow-none !p-0' : 'theme-content-container !border-none !shadow-none'"
       >
         <MarkdownRenderer v-if="displayContent" :content="displayContent" :streaming="streaming" class="px-3 py-2" />
-        <div v-else-if="loading || streaming" class="loading-placeholder px-3 py-2">
-          {{ placeholder || '加载中...' }}
+        <div v-else-if="loading || streaming" class="ds-output-placeholder is-loading">
+          <span class="ds-output-placeholder-dot" aria-hidden="true"></span>
+          {{ placeholder || '加载中…' }}
         </div>
-        <div v-else class="empty-placeholder px-3 py-2">
+        <div v-else class="ds-output-placeholder">
           {{ placeholder || '暂无内容' }}
         </div>
       </div>
@@ -759,41 +773,17 @@ defineExpose({ resetReasoningState, forceRefreshContent, forceExitEditing })
 </script>
 
 <style scoped>
-/* 顶层工具栏样式 */
-.output-display-toolbar {
-  @apply flex-none bg-gray-50 dark:bg-gray-800;
-}
-
-/* 推理面板标题栏样式 */
-.reasoning-header {
-  @apply flex-none bg-gray-50 dark:bg-gray-800;
-}
-
 .output-display__reasoning {
-  @apply flex-none mt-0;
+  flex: none;
 }
 
 .reasoning-content {
-  @apply overflow-y-auto mt-0;
+  overflow-y: auto;
   max-height: 30vh;
-  padding: 0;
-}
-
-.streaming-indicator {
-  @apply inline-flex items-center gap-1 text-blue-500;
-}
-
-.streaming-indicator::before {
-  content: '';
-  @apply w-2 h-2 rounded-full bg-blue-500 animate-pulse;
 }
 
 .output-display__content {
-  @apply flex-1 min-h-0;
-}
-
-.loading-placeholder,
-.empty-placeholder {
-  @apply flex items-center justify-center h-full text-gray-500 text-sm italic;
+  flex: 1;
+  min-height: 0;
 }
 </style>

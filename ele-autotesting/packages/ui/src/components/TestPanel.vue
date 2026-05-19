@@ -37,8 +37,8 @@
           <div class="flex flex-col min-h-0 transition-all duration-300 min-h-[80px] md:absolute md:inset-0 md:h-full md:w-full md:left-0">
             <!-- Test Result Header with Add Action -->
             <div class="flex flex-col gap-2 mb-3 flex-none sm:flex-row sm:items-center sm:justify-between">
-              <h3 class="text-[13px] font-semibold theme-text truncate flex-shrink-0 inline-flex items-center gap-2">
-                <span class="inline-block h-1.5 w-1.5 rounded-full" style="background: var(--ds-text-tertiary)"></span>
+              <h3 class="ds-panel-subtitle-strong">
+                <span class="ds-panel-title-dot" aria-hidden="true"></span>
                 生成结果
               </h3>
 
@@ -46,25 +46,27 @@
               <div class="flex items-center gap-2 flex-1 min-w-0 sm:ml-4">
                 <!-- Added Items with Horizontal Scroll (always present for layout) -->
                 <div class="flex-1 min-w-0">
-                  <div v-if="addedItems.length > 0" class="flex items-center gap-2 overflow-x-auto custom-scrollbar pb-1">
-                    <div
+                  <div v-if="addedItems.length > 0" class="flex items-center gap-1.5 overflow-x-auto custom-scrollbar pb-1">
+                    <span
                       v-for="item in sortedAddedItems"
                       :key="item.id"
-                      class="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md border flex-shrink-0"
-                      :class="{
-                        'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200': item.type === 'template',
-                        'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200': item.type === 'history',
-                      }"
+                      class="ds-source-chip"
+                      :class="item.type === 'template' ? 'ds-source-chip--template' : 'ds-source-chip--history'"
                     >
-                      <span class="whitespace-nowrap" :title="item.name">{{ truncateText(item.name, 30) }}</span>
+                      <span class="ds-source-chip-type" aria-hidden="true">{{ item.type === 'template' ? '模板' : '上下文' }}</span>
+                      <span class="ds-source-chip-name" :title="item.name">{{ truncateText(item.name, 30) }}</span>
                       <button
                         @click="removeItem(item.id)"
-                        class="hover:bg-black/10 dark:hover:bg-white/10 rounded-sm p-0.5 transition-colors flex-shrink-0"
-                        title="移除"
+                        class="ds-source-chip-close"
+                        :title="`移除 ${item.name}`"
+                        :aria-label="`移除 ${item.name}`"
                       >
-                        ×
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                          <path d="M18 6 6 18" />
+                          <path d="m6 6 12 12" />
+                        </svg>
                       </button>
-                    </div>
+                    </span>
                   </div>
                 </div>
 
@@ -72,28 +74,26 @@
                 <div class="relative flex-shrink-0" ref="addActionDropdown">
                   <button
                     @click="toggleAddAction"
-                    class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium theme-button-secondary"
-                    :class="{ 'theme-button-active': showAddAction }"
+                    class="ds-add-source-btn"
+                    :class="{ 'is-open': showAddAction }"
+                    :aria-expanded="showAddAction"
                   >
-                    <span>添加数据源</span>
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    <svg class="ds-add-source-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M12 5v14" />
+                      <path d="M5 12h14" />
                     </svg>
+                    <span>添加数据源</span>
                   </button>
 
                   <!-- Dropdown Menu -->
-                  <div v-show="showAddAction" class="absolute right-0 top-full mt-1 w-48 theme-dropdown z-50">
-                    <button @click="handleAddTemplate" class="w-full px-3 py-2 text-left text-sm theme-dropdown-item theme-dropdown-item-inactive">
-                      <div class="flex items-center gap-2">
-                        <span class="w-2 h-2 rounded-full bg-blue-500"></span>
-                        添加【内容生成】模板
-                      </div>
+                  <div v-show="showAddAction" class="theme-dropdown ds-add-source-menu" role="menu">
+                    <button @click="handleAddTemplate" class="ds-add-source-menu-item" role="menuitem">
+                      <span class="ds-add-source-menu-marker ds-add-source-menu-marker--template" aria-hidden="true"></span>
+                      <span class="ds-add-source-menu-label">添加【内容生成】模板</span>
                     </button>
-                    <button @click="handleAddHistory" class="w-full px-3 py-2 text-left text-sm theme-dropdown-item theme-dropdown-item-inactive">
-                      <div class="flex items-center gap-2">
-                        <span class="w-2 h-2 rounded-full bg-green-500"></span>
-                        添加【上下文】数据
-                      </div>
+                    <button @click="handleAddHistory" class="ds-add-source-menu-item" role="menuitem">
+                      <span class="ds-add-source-menu-marker ds-add-source-menu-marker--history" aria-hidden="true"></span>
+                      <span class="ds-add-source-menu-label">添加【上下文】数据</span>
                     </button>
                   </div>
                 </div>

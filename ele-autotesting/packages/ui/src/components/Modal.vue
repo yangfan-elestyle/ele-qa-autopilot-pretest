@@ -30,11 +30,12 @@
                 </h3>
                 <button
                   @click="$emit('update:modelValue', false)"
-                  class="inline-flex h-8 w-8 items-center justify-center rounded-md text-stone-500 hover:bg-stone-200/60 hover:text-stone-800 transition-colors dark:text-slate-400 dark:hover:bg-slate-700/60 dark:hover:text-slate-100"
+                  class="ds-icon-btn-sm"
                   aria-label="关闭"
                 >
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M18 6 6 18" />
+                    <path d="m6 6 12 12" />
                   </svg>
                 </button>
               </div>

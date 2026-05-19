@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.9.1] - 2026-05-20
+
+### Changed
+
+- lockstep 同步, 与上游 gateway / ele-autopilot / ele-autotesting v1.9.1 一同发布; 本项目无业务改动. 本轮上游聚焦"工作台 UX 硌手细节抛光" Phase 1: ele-autopilot 任务行 5 按钮收敛为 派单+预览+更多 菜单, 删除走 Popconfirm 防误触, 表格行加 left brand-accent bar hover 反馈, globals.css 新增 `.ds-row-actions` + `.ds-row-action-btn*`; ele-autotesting OutputDisplayCore 工具栏改 `.ds-segmented` + `.ds-icon-btn-sm` 统一段控件, reasoning header 重写为 brand-tint 软底 + chevron 旋转 + streaming pulse dot, TestPanel 数据源标签从 `bg-blue-100` 硬编码改 `.ds-source-chip` 双变体 + 类型 uppercase 前缀, "添加数据源" 改虚线 dashed pill + 展开态实线 brand ring, HistoryDrawer 紫色 tag 改 `.ds-chip-brand` / 蓝色链接改 `.ds-text-link` / 删除按钮改 `.ds-text-link-danger` / 版本行重写 + V-tag mono 方块, 空态从 emoji 改 svg icon + 标题 + hint 三层, Modal 关闭按钮 stone/slate 硬编码改 `.ds-icon-btn-sm`. ele-autotesting theme.css 新增 10+ 组 utility 全 token 化, 与 ele-autopilot 对仗. FastAPI app / 路由 / 监听 / R2 wheel 发布链路不变.
+
 ## [1.9.0] - 2026-05-20
 
 ### Changed

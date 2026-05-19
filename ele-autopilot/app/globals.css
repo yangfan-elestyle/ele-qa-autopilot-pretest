@@ -806,4 +806,80 @@ body {
     width: 3px;
     border-radius: 999px;
   }
+
+  /* —— Task row actions (派单 / 预览 / 更多) —— */
+  .ds-row-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    justify-content: flex-end;
+    padding: 1px;
+    border-radius: var(--ds-radius-md);
+  }
+  .ds-row-action-btn {
+    height: 30px !important;
+    width: 30px !important;
+    border-radius: 8px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    color: var(--ds-text-tertiary) !important;
+    transition:
+      background-color var(--ds-motion-fast) var(--ds-ease-standard),
+      color var(--ds-motion-fast) var(--ds-ease-standard),
+      box-shadow var(--ds-motion-fast) var(--ds-ease-standard) !important;
+  }
+  .ds-row-action-btn:hover,
+  .ds-row-action-btn:focus-visible {
+    background: var(--ds-surface-subtle) !important;
+    color: var(--ds-text-primary) !important;
+  }
+  .ds-row-action-btn--primary:hover,
+  .ds-row-action-btn--primary:focus-visible {
+    background: var(--ds-brand-50) !important;
+    color: var(--ds-brand-700) !important;
+    box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.22) !important;
+  }
+  .ant-table-row:hover .ds-row-action-btn {
+    color: var(--ds-text-secondary) !important;
+  }
+  .ant-table-row:hover .ds-row-action-btn--primary {
+    color: var(--ds-brand-600) !important;
+  }
+
+  /* —— Task row 顶部蓝色 accent on hover (强化"行被聚焦"反馈) —— */
+  .ant-table-tbody > tr.ant-table-row {
+    position: relative;
+  }
+  .ant-table-tbody > tr.ant-table-row > td:first-child {
+    position: relative;
+  }
+  .ant-table-tbody > tr.ant-table-row > td:first-child::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    height: 0;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: var(--ds-brand-500);
+    transform: translateY(-50%);
+    transition:
+      height var(--ds-motion-fast) var(--ds-ease-standard),
+      opacity var(--ds-motion-fast) var(--ds-ease-standard);
+    opacity: 0;
+    pointer-events: none;
+  }
+  .ant-table-tbody > tr.ant-table-row:hover > td:first-child::before {
+    height: 60%;
+    opacity: 1;
+  }
+
+  /* —— Page-level surface tweak: 加深表格分割线 & 减小 hover 突兀感 —— */
+  .ant-table-thead > tr > th::before {
+    display: none !important;
+  }
+  .ant-table-tbody > tr > td {
+    border-bottom-color: var(--ds-border-soft) !important;
+  }
 }

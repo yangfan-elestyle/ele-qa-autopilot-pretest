@@ -2,6 +2,28 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.9.1] - 2026-05-20
+
+整体目标: 在 v1.9.0 "工作台框架抬升" 之后, 进入"硌手细节抛光" Phase 1, 收敛 task 列表行的高频误触面 & 强化任务行选择感.
+
+### Added
+
+- `app/globals.css` 新增 `.ds-row-actions` + `.ds-row-action-btn` + `.ds-row-action-btn--primary` 一组任务行操作按钮 token:
+  - 30x30 触达点 (此前 `!h-8 !w-8` 配 `gap-0.5` 5 按钮挤一排), gap 改 2px + 整组外 1px padding 让 hover 视觉收敛在容器内.
+  - primary 变体 hover 切 brand-50 软底 + brand-700 文字 + 1px brand ring; 普通变体 hover 切 surface-subtle, 颜色随表格行 hover 态自动 secondary→primary.
+- `app/globals.css` 表格行加 left brand-accent bar 视觉反馈:
+  - `tr.ant-table-row > td:first-child::before` 默认 0 高度透明, hover 时 60% 高度 + brand-500, 配合现有 `--ds-brand-50` 行底色形成"行被聚焦"二阶反馈, 替代单纯换底色的弱反馈.
+  - 同时删除 ant-table head `::before` 默认列分隔条 (与 `.ds-section-head` 的 1px soft 分隔重复), 表格 body 行底 border 统一切 `--ds-border-soft`.
+
+### Changed
+
+- `app/admin/_components/task-content.tsx` 任务行操作列从 5 个图标按钮 (派单 / 预览 / 任务链 / 编辑 / 删除) 收敛为 3 个按钮 (派单 + 预览 + 更多), 实质改动:
+  - 抽出 `TaskRowActions` 组件, 派单按钮挂 `--primary` 变体, 视觉权重最高, 与"主操作"语义一致.
+  - 编辑 / 任务链 / 删除 收纳进 `AntD Dropdown` 菜单, 删除项 `danger=true` + AntD `Popconfirm` 二次确认 (`此操作不可撤销, 确认删除?`), 删除流程从"单击图标即触发底层 confirm 对话框"改"明确两步操作", 显著降低误触.
+  - 任务链按钮仅在 `record.sub_ids?.length > 0` 时出现在菜单中, 文案带数量 `查看任务链 (N)`.
+  - 操作列宽度 156 → 140, 因按钮数从 5 缩到 3, 横向更紧凑.
+- `app/admin/_components/task-content.tsx` 改用新的 import: 增加 `MoreOutlined` icon + `Dropdown` / `Popconfirm` / `MenuProps` 类型.
+
 ## [1.9.0] - 2026-05-20
 
 整体目标: 把任务后台从"草稿感"拉到"成熟科技公司管理后台"层级, 集中升级页面层级 / 表格密度 / 视图状态机 / KPI 节奏 / 空状态文案 / 弹窗信息层级.

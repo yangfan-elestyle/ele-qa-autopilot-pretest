@@ -8,6 +8,7 @@ import {
   FileTextOutlined,
   LoadingOutlined,
   MenuOutlined,
+  MoreOutlined,
   OrderedListOutlined,
   PlayCircleOutlined,
   PlusOutlined,
@@ -15,8 +16,9 @@ import {
   RightOutlined,
   SearchOutlined,
 } from '@ant-design/icons';
-import { Button, Input, Layout, Table, Tooltip } from 'antd';
+import { Button, Dropdown, Input, Layout, Popconfirm, Table, Tooltip } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import type { MenuProps } from 'antd';
 import { useMemo, useState } from 'react';
 
 import type { Folder, Id, Task, TaskJobStats } from '../_types';
@@ -204,57 +206,16 @@ export default function TaskContent({
     {
       title: <span className="tracking-wide">操作</span>,
       key: 'actions',
-      width: 156,
+      width: 140,
       align: 'right',
       render: (_: unknown, record) => (
-        <div
-          className="flex flex-wrap items-center justify-end gap-0.5"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <Tooltip title="派单执行">
-            <Button
-              type="text"
-              icon={<PlayCircleOutlined />}
-              onClick={() => onExecuteTask(record)}
-              className="!h-8 !w-8 hover:!text-(--ds-brand-600)"
-            />
-          </Tooltip>
-          <Tooltip title="预览执行历史">
-            <Button
-              type="text"
-              icon={<EyeOutlined />}
-              onClick={() => window.open(`/autopilot/preview/${record.id}`, '_blank')}
-              className="!h-8 !w-8"
-            />
-          </Tooltip>
-          {record.sub_ids && record.sub_ids.length > 0 && (
-            <Tooltip title="查看任务链">
-              <Button
-                type="text"
-                icon={<BranchesOutlined />}
-                onClick={() => onViewTaskChain(record)}
-                className="!h-8 !w-8"
-              />
-            </Tooltip>
-          )}
-          <Tooltip title="编辑">
-            <Button
-              type="text"
-              icon={<EditOutlined />}
-              onClick={() => onEditTask(record)}
-              className="!h-8 !w-8"
-            />
-          </Tooltip>
-          <Tooltip title="删除">
-            <Button
-              type="text"
-              danger
-              icon={<DeleteOutlined />}
-              onClick={() => void onDeleteTasks([record.id])}
-              className="!h-8 !w-8"
-            />
-          </Tooltip>
-        </div>
+        <TaskRowActions
+          record={record}
+          onExecuteTask={onExecuteTask}
+          onEditTask={onEditTask}
+          onViewTaskChain={onViewTaskChain}
+          onDeleteTasks={onDeleteTasks}
+        />
       ),
     },
   ];
@@ -482,6 +443,112 @@ export default function TaskContent({
         </div>
       </div>
     </Content>
+  );
+}
+
+function TaskRowActions({
+  record,
+  onExecuteTask,
+  onEditTask,
+  onViewTaskChain,
+  onDeleteTasks,
+}: {
+  record: Task;
+  onExecuteTask: (task: Task) => void;
+  onEditTask: (task: Task) => void;
+  onViewTaskChain: (task: Task) => void;
+  onDeleteTasks: (ids: Id[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  const hasChain = !!record.sub_ids && record.sub_ids.length > 0;
+
+  const menuItems: MenuProps['items'] = [
+    {
+      key: 'edit',
+      icon: <EditOutlined />,
+      label: '编辑任务',
+      onClick: () => onEditTask(record),
+    },
+    ...(hasChain
+      ? [
+          {
+            key: 'chain',
+            icon: <BranchesOutlined />,
+            label: `查看任务链 (${record.sub_ids!.length})`,
+            onClick: () => onViewTaskChain(record),
+          },
+        ]
+      : []),
+    { type: 'divider' as const },
+    {
+      key: 'delete',
+      icon: <DeleteOutlined />,
+      label: '删除任务',
+      danger: true,
+      onClick: () => {
+        setOpen(false);
+        setConfirmOpen(true);
+      },
+    },
+  ];
+
+  return (
+    <div
+      className="ds-row-actions"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <Tooltip title="派单执行">
+        <Button
+          type="text"
+          icon={<PlayCircleOutlined />}
+          onClick={() => onExecuteTask(record)}
+          className="ds-row-action-btn ds-row-action-btn--primary"
+          aria-label="派单执行"
+        />
+      </Tooltip>
+      <Tooltip title="预览执行历史">
+        <Button
+          type="text"
+          icon={<EyeOutlined />}
+          onClick={() => window.open(`/autopilot/preview/${record.id}`, '_blank')}
+          className="ds-row-action-btn"
+          aria-label="预览执行历史"
+        />
+      </Tooltip>
+      <Popconfirm
+        title="删除任务"
+        description="此操作不可撤销，确认删除？"
+        open={confirmOpen}
+        okText="删除"
+        okButtonProps={{ danger: true }}
+        cancelText="取消"
+        placement="topRight"
+        onConfirm={() => {
+          setConfirmOpen(false);
+          void onDeleteTasks([record.id]);
+        }}
+        onCancel={() => setConfirmOpen(false)}
+      >
+        <Dropdown
+          menu={{ items: menuItems }}
+          trigger={['click']}
+          placement="bottomRight"
+          open={open}
+          onOpenChange={setOpen}
+        >
+          <Tooltip title="更多操作" mouseEnterDelay={0.4}>
+            <Button
+              type="text"
+              icon={<MoreOutlined />}
+              className="ds-row-action-btn"
+              aria-label="更多操作"
+            />
+          </Tooltip>
+        </Dropdown>
+      </Popconfirm>
+    </div>
   );
 }
 
