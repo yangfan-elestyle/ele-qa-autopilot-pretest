@@ -1,4 +1,46 @@
+# 2026.05.20 (lockstep v1.8.2)
+
+1. AutoTest 前端工作台 UX 提级, 与 v1.8.1 autopilot 的提级形成对称.
+
+2. `packages/web/src/App.vue` 初始化状态从单个 `<spinner>` + "正在初始化..." 文案升级为完整布局骨架 (`.boot-skeleton`):
+   - 60px 顶栏 (品牌 mark + 文字占位 + 4 个 action pill 占位).
+   - 双卡片 grid 主体 (输入卡 head + textarea + footer 3 元素占位 / 提示词卡 head + textarea + 实时 status 行).
+   - status 行带 `.boot-dot` brand 色脉冲, 文案 "正在加载 AutoTest 工作台…", 替代单点旋转的草稿感.
+   - 全部用 `--ds-*` token 渲染 (surface / border / shadow / brand), light / dark 自动适配.
+
+3. `packages/ui/src/components/OptimizationModeSelector.vue` 完整重写: 从 `px-2.5 py-0.5` 简易双 button 切换器 (text-base + rounded + 灰底分割线) 升级到 ds-mode-segment 段控件:
+   - 外层 ds-mode-segment 容器: 4px padding + 10px radius + surface subtle bg + border soft, 形成 segmented 容器.
+   - 每段 44 px 高 (移动 40 px), 14 px / 8 px padding, 8 px radius, 选中态 elevated 白底 + 1px brand-soft ring + xs shadow + brand-700 文字.
+   - 每段含 icon (20 px Lucide-style stroke SVG, 上下文模式用文档 + 表头 icon, 内容生成模式用对话 icon, 未选中 tertiary 色 / 选中 brand-600).
+   - 文本两行 (label 13px 600 + hint 11px 500, hint 在 ≤ 640 px 隐藏).
+   - 添加 ARIA role / tablist / tab + aria-selected; focus-visible 4px brand ring; click 微 scale 0.98 反馈.
+
+4. `packages/ui/src/components/PromptPanel.vue` 标题与版本切换区重写:
+   - 新增 `.ds-panel-title` 15 px primary + 6 px brand dot (3 px brand-soft ring) 作 indicator, 不再用大号 lg 文字孤立.
+   - 版本切换从原一行裸 button (text-xs px-2 py-1) 升级到 `.ds-version-pills` 段控件: 3 px padding + 8 px radius + surface subtle 外层, 内含「版本」label (11 px uppercase tertiary) + 每版 V{n} pill (mono 11 px, 选中态 elevated 白底 + 1px brand-soft ring + brand-700, hover 浮起) + 「共 N 版」计数尾标.
+   - 「继续优化」按钮从 `.theme-button-secondary` 升级到独立 `.ds-iterate-btn` (icon 14 px refresh + 文字, hover brand-50 软底 + brand-700 文字 + brand-soft border; 加载态切 spinner + "优化中…" 文案 + brand-50 持久软底).
+
+5. `packages/ui/src/components/MainLayout.vue` 顶栏新增「Studio 就绪」状态徽章 (md 以上显示, ≤ md 隐藏): success soft 软底 + inset success ring + 6 px success dot + "Studio 就绪" 文字 + 2.4 s 脉冲扩散动画 (使用 `color-mix(in srgb, currentColor)` 让脉冲色与文字色自动同色, light / dark 自动同步), 与 autopilot 的 "本地 Agent · 已连接" 徽章一致.
+
+6. 视觉一致性: 所有新组件直接读 `--ds-brand-*` / `--ds-surface-*` / `--ds-text-*` / `--ds-shadow-*` / `--ds-radius-*` / `--ds-focus-ring` CSS variables, 0 硬编码颜色 / 阴影, dark 模式经 `:root.dark` 自动适配; 通过 `@media (max-width: 640px)` 在移动端切单列 / 全宽 / 隐藏 hint, 保持触屏可点性.
+
+7. D1 schema / containers / Hono Worker / `/stream-proxy` / `/http-proxy` 路径前缀 / V1 device:shared-owner-v1 身份模型 / `useAppInitializer(apiBase)` / 工作台业务流 (优化 / 迭代 / 测试 / 模板管理 / 历史 / 数据管理) 全部不变.
+
 # 2026.05.20 (lockstep v1.8.1)
+
+1. lockstep 同步, 与上游 ele-autopilot v1.8.1 一同发布; 本项目无业务改动.
+
+2. 上游 ele-autopilot 后台工作台 UX 提级:
+   - 新增 `MetricTile` / `EmptyState` / `TableSkeleton` 三个跨页面共享组件.
+   - 任务列表顶部新增 5 列 KPI strip (任务数 / 累计执行 / 成功率 / 进行中 / 失败累计), 跨当前路径下任务聚合统计, 成功率按 80/50 阈值切 tone.
+   - 执行概要从 `StatBlock` 简易块升级 5 个 `MetricTile` + h-1.5 渐变进度条 (含 failed 时切 success → danger 双段渐变), Descriptions 下沉到指标块之下.
+   - 执行历史卡片左侧新增 3px 状态色 vertical bar, 时间改相对时间, 第二行加 Calendar + Clock 双 chip 显示开始时间 / 耗时.
+   - 首屏挂载前从单 `<Spin>` 改完整布局骨架 (admin + preview 两条入口都改).
+   - Sider 空 tree / 无 job 选中空态全部从 emoji + 单行文字升级到 `EmptyState` 4 段结构.
+
+3. autotesting 前端 (`packages/{core,ui,server,web}` / D1 schema / Hono Worker / `/stream-proxy` / `/http-proxy` 路径前缀 / V1 device:shared-owner-v1 身份模型 / containers/markitdown) 全部不变.
+
+# 2026.05.20 (lockstep v1.8.0)
 
 1. lockstep 同步, 与上游 ele-autopilot v1.8.1 一同发布; 本项目无业务改动.
 

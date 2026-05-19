@@ -21,6 +21,15 @@
           <h1 class="sm:hidden text-[14px] font-semibold theme-title truncate">
             <slot name="title">AutoTest</slot>
           </h1>
+          <span
+            class="hidden md:inline-flex items-center gap-1.5 ml-2 rounded-full px-2.5 py-1 text-[11px] font-medium"
+            style="background: rgba(22, 163, 74, 0.12); color: #15803d; box-shadow: inset 0 0 0 1px rgba(22, 163, 74, 0.28);"
+            title="Studio 已就绪"
+            aria-label="Studio 已就绪"
+          >
+            <span class="ds-status-dot" aria-hidden="true"></span>
+            Studio 就绪
+          </span>
         </div>
         <div class="flex items-center gap-1.5 sm:gap-2">
           <slot name="actions"></slot>
@@ -44,7 +53,7 @@
 import { ToastUI } from '../index'
 </script>
 
-<style>
+<style scoped>
 .custom-select {
   -webkit-appearance: none !important;
   -moz-appearance: none !important;
@@ -53,5 +62,26 @@ import { ToastUI } from '../index'
 }
 .custom-select::-ms-expand {
   display: none;
+}
+
+.ds-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+  box-shadow: 0 0 0 0 currentColor;
+  animation: ds-status-pulse 2.4s ease-out infinite;
+}
+
+@keyframes ds-status-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 60%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 7px color-mix(in srgb, currentColor 0%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 0%, transparent);
+  }
 }
 </style>

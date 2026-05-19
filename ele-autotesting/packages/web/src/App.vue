@@ -1,7 +1,42 @@
 <template>
-  <div v-if="isInitializing" class="loading-container">
-    <div class="spinner"></div>
-    <p>正在初始化...</p>
+  <div v-if="isInitializing" class="boot-skeleton" aria-hidden="true">
+    <header class="boot-header">
+      <div class="boot-brand">
+        <span class="boot-brand-mark"></span>
+        <span class="boot-bar w-32"></span>
+      </div>
+      <div class="boot-actions">
+        <span class="boot-bar w-20 boot-action-pill"></span>
+        <span class="boot-bar w-20 boot-action-pill"></span>
+        <span class="boot-bar w-20 boot-action-pill"></span>
+        <span class="boot-bar w-20 boot-action-pill"></span>
+      </div>
+    </header>
+    <main class="boot-main">
+      <section class="boot-card">
+        <div class="boot-card-head">
+          <span class="boot-bar w-24"></span>
+          <span class="boot-bar w-40 boot-segment"></span>
+        </div>
+        <div class="boot-bar boot-textarea"></div>
+        <div class="boot-card-footer">
+          <span class="boot-bar w-40"></span>
+          <span class="boot-bar w-40"></span>
+          <span class="boot-bar w-32 boot-primary"></span>
+        </div>
+      </section>
+      <section class="boot-card">
+        <div class="boot-card-head">
+          <span class="boot-bar w-24"></span>
+          <span class="boot-bar w-28 boot-segment"></span>
+        </div>
+        <div class="boot-bar boot-textarea"></div>
+        <div class="boot-status">
+          <span class="boot-dot"></span>
+          <span>正在加载 AutoTest 工作台…</span>
+        </div>
+      </section>
+    </main>
   </div>
   <div v-else-if="!services" class="loading-container error">
     <p>应用初始化失败，请刷新或联系支持</p>
@@ -372,19 +407,162 @@ const promptInputPlaceholder = computed(() => {
   color: var(--ds-danger);
 }
 
-.spinner {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border: 3px solid color-mix(in srgb, var(--ds-brand-500) 20%, transparent);
-  border-top-color: var(--ds-brand-600);
-  animation: spin 0.8s linear infinite;
-  margin-bottom: 16px;
+/* === Boot skeleton === */
+.boot-skeleton {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--ds-surface-canvas);
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
+.boot-header {
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  background: color-mix(in srgb, var(--ds-surface-elevated) 88%, transparent);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--ds-border-soft);
+}
+
+.boot-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.boot-brand-mark {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--ds-brand-500) 0%, var(--ds-brand-700) 100%);
+  box-shadow: 0 2px 6px rgba(99, 102, 241, 0.32);
+  opacity: 0.9;
+}
+
+.boot-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.boot-action-pill {
+  height: 32px;
+  border-radius: 8px;
+}
+
+.boot-main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  padding: 16px;
+  min-height: 0;
+}
+
+@media (max-width: 1024px) {
+  .boot-main {
+    grid-template-columns: 1fr;
+  }
+}
+
+.boot-card {
+  background: var(--ds-surface-elevated);
+  border: 1px solid var(--ds-border-soft);
+  border-radius: var(--ds-radius-lg);
+  box-shadow: var(--ds-shadow-sm);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+.boot-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.boot-segment {
+  height: 28px;
+  border-radius: 999px;
+}
+
+.boot-textarea {
+  flex: 1;
+  min-height: 180px;
+  border-radius: 10px;
+}
+
+.boot-card-footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.boot-primary {
+  height: 36px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, var(--ds-brand-500), var(--ds-brand-700)) !important;
+  opacity: 0.7;
+  animation: none !important;
+}
+
+.boot-bar {
+  display: inline-block;
+  height: 14px;
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    var(--ds-surface-subtle) 0%,
+    var(--ds-surface-muted) 50%,
+    var(--ds-surface-subtle) 100%
+  );
+  background-size: 200% 100%;
+  animation: boot-shimmer 1.6s ease-in-out infinite;
+}
+
+.boot-bar.w-20 { width: 80px; }
+.boot-bar.w-24 { width: 96px; }
+.boot-bar.w-28 { width: 112px; }
+.boot-bar.w-32 { width: 128px; }
+.boot-bar.w-40 { width: 160px; }
+
+.boot-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ds-text-tertiary);
+  margin-top: 2px;
+}
+
+.boot-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--ds-brand-500);
+  box-shadow: 0 0 0 0 var(--ds-brand-500);
+  animation: boot-pulse 1.8s ease-out infinite;
+}
+
+@keyframes boot-shimmer {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+@keyframes boot-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--ds-brand-500) 50%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 10px color-mix(in srgb, var(--ds-brand-500) 0%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--ds-brand-500) 0%, transparent);
   }
 }
 </style>

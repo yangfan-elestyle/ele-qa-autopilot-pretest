@@ -1,26 +1,61 @@
 <template>
   <div class="flex flex-col h-full">
     <!-- 标题和按钮区域 -->
-    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 mb-3 flex-none">
-      <div class="flex items-center gap-3 flex-wrap">
-        <h3 class="text-lg font-semibold theme-text">
+    <div class="ds-panel-head flex-none">
+      <div class="ds-panel-head-left">
+        <h3 class="ds-panel-title">
+          <span class="ds-panel-title-dot" aria-hidden="true"></span>
           优化后
         </h3>
-        <div v-if="versions && versions.length > 0" class="flex items-center gap-1 version-container" style="position: relative">
+        <div
+          v-if="versions && versions.length > 0"
+          class="ds-version-pills"
+          role="tablist"
+          aria-label="版本"
+        >
+          <span class="ds-version-pills-label">版本</span>
           <button
             v-for="version in versions.slice().reverse()"
             :key="version.id"
+            type="button"
+            role="tab"
+            :aria-selected="currentVersionId === version.id"
             @click="switchVersion(version)"
-            class="px-2 py-1 text-xs rounded transition-colors flex-shrink-0"
-            :class="[currentVersionId === version.id ? 'font-medium theme-prompt-version-selected' : 'theme-prompt-version-unselected']"
+            class="ds-version-pill"
+            :class="{ 'ds-version-pill--active': currentVersionId === version.id }"
+            :title="`切换到 V${version.version}`"
           >
             V{{ version.version }}
           </button>
+          <span v-if="versions.length > 0" class="ds-version-pills-count">
+            共 {{ versions.length }} 版
+          </span>
         </div>
       </div>
-      <div class="flex items-center space-x-4 flex-shrink-0">
-        <button v-if="optimizedPrompt" @click="handleIterate" class="px-3 py-1.5 theme-button-secondary flex items-center space-x-2" :disabled="isIterating">
-          <span>{{ isIterating ? '优化中...' : '继续优化' }}</span>
+      <div class="ds-panel-head-right">
+        <button
+          v-if="optimizedPrompt"
+          @click="handleIterate"
+          class="ds-iterate-btn"
+          :class="{ 'ds-iterate-btn--loading': isIterating }"
+          :disabled="isIterating"
+        >
+          <svg
+            v-if="!isIterating"
+            class="ds-iterate-btn-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+            <path d="M3 3v5h5" />
+          </svg>
+          <span class="ds-iterate-btn-spinner" v-else aria-hidden="true"></span>
+          <span>{{ isIterating ? '优化中…' : '继续优化' }}</span>
         </button>
       </div>
     </div>
@@ -259,16 +294,183 @@ defineExpose({
 </script>
 
 <style scoped>
-/* 版本容器样式 */
-.version-container {
+.ds-panel-head {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.ds-panel-head-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.ds-panel-head-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.ds-panel-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  color: var(--ds-text-primary);
+  margin: 0;
+}
+
+.ds-panel-title-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--ds-brand-500);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ds-brand-500) 20%, transparent);
+}
+
+.ds-version-pills {
+  display: inline-flex;
+  align-items: center;
   gap: 4px;
+  padding: 3px;
+  border-radius: 8px;
+  background: var(--ds-surface-subtle);
+  border: 1px solid var(--ds-border-soft);
+  flex-wrap: wrap;
+}
+
+.ds-version-pills-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ds-text-tertiary);
+  padding: 0 6px 0 4px;
+}
+
+.ds-version-pill {
+  font-family: var(--ds-font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 0;
+  background: transparent;
+  color: var(--ds-text-secondary);
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+  letter-spacing: 0.01em;
+}
+
+.ds-version-pill:hover:not(.ds-version-pill--active) {
+  background: var(--ds-surface-elevated);
+  color: var(--ds-text-primary);
+}
+
+.ds-version-pill--active {
+  background: var(--ds-surface-elevated);
+  color: var(--ds-brand-700);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.06),
+    0 0 0 1px rgba(99, 102, 241, 0.32);
+  font-weight: 600;
+}
+
+.ds-version-pills-count {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ds-text-tertiary);
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+.ds-iterate-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 8px;
+  background: var(--ds-surface-elevated);
+  color: var(--ds-text-secondary);
+  border: 1px solid var(--ds-border-default);
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.ds-iterate-btn:hover:not(:disabled) {
+  background: var(--ds-brand-50);
+  color: var(--ds-brand-700);
+  border-color: rgba(99, 102, 241, 0.32);
+}
+
+.ds-iterate-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--ds-focus-ring);
+}
+
+.ds-iterate-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.ds-iterate-btn-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.ds-iterate-btn-spinner {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--ds-brand-500) 25%, transparent);
+  border-top-color: var(--ds-brand-600);
+  animation: ds-iterate-spin 0.8s linear infinite;
+}
+
+.ds-iterate-btn--loading {
+  background: var(--ds-brand-50);
+  color: var(--ds-brand-700);
+  border-color: rgba(99, 102, 241, 0.28);
+}
+
+@keyframes ds-iterate-spin {
+  to { transform: rotate(360deg); }
 }
 
 @media (max-width: 640px) {
-  .version-container {
-    margin-top: 4px;
+  .ds-panel-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .ds-panel-head-right {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  .ds-version-pills {
+    width: 100%;
+  }
+  .ds-iterate-btn {
+    width: 100%;
+    justify-content: center;
   }
 }
 </style>

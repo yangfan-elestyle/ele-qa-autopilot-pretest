@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.8.2] - 2026-05-20
+
+### Changed
+
+- lockstep 同步, 与上游 ele-autotesting v1.8.2 一同发布; 本项目无业务改动. 上游 ele-autotesting AutoTest 前端工作台 UX 提级 (App.vue 完整布局骨架替代单 spinner / OptimizationModeSelector 重写为段控件含 icon + label + hint / PromptPanel 标题加 brand dot indicator + 版本切换段控件 + 独立 iterate 按钮 / MainLayout 加 Studio 就绪状态徽章). D1 / R2 / API / Worker 绑定 / `install.sh` 渲染 / R2 wheel 拉取 / SHA256 校验 / 返回首页 button 行为不变.
+
 ## [1.8.1] - 2026-05-20
 
 ### Added
