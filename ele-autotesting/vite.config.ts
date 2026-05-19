@@ -1,12 +1,16 @@
 import { reactRouter } from "@react-router/dev/vite";
 import { cloudflare } from "@cloudflare/vite-plugin";
 import { defineConfig } from "vite";
+import pkg from "./package.json";
 
 export default defineConfig({
   plugins: [
     cloudflare({ viteEnvironment: { name: "ssr" } }),
     reactRouter(),
   ],
+  define: {
+    __APP_VERSION__: JSON.stringify(pkg.version),
+  },
   resolve: {
     alias: {
       // handlebars 的主入口在 Node.js 端会引用 require.extensions + node:fs,

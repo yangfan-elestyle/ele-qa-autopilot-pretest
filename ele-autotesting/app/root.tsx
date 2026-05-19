@@ -5,11 +5,12 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  useLoaderData,
 } from "react-router";
 
 import type { Route } from "./+types/root";
 import { ServicesProvider } from "./providers/ServicesProvider";
-import { ThemeProvider } from "./providers/ThemeProvider";
+import { ThemeProvider, type ThemeMode } from "./providers/ThemeProvider";
 import { ToastProvider } from "./providers/ToastProvider";
 import { Header } from "./components/Header";
 
@@ -18,6 +19,17 @@ import "./styles/index.css";
 export const links: Route.LinksFunction = () => [
   { rel: "icon", href: "/favicon.ico", sizes: "any" },
 ];
+
+export function loader({ request }: Route.LoaderArgs) {
+  const cookie = request.headers.get("Cookie") || "";
+  const match = cookie.match(/(?:^|; )theme=([^;]+)/);
+  let initialTheme: ThemeMode = "system";
+  if (match) {
+    const v = decodeURIComponent(match[1]);
+    if (v === "light" || v === "dark" || v === "system") initialTheme = v;
+  }
+  return { initialTheme };
+}
 
 const THEME_INIT_SCRIPT = `(function(){try{var t=document.cookie.match(/(?:^|; )theme=([^;]+)/);var v=t?decodeURIComponent(t[1]):'system';var dark=v==='dark'||(v==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',dark);document.documentElement.dataset.theme=v;}catch(e){}})();`;
 
@@ -42,8 +54,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
+  const { initialTheme } = useLoaderData<typeof loader>();
   return (
-    <ThemeProvider>
+    <ThemeProvider initialTheme={initialTheme}>
       <ToastProvider>
         <ServicesProvider>
           <div className="min-h-screen flex flex-col">

@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.6.2] - 2026-05-19
+
+### Changed
+
+- lockstep 同步, 与上游 gateway / ele-autopilot / ele-autotesting v1.6.2 一同发布; 本项目无业务改动. 上游 ele-autotesting 修复 v1.6.0 RR7 SSR 重构后 4 项稳定性缺陷: (1) RR7 `basename: "/autotest"` + `workers/app.ts` URL 前缀重写, 修复客户端 hydration 后页面 404; (2) `/data` 清空云端数据改走 `services.storage.clearAll()` 抽象, 删硬编码 `/autotest` 双前缀隐患; (3) `ThemeProvider` 从 SSR loader 读 Cookie 注入 initialTheme, cookie 写入移到 setTheme, 修复每次刷新覆盖用户主题; (4) `__APP_VERSION__` define 烧入 package.json version, 修复 settings 页版本号 1.5.18 兜底值. FastAPI app / browser-use Agent / Job/Task 链 / wheel 构建发布到 R2 / `upgrade` shim 行为完全不变.
+
 ## [1.6.1] - 2026-05-19
 
 ### Changed

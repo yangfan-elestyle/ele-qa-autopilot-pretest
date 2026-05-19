@@ -91,6 +91,7 @@ export interface AppServices {
   promptService: IPromptService;
   preferenceService: IPreferenceService;
   compareService: ICompareService;
+  storage: RemoteStorageProvider;
 }
 
 interface ServicesContextValue {
@@ -139,6 +140,7 @@ export function ServicesProvider({ children }: { children: React.ReactNode }) {
           promptService,
           preferenceService,
           compareService,
+          storage: remote,
         });
       } catch (err) {
         if (cancelled) return;

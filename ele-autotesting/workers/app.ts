@@ -52,12 +52,18 @@ async function handleMarkitdownProxy(request: Request, env: Env): Promise<Respon
   }
 }
 
+const RR_BASENAME = "/autotest";
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    // gateway 已 strip `/autotest`, 这里 markitdown 旁路按 strip 后路径判断, 不进 RR handler.
     if (url.pathname === MARKITDOWN_PREFIX || url.pathname.startsWith(`${MARKITDOWN_PREFIX}/`)) {
       return handleMarkitdownProxy(request, env);
     }
-    return requestHandler(request, { cloudflare: { env, ctx } });
+    // 把 strip 掉的 `/autotest` 加回来, 让 RR basename 剥离机制和 client 端浏览器 URL 对齐.
+    const forwarded = new URL(url);
+    forwarded.pathname = RR_BASENAME + (url.pathname === "/" ? "" : url.pathname);
+    return requestHandler(new Request(forwarded, request), { cloudflare: { env, ctx } });
   },
 } satisfies ExportedHandler<Env>;

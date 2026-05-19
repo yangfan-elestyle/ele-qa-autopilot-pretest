@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.6.2] - 2026-05-19
+
+### Changed
+
+- lockstep 同步, 与上游 gateway / ele-autopilot-local / ele-autotesting v1.6.2 一同发布; 本项目无业务改动. 上游 ele-autotesting 修复 v1.6.0 RR7 SSR 重构后 4 项稳定性缺陷: (1) `react-router.config.ts` 补 `basename: "/autotest"` + `workers/app.ts` 把 gateway strip 掉的 `/autotest` 加回, 修复客户端 hydration 后所有页面 404; (2) `routes/data.tsx` 清空云端数据改走 `services.storage.clearAll()` 抽象, 删硬编码 `/autotest/api/sync/items` 双前缀隐患; (3) `ThemeProvider` 从 `root.tsx` SSR loader 读 Cookie 注入 `initialTheme`, cookie 写入移到 setTheme, 修复每次刷新覆盖用户主题; (4) `vite.config.ts define __APP_VERSION__` 烧入 package.json version, 修复 settings 页版本号显示 1.5.18 历史兜底值. 本项目 D1 / R2 / API / Worker 绑定不变.
+
 ## [1.6.1] - 2026-05-19
 
 ### Changed

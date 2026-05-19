@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.6.2] - 2026-05-19
+
+### Changed
+
+- lockstep 同步, 与上游 ele-autopilot / ele-autopilot-local / ele-autotesting v1.6.2 一同发布; 本项目无业务改动. 上游 ele-autotesting 修复 v1.6.0 RR7 SSR 重构遗留的 4 项稳定性缺陷: (1) `react-router.config.ts` 补 `basename: "/autotest"` + `workers/app.ts` 把 gateway strip 掉的 `/autotest` 前缀加回再交 RR handler, 修复客户端 hydration 后所有页面 404 / 闪屏; (2) `routes/data.tsx#handleClearAll` 改走 `services.storage.clearAll()` 抽象, 删除硬编码 `/autotest/api/sync/items` fetch (避免与 basename 修复双前缀); (3) `ThemeProvider` 用 `root.tsx` SSR loader 读 request Cookie 注入 `initialTheme`, cookie 写入从 useEffect 移到 setTheme, 修复每次刷新覆盖用户主题偏好; (4) `vite.config.ts` 用 `define: __APP_VERSION__` 烧入 `package.json#version`, 修复 settings 页版本号兜底显示 v1.5.18 历史值. service binding `AUTOPILOT` & `AUTOTEST` 路径分发、`/autotest/*` strip 转发契约、landing 双卡片 + 安装区 + 版本号 fetch 全部不变.
+
 ## [1.6.1] - 2026-05-19
 
 ### Changed
@@ -150,6 +156,7 @@
 - Service bindings: `AUTOPILOT` → `ele-autopilot`, `AUTOTEST` → `ele-autotesting` (两业务 Worker 同步关闭 `workers_dev`).
 - 单文件 fetch handler, 无框架依赖, 内嵌 landing HTML.
 
+[1.6.2]: about:blank
 [1.6.1]: about:blank
 [1.6.0]: about:blank
 [1.5.18]: about:blank

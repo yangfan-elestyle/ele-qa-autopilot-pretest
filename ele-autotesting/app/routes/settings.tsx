@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
 import { useTheme } from "~/providers/ThemeProvider";
 import { useServicesContext } from "~/providers/ServicesProvider";
 import { useToast } from "~/providers/ToastProvider";
+
+declare const __APP_VERSION__: string;
 
 const SHARED_OWNER_ID = "shared-owner-v1";
 
@@ -9,11 +10,7 @@ export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const { services } = useServicesContext();
   const toast = useToast();
-  const [version, setVersion] = useState<string>("");
-
-  useEffect(() => {
-    setVersion(`v${import.meta.env.VITE_APP_VERSION || "1.5.18"}`);
-  }, []);
+  const version = `v${__APP_VERSION__}`;
 
   const clearLocalCache = async () => {
     if (typeof window === "undefined") return;

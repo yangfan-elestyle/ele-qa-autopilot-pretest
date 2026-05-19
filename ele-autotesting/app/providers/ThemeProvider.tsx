@@ -10,14 +10,6 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
-function readInitialTheme(): ThemeMode {
-  if (typeof document === "undefined") return "system";
-  const match = document.cookie.match(/(?:^|; )theme=([^;]+)/);
-  if (!match) return "system";
-  const decoded = decodeURIComponent(match[1]);
-  return decoded === "light" || decoded === "dark" || decoded === "system" ? decoded : "system";
-}
-
 function applyTheme(mode: ThemeMode): "light" | "dark" {
   if (typeof window === "undefined") return "light";
   const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -27,13 +19,30 @@ function applyTheme(mode: ThemeMode): "light" | "dark" {
   return resolved;
 }
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<ThemeMode>(() => readInitialTheme());
-  const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("light");
+function writeThemeCookie(mode: ThemeMode): void {
+  if (typeof document === "undefined") return;
+  document.cookie = `theme=${encodeURIComponent(mode)}; path=/; max-age=${60 * 60 * 24 * 365}`;
+}
+
+/**
+ * initialTheme 必须由 server loader 从 request Cookie 解析后传入,
+ * 否则 SSR 时落 'system', client hydration 用同一 'system' state,
+ * useEffect 跑完就把 cookie 改写成 'system' — 用户主题偏好每次刷新被清掉.
+ */
+export function ThemeProvider({
+  children,
+  initialTheme = "system",
+}: {
+  children: React.ReactNode;
+  initialTheme?: ThemeMode;
+}) {
+  const [theme, setThemeState] = useState<ThemeMode>(initialTheme);
+  const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">(
+    initialTheme === "dark" ? "dark" : "light",
+  );
 
   useEffect(() => {
     setResolvedTheme(applyTheme(theme));
-    document.cookie = `theme=${encodeURIComponent(theme)}; path=/; max-age=${60 * 60 * 24 * 365}`;
   }, [theme]);
 
   useEffect(() => {
@@ -44,7 +53,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     return () => media.removeEventListener("change", handler);
   }, [theme]);
 
-  const setTheme = useCallback((value: ThemeMode) => setThemeState(value), []);
+  const setTheme = useCallback((value: ThemeMode) => {
+    setThemeState(value);
+    writeThemeCookie(value);
+  }, []);
 
   const value = useMemo(() => ({ theme, resolvedTheme, setTheme }), [theme, resolvedTheme, setTheme]);
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

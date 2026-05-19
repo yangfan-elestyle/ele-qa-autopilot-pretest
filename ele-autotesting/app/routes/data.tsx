@@ -48,10 +48,7 @@ export default function DataPage() {
     if (!window.confirm("确定清空当前账号所有云端数据？此操作不可逆。")) return;
     setBusy(true);
     try {
-      const remote = (services as any);
-      const headers = { "X-Device-Id": "shared-owner-v1" };
-      const res = await fetch("/autotest/api/sync/items", { method: "DELETE", headers });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      await services.storage.clearAll();
       toast.success("已清空，刷新后生效");
       setTimeout(() => window.location.reload(), 1200);
     } catch (err: any) {
