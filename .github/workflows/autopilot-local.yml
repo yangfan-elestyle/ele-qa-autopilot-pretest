@@ -78,7 +78,7 @@ jobs:
           ${WRANGLER} r2 object put "${BUCKET}/local/${VER}/checksums.txt" \
             --file "checksums.txt" --content-type "text/plain; charset=utf-8"
 
-          # latest 指针 (单行版本号, 不含 v 前缀; /help 与 install.sh 据此解析)
+          # latest 指针 (单行版本号, 不含 v 前缀; gateway landing 与 install.sh 据此解析)
           printf '%s' "${VER}" > latest.txt
           ${WRANGLER} r2 object put "${BUCKET}/local/latest.txt" \
             --file "latest.txt" --content-type "text/plain; charset=utf-8"

@@ -1,13 +1,13 @@
 # ele-autopilot-local
 
-本地浏览器自动化 HTTP 服务. 基于 `browser-use` + FastAPI + Gemini, LLM Agent 驱动本机 Chrome 异步执行任务. 打 tag → Actions 构建 wheel 推到 Cloudflare R2; 用户从 ele-autopilot Web 后台 `/help` 页一键安装.
+本地浏览器自动化 HTTP 服务. 基于 `browser-use` + FastAPI + Gemini, LLM Agent 驱动本机 Chrome 异步执行任务. 打 tag → Actions 构建 wheel 推到 Cloudflare R2; 用户从 gateway landing 页一键安装.
 
 ## 安装
 
-打开 ele-autopilot Web 后台 → 右上 `?` → `/help` 页, 复制命令执行. 等价于:
+打开 gateway landing (`https://qa.<account-sub>.workers.dev/`) → "本地 agent 安装" 区块, 复制三条命令依次执行. 等价于:
 
 ```bash
-curl -fsSL <ele-autopilot host>/install.sh | bash
+curl -fsSL <gateway host>/install.sh | bash
 ```
 
 依赖 `uv` (未装时 install.sh 会提示一行 uv 安装命令). 可用 `VERSION=v1.4.9` 覆写版本.

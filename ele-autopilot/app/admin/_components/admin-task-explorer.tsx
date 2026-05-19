@@ -1,8 +1,6 @@
-import { QuestionCircleOutlined } from '@ant-design/icons';
-import { App, Button, Form, Layout, Tooltip } from 'antd';
+import { App, Form, Layout } from 'antd';
 import type { TreeProps, TreeDataNode } from 'antd';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router';
 
 import { apiJson, makeListUrl } from '../_data/admin-api';
 import { fetchAgentConfig, useAgentConnection } from '../_hooks/use-agent-connection';
@@ -603,16 +601,6 @@ export default function AdminTaskExplorer() {
 
   return (
     <>
-      <Tooltip title="本地命令安装指南" placement="bottomLeft">
-        <Link
-          to="/help"
-          aria-label="Help"
-          className="fixed top-2 right-3 z-10"
-        >
-          <Button type="text" shape="circle" icon={<QuestionCircleOutlined />} />
-        </Link>
-      </Tooltip>
-
       <Layout className="h-screen bg-(--ant-color-bg-layout)">
         <FolderSider
           treeSearch={treeSearch}

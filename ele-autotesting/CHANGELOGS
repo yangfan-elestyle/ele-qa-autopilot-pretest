@@ -1,3 +1,7 @@
+# 2026.05.19 (lockstep v1.5.5)
+
+1. 版本号 lockstep 同步 1.5.4 → 1.5.5, 与上游 gateway / ele-autopilot / ele-autopilot-local v1.5.5 一同发布; 本项目无业务改动. 上游变化: install 入口从 ele-autopilot `/help` 迁到 gateway landing 页内嵌区块.
+
 # 2026.05.19 (lockstep v1.5.4)
 
 1. 修复 `packages/ui/src/components/PromptTypeSelector.vue` 内 4 处 `fetch` 漏 `/autotest` 前缀导致 Confluence 解析 / Figma 解析 / 图片识别 / markdown-research 在生产 gateway 后全部命中 404 (与 v1.5.3 第 5/6 条同型, 上版仅修了 `/api/sync/*` 与 `/stream-proxy /http-proxy`, 本次补齐 `/confluence-parse` / `/figma-parse` / `/image-research/analyze` / `/markdown-research`). 实际请求被 gateway 默认转给 AUTOPILOT, AUTOPILOT 没有这些路由直接 ErrorBoundary 404 HTML.

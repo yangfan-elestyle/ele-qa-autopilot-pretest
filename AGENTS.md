@@ -22,9 +22,9 @@ QA AutoPilot 合并仓库: `gateway` + 三个业务子项目并存。不是 mono
 ## 系统拓扑
 
 - 唯一公网入口: `gateway` Worker `qa`, URL `https://qa.<account-sub>.workers.dev`.
-- `/` 与 `/index.html`: gateway landing 双卡片; `/healthz`: gateway 自检.
+- `/` 与 `/index.html`: gateway landing (双卡片 + 本地 agent 安装区块, 客户端 fetch `/releases/local/latest.txt`); `/healthz`: gateway 自检.
 - `/autotest/*`: gateway strip `/autotest` 后转发 `env.AUTOTEST.fetch` -> `ele-autotesting`.
-- 其他路径: gateway 原样转发 `env.AUTOPILOT.fetch` -> `ele-autopilot` (`/autopilot*` / `/help` / `/api/*` / `/screenshots/*` / `/releases/*` / `/install.sh` / `/favicon.ico`).
+- 其他路径: gateway 原样转发 `env.AUTOPILOT.fetch` -> `ele-autopilot` (`/autopilot*` / `/api/*` / `/screenshots/*` / `/releases/*` / `/install.sh` / `/favicon.ico`).
 - `ele-autopilot` 前端默认调本地 `http://127.0.0.1:8000` 创建 Job (`app/admin/_services/local-api.ts`).
 - `ele-autopilot-local` 通过 `autopilot/callback.py` 回调 `ele-autopilot`; callback base URL 由后端按当前 request origin 下发, 经 gateway 变为公网入口.
 - `ele-autotesting` 当前与 autopilot 运行时无耦合; 未来联动再加 service binding.

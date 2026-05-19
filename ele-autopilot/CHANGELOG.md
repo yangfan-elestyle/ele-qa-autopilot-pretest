@@ -2,6 +2,21 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.5.5] - 2026-05-19
+
+### Removed
+
+- 路由 `/help` (`app/routes/help.tsx`) + 路由表条目 (`app/routes.ts`): install 入口迁到 gateway landing, ele-autopilot 不再承载安装指引页.
+- 管理后台右上角浮动 Help 按钮 (`admin-task-explorer.tsx`): `Tooltip` / `Link` / `QuestionCircleOutlined` import 一并清理 (本文件仅此一用).
+
+### Fixed
+
+- 借迁移修正原 `/help` 页 3 处错误命令展示, gateway landing 取正确值: ① 启动命令 `ele-autopilot run` → `ele-autopilot` (CLI 无 subcommand, 见 `autopilot/cli.py`); ② 监听 `127.0.0.1:8000` → `0.0.0.0:8000` (`uvicorn.run host="0.0.0.0"`); ③ 补 `ELE_LLM_API_KEY=<your-gemini-api-key>` env 前缀 (必需, 见 `autopilot/task.py`).
+
+### Notes
+
+- 资源路由 `/install.sh` (`routes/install-script.tsx`) 与 `/releases/local/*` (`routes/releases.local.$.tsx`) 不变, gateway landing 与 install.sh 用户均经它们拿安装脚本与版本号; 与 ele-autopilot-local 端契约无影响.
+
 ## [1.5.4] - 2026-05-19
 
 ### Changed

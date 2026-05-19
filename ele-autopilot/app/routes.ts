@@ -4,7 +4,6 @@ export default [
   index('routes/_index.tsx'),
   route('autopilot', 'routes/autopilot._index.tsx'),
   route('autopilot/preview/:taskId', 'routes/autopilot.preview.$taskId.tsx'),
-  route('help', 'routes/help.tsx'),
 
   // Admin REST API
   route('api/admin/folders', 'routes/api.admin.folders.tsx'),

@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.5.5] - 2026-05-19
+
+### Changed
+
+- lockstep 同步, 与上游 gateway / ele-autopilot v1.5.5 一同发布; 本项目无业务改动. 上游变化: install 入口从 `/help` 迁到 gateway landing 页内嵌区块, `README.md` "安装" 段同步更新引导文案.
+
 ## [1.5.4] - 2026-05-19
 
 ### Changed

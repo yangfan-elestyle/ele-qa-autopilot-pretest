@@ -7,12 +7,12 @@ Cloudflare Worker `qa`: 三个业务子项目的唯一公网入口。Bun + TypeS
 <!-- prettier-ignore -->
 | Path | Target | Notes |
 |---|---|---|
-| `/`, `/index.html` | gateway | landing 双卡片 |
+| `/`, `/index.html` | gateway | landing 双卡片 + 本地 agent 安装区块 (`/releases/local/latest.txt` 客户端 fetch) |
 | `/healthz` | gateway | 返回 `ok` |
 | `/autotest`, `/autotest/*` | `env.AUTOTEST.fetch` | strip `/autotest` 后转发到 `ele-autotesting` |
 | 其他 | `env.AUTOPILOT.fetch` | 原样透传到 `ele-autopilot` |
 
-AUTOPILOT 需接住 `/autopilot*` / `/help` / `/api/*` / `/screenshots/*` / `/releases/*` / `/install.sh` / `/favicon.ico`.
+AUTOPILOT 需接住 `/autopilot*` / `/api/*` / `/screenshots/*` / `/releases/*` / `/install.sh` / `/favicon.ico`.
 
 ## 关键文件
 

@@ -54,7 +54,7 @@ push `v*` tag → 根 `.github/workflows/{gateway,autopilot,autopilot-local,auto
 
 - `gateway`: 校验 tag → `bun install --frozen-lockfile` → `wrangler deploy`. 成功后**唯一公网入口** URL: `https://qa.<account-subdomain>.workers.dev`.
 - `autopilot`: 校验 tag → `bun install --frozen-lockfile` → `bun run build` → `wrangler d1 migrations apply ele-autopilot --remote` → `wrangler deploy`. 部署后 Worker `workers_dev:false`, 不暴露 `*.workers.dev`, 仅 gateway 可经 service binding 调.
-- `autopilot-local`: 校验 tag → `uv build` → 生成 `checksums.txt` → `wrangler r2 object put` 推到 `ele-autopilot-releases/local/<ver>/{wheel, sdist, checksums.txt}` + `local/latest.txt` (单行 `<ver>`, 不含 `v`). 用户从 gateway `/help` 页一键安装.
+- `autopilot-local`: 校验 tag → `uv build` → 生成 `checksums.txt` → `wrangler r2 object put` 推到 `ele-autopilot-releases/local/<ver>/{wheel, sdist, checksums.txt}` + `local/latest.txt` (单行 `<ver>`, 不含 `v`). 用户从 gateway landing 页一键安装.
 - `autotesting`: 校验 tag → `pnpm install` → `pnpm run build:cf` → `wrangler d1 migrations apply DB --remote` → `wrangler deploy`. 同样 `workers_dev:false`.
 
 ## 4. amend 修上版 bug
