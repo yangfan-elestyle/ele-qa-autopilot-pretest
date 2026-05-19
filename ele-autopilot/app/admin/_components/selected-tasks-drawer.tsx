@@ -74,7 +74,7 @@ export default function SelectedTasksDrawer({
       open={open}
       onClose={onClose}
       title={title ?? `已选任务（${selectedTaskIds.length}）`}
-      size="large"
+      width="min(736px, 100vw)"
       footer={
         readonly ? null : (
           <Space className="w-full justify-between">

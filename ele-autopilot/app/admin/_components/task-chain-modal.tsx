@@ -30,6 +30,7 @@ export default function TaskChainModal({
       onOk={onOk}
       okText="创建"
       cancelText="取消"
+      width="min(520px, 92vw)"
       okButtonProps={{ disabled: rootFolders.length === 0 }}
     >
       <Form form={form} layout="vertical">

@@ -22,7 +22,7 @@ export default function TaskModal({ open, mode, form, onCancel, onOk }: TaskModa
       onOk={onOk}
       okText={mode === 'create' ? '创建' : '保存'}
       cancelText="取消"
-      width="80vw"
+      width="min(880px, 92vw)"
     >
       <Form form={form} layout="vertical">
         <Form.Item label="标题（可选）" name="title">

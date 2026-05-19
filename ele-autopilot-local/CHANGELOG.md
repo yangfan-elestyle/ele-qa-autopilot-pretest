@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.5.13] - 2026-05-19
+
+### Changed
+
+- lockstep 同步, 与上游 gateway / ele-autopilot / ele-autotesting v1.5.13 一同发布; 本项目无业务改动. 上游修复: ele-autopilot 两处 mobile 小屏残留横向溢出 — 本地 Agent 配置 Popover 内容固定 `w-80` 改为动态 `w-[min(20rem,calc(100vw-3rem))]`, 执行历史步骤截图 `<Image>` 加 `max-w-full` 防止 base64 高分辨率截图撑破容器. 本项目 CLI / `install.sh` / 本机 `0.0.0.0:8000` HTTP 接口与回调契约不变.
+
 ## [1.5.12] - 2026-05-19
 
 ### Changed

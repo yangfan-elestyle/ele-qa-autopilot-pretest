@@ -122,7 +122,7 @@ function ResultSummary({
 
   return (
     <Card size="small" title="执行摘要" className="bg-white">
-      <Descriptions size="small" column={2}>
+      <Descriptions size="small" column={{ xs: 1, sm: 2 }}>
         <Descriptions.Item label="执行状态">
           <Tag
             color={isSuccess ? 'success' : summary.is_successful === false ? 'error' : 'default'}
@@ -432,7 +432,7 @@ function StepDetail({ step }: { step: StepInfo }) {
                   : `data:image/png;base64,${step.thinking_image}`
               }
               alt="页面截图"
-              className="max-h-64 rounded border"
+              className="max-h-64 max-w-full rounded border"
               placeholder
             />
           </div>

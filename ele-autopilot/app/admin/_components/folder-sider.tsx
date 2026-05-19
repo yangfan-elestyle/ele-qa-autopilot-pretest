@@ -261,7 +261,7 @@ export default function FolderSider({
             placement="topLeft"
             title="本地 Agent 配置"
             content={
-              <div className="w-80">
+              <div className="w-[min(20rem,calc(100vw-3rem))]">
                 <Space orientation="vertical" size="small" className="w-full">
                   <Input
                     placeholder="http://127.0.0.1:8000"

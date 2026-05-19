@@ -265,7 +265,7 @@ export default function JobDetailPanel({
       <Card
         size="small"
         title={`任务列表 (${tasks.length})`}
-        className="[&_.ant-card-body]:max-h-[calc(100vh-340px)] [&_.ant-card-body]:overflow-auto [&_.ant-card-body]:p-0"
+        className="[&_.ant-card-body]:overflow-auto [&_.ant-card-body]:p-0 sm:[&_.ant-card-body]:max-h-[calc(100vh-340px)]"
       >
         {tasks.length === 0 ? (
           <div className="p-4 text-center text-gray-400">暂无任务</div>

@@ -2,6 +2,21 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.5.13] - 2026-05-19
+
+### Fixed
+
+- mobile 小屏 (< 768px) 阅读阻塞收尾, 上接 v1.5.12 已做的 Sider 抽屉化 / Table `scroll x` / Descriptions 单列堆叠. 收尾覆盖以下 7 处:
+  - `task-modal.tsx` 创建/编辑任务弹窗 `width="80vw"` 改 `width="min(880px, 92vw)"`: 桌面封顶 880px 不再随屏拉伸, 小屏仍按 92vw 自适应.
+  - `task-chain-modal.tsx` 任务链弹窗补 `width="min(520px, 92vw)"`: 此前未设 width 走 antd 默认 520px, 在 360px 屏会被强裁导致按钮区被挤出可视区.
+  - `selected-tasks-drawer.tsx` 已选任务侧抽屉 `size="large"` (固定 736px) 改 `width="min(736px, 100vw)"`: 360px 屏不再溢出屏幕右沿.
+  - `job-detail-panel.tsx` 执行任务列表 Card `[&_.ant-card-body]:max-h-[calc(100vh-340px)]` 加 `sm:` 前缀: 小屏 (`< 640px`) 取消 max-h 让内容自然展开, 配合 header `basis-full` 单独占行, 避免任务列表被压成 80px 高的可滚动小窗.
+  - `job-task-detail.tsx` 执行摘要 `Descriptions column={2}` 改 `column={{ xs: 1, sm: 2 }}`: 360px 屏单列堆叠不被截断.
+  - `folder-sider.tsx` 本地 Agent 配置 Popover 内容容器固定 `w-80` (320px) 改 `w-[min(20rem,calc(100vw-3rem))]`: 此前在 mobile drawer (`placement=left` `width=85vw`, 360px 屏 drawer 内宽 ~282px) 内触发 popover 时, popover content 仍 320px 冲出 drawer 与屏幕右沿; 改后小屏自动收缩到 `100vw - 48px`, 桌面仍 320px.
+  - `job-task-detail.tsx` 步骤截图 `<Image>` 仅 `max-h-64`, 缺 `max-w-full`, 高分辨率 base64 截图 (常见 ≥ 1024px 宽) 会撑破 detail panel 容器, 触发整个执行历史页右侧横向滚动; 加 `max-w-full` 后图片随容器收缩, 高度封顶不变.
+
+  桌面体验 (`>= 768px`) 不受影响.
+
 ## [1.5.12] - 2026-05-19
 
 ### Fixed

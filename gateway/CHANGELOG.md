@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.5.13] - 2026-05-19
+
+### Changed
+
+- lockstep 同步, 与上游 ele-autopilot v1.5.13 一同发布; 本项目无业务改动. 上游修复: ele-autopilot admin Agent 配置 Popover (固定 `w-80` 320px → `w-[min(20rem,calc(100vw-3rem))]`) 与 preview 步骤截图 `<Image>` (`max-h-64` 加 `max-w-full`) 在 360px 屏的两处残留横向溢出收尾. gateway landing 自身 mobile 适配 (`@media (max-width: 640px)` + `clamp()` + cmd `overflow-x: auto`) 在 v1.5.7 已就位, `/autotest/*` strip 转发与 service binding 契约不变.
+
 ## [1.5.12] - 2026-05-19
 
 ### Changed

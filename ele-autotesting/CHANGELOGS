@@ -1,3 +1,8 @@
+# 2026.05.19 (lockstep v1.5.13)
+
+1. 版本号 lockstep 同步 1.5.12 → 1.5.13, 与上游 gateway / ele-autopilot / ele-autopilot-local v1.5.13 一同发布. 上游 ele-autopilot 把 v1.5.12 遗留的 7 处 mobile 小屏阅读阻塞 (3 个 Modal/Drawer 用 `min(N, vw)` 封顶 + JobDetailPanel 任务列表 max-h 加 `sm:` 前缀 + Descriptions 单列堆叠 + folder-sider Agent 配置 Popover 内容动态宽 + 步骤截图 `<Image>` 加 `max-w-full`) 一并修完.
+2. 本项目同主题收尾 1 处: `packages/ui/src/components/InputPanel.vue` 控制面板 `<div class="flex items-center gap-2">` 改 `flex flex-wrap items-end gap-2`, 模板选择 `flex-1 min-w-0` 加 `basis-full sm:basis-0` 小屏整行占一行, 提交按钮 `min-w-[60px]` 加 `flex-1 sm:flex-none` 让小屏按钮拉伸占满行剩余空间; 占位高度块 `h-[20px] mb-1.5` 加 `hidden sm:block` 小屏不再渲染无用对齐空白. 此前 360px 屏上 模型选择 / 模板选择 / 控制按钮组 / 提交按钮 4 个 flex item 强行同行挤压, 模板下拉与按钮文本会被截断; 改后小屏自动两行布局 (模型 + 提交按钮一行, 模板选择独占一行), 桌面 (`>= 640px`) 仍单行紧凑布局.
+
 # 2026.05.19 (lockstep v1.5.12)
 
 1. 版本号 lockstep 同步 1.5.11 → 1.5.12, 与上游 gateway / ele-autopilot / ele-autopilot-local v1.5.12 一同发布; 本项目无业务改动. 上游修复: ele-autopilot admin (`/autopilot`) 与执行历史页 (`/autopilot/preview/:taskId`) 在 mobile 小屏 (< 768px) 阅读阻塞 — 固定宽 Ant Sider 抽屉化, Table 加 `scroll={{ x: 'max-content' }}`, Descriptions column 改 `{ xs: 1, sm: 2 }`, Header `flex-wrap`. autotest SPA 自身经 Tailwind `MainLayout` (`flex-col lg:flex-row`) + `ActionButton` (`max-md:hidden` 文字) + 14 个组件已有的 `sm:`/`lg:` 断点已满足"无障碍信息预览", 本次不动.
