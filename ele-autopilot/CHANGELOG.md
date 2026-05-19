@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.5.9] - 2026-05-19
+
+### Changed
+
+- lockstep 同步, 与上游 gateway v1.5.9 一同发布; 本项目无业务改动. 上游修复: gateway landing CSS 加 `prefers-reduced-motion` 兜底 + `<html lang>` 改 `zh-CN`. 本项目 resource route (`/releases/local/*` / `/install.sh` / `/screenshots/*`) 与 API 契约不变.
+
 ## [1.5.8] - 2026-05-19
 
 ### Changed

@@ -518,6 +518,21 @@ pre {
   color: var(--accent);
 }
 
+/* —— reduced motion —— */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .card:hover,
+  .card:focus-visible {
+    transform: none;
+  }
+}
+
 /* —— error page —— */
 .error-page {
   max-width: 720px;

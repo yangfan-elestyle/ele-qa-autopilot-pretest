@@ -1,3 +1,7 @@
+# 2026.05.19 (lockstep v1.5.9)
+
+1. 版本号 lockstep 同步 1.5.8 → 1.5.9, 与上游 gateway / ele-autopilot / ele-autopilot-local v1.5.9 一同发布; 本项目无业务改动. 上游修复: gateway landing CSS 加 `prefers-reduced-motion` 兜底 (a11y) + `<html lang>` 改 `zh-CN`. gateway `/autotest/*` strip 转发逻辑与本项目 SPA `base=/autotest/` 契约不变.
+
 # 2026.05.19 (lockstep v1.5.8)
 
 1. 版本号 lockstep 同步 1.5.7 → 1.5.8, 与上游 gateway / ele-autopilot / ele-autopilot-local v1.5.8 一同发布; 本项目无业务改动. 上游修复: gateway landing SSR 拿真实 origin 直接渲染 install 命令 (修复占位符闪烁), `/index.html` 由 worker 层 301 → `/` (修复 RR 无该路由的 404), clipboard catch + 删 service binding 上无效的 `cf.cacheTtl`. gateway `/autotest/*` strip 转发逻辑不变.

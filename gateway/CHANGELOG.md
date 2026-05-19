@@ -2,6 +2,13 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.5.9] - 2026-05-19
+
+### Fixed
+
+- `app/app.css` 全无 `prefers-reduced-motion` 兜底: 用户系统偏好减少动画 (macOS "减弱动态效果" / iOS "减弱动态效果" / Windows "显示动画") 时, status pill `pulse` 2s 周期动画 + card hover `translateY(-2px)` + 各 `transition` 仍会触发, 是真实可访问性问题. 加 `@media (prefers-reduced-motion: reduce)` 全局缩短 animation / transition 至 0.01ms, 并禁用 card hover translate.
+- `app/root.tsx` `<html lang="zh">` 不精确, 简体中文应 `zh-CN` (BCP 47). 影响 AT 选择正确的中文语音合成与浏览器换行规则.
+
 ## [1.5.8] - 2026-05-19
 
 ### Fixed
