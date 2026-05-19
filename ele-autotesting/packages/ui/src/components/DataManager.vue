@@ -1,64 +1,78 @@
 <template>
   <Teleport to="body">
     <div v-if="show" class="fixed inset-0 theme-mask z-50 flex items-center justify-center p-4" @click="close">
-      <div class="theme-manager-container w-full max-w-md mx-auto" @click.stop>
+      <div class="theme-manager-container w-full max-w-md mx-auto flex flex-col overflow-hidden" @click.stop style="max-height: 90vh">
         <!-- Header -->
-        <div class="flex items-center justify-between p-6 border-b theme-manager-border">
-          <h2 class="text-xl font-semibold theme-manager-text">
-            数据管理
-          </h2>
-          <button @click="close" class="theme-manager-text-secondary hover:theme-manager-text transition-colors">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
-          </button>
-        </div>
+        <header class="ds-modal-head">
+          <div class="ds-modal-head-left">
+            <span class="ds-modal-title-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <ellipse cx="12" cy="5" rx="9" ry="3" />
+                <path d="M3 5v14a9 3 0 0 0 18 0V5" />
+                <path d="M3 12a9 3 0 0 0 18 0" />
+              </svg>
+            </span>
+            <h2 class="ds-modal-title">
+              数据管理
+              <span class="ds-modal-subtitle hidden sm:inline">导出 / 导入工作台配置</span>
+            </h2>
+          </div>
+          <div class="ds-modal-head-right">
+            <button @click="close" class="ds-icon-btn-sm" type="button" aria-label="关闭">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M18 6 6 18" />
+                <path d="m6 6 12 12" />
+              </svg>
+            </button>
+          </div>
+        </header>
 
         <!-- Content -->
-        <div class="p-6 space-y-6">
+        <div class="ds-modal-body space-y-5">
           <!-- 导出功能 -->
-          <div class="space-y-3">
-            <h3 class="text-lg font-medium theme-manager-text">
+          <div class="space-y-2.5">
+            <h3 class="ds-modal-section-title">
+              <span class="ds-modal-section-title-dot" aria-hidden="true"></span>
               导出数据
             </h3>
-            <p class="text-sm theme-manager-text-secondary">
+            <p class="ds-modal-section-desc">
               导出所有上下文、模型配置、自定义提示词和用户设置（包括主题、语言、模型选择等）
             </p>
             <button
               @click="handleExport"
               :disabled="isExporting"
-              class="w-full px-4 py-2 theme-manager-button-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              class="w-full theme-button-primary"
+              style="height: 38px"
             >
-              <span v-if="isExporting" class="flex items-center justify-center">
-                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                  <path
-                    class="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-                导出中...
+              <span v-if="isExporting" class="flex items-center justify-center gap-2">
+                <span class="ds-spinner" aria-hidden="true"></span>
+                导出中…
               </span>
-              <span v-else> 📥 导出数据 </span>
+              <span v-else class="flex items-center justify-center gap-2">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                导出数据
+              </span>
             </button>
           </div>
 
           <!-- 导入功能 -->
-          <div class="space-y-3">
-            <h3 class="text-lg font-medium theme-manager-text">
+          <div class="space-y-2.5">
+            <h3 class="ds-modal-section-title">
+              <span class="ds-modal-section-title-dot" aria-hidden="true"></span>
               导入数据
             </h3>
-            <p class="text-sm theme-manager-text-secondary">
+            <p class="ds-modal-section-desc">
               导入之前导出的数据文件（将覆盖现有数据和用户设置）
             </p>
 
             <!-- 文件选择区域 -->
             <div
-              class="border-2 border-dashed theme-manager-border rounded-lg p-6 text-center transition-colors"
-              :class="{
-                'theme-manager-border-active theme-manager-bg-active': isDragOver,
-              }"
+              class="ds-dropzone"
+              :class="{ 'is-over': isDragOver }"
               @dragover.prevent="handleDragOver"
               @dragenter.prevent="handleDragEnter"
               @dragleave.prevent="handleDragLeave"
@@ -66,58 +80,58 @@
             >
               <input ref="fileInput" type="file" accept=".json" @change="handleFileSelect" class="hidden" />
 
-              <div v-if="!selectedFile" @click="fileInput?.click()" class="cursor-pointer">
-                <div class="theme-manager-text-secondary mb-2">
-                  <svg class="mx-auto h-12 w-12" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                    <path
-                      d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    />
+              <template v-if="!selectedFile">
+                <div @click="fileInput?.click()" class="contents">
+                  <div class="ds-dropzone-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                      <polyline points="14 2 14 8 20 8" />
+                      <line x1="12" y1="18" x2="12" y2="12" />
+                      <polyline points="9 15 12 12 15 15" />
+                    </svg>
+                  </div>
+                  <div class="ds-dropzone-title">点击选择 .json 文件</div>
+                  <div class="ds-dropzone-hint">或将文件拖拽至此处</div>
+                </div>
+              </template>
+
+              <template v-else>
+                <div class="ds-dropzone-icon" aria-hidden="true" style="color: var(--ds-success)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                    <polyline points="22 4 12 14.01 9 11.01" />
                   </svg>
                 </div>
-                <p class="text-sm theme-manager-text-secondary">
-                  点击选择文件或拖拽文件到此处
-                </p>
-              </div>
-
-              <div v-else class="space-y-2">
-                <p class="text-sm font-medium theme-manager-text">
-                  {{ selectedFile.name }}
-                </p>
-                <p class="text-xs theme-manager-text-secondary">
-                  {{ formatFileSize(selectedFile.size) }}
-                </p>
-                <div class="flex gap-2 justify-center">
-                  <button @click="fileInput?.click()" class="text-sm theme-manager-button-link">
-                    更换文件
-                  </button>
-                  <button @click="clearSelectedFile" class="text-sm theme-manager-button-danger">
-                    清空
-                  </button>
+                <div class="ds-dropzone-selected">
+                  <span class="ds-dropzone-selected-name">{{ selectedFile.name }}</span>
+                  <span class="ds-dropzone-selected-size">{{ formatFileSize(selectedFile.size) }}</span>
+                  <div class="ds-dropzone-selected-actions">
+                    <button @click="fileInput?.click()" type="button" class="ds-pill-btn">更换文件</button>
+                    <button @click="clearSelectedFile" type="button" class="ds-pill-btn ds-pill-btn--danger">清空</button>
+                  </div>
                 </div>
-              </div>
+              </template>
             </div>
 
             <!-- 导入按钮 -->
             <button
               @click="handleImport"
               :disabled="!selectedFile || isImporting"
-              class="w-full px-4 py-2 theme-manager-button-success disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              class="w-full theme-manager-button-success disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              style="height: 38px; border-radius: var(--ds-radius-md);"
             >
-              <span v-if="isImporting" class="flex items-center justify-center">
-                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                  <path
-                    class="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-                导入中...
+              <span v-if="isImporting" class="flex items-center justify-center gap-2">
+                <span class="ds-spinner" aria-hidden="true"></span>
+                导入中…
               </span>
-              <span v-else> 📤 导入数据 </span>
+              <span v-else class="flex items-center justify-center gap-2">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+                导入数据
+              </span>
             </button>
           </div>
 

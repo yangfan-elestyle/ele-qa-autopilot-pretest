@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.9.2] - 2026-05-20
+
+### Changed
+
+- lockstep 同步, 与上游 ele-autotesting v1.9.2 一同发布; 本项目无业务改动. 本轮 Phase 2 抛光主要发生在 ele-autotesting 端: 3 个 Manager 弹窗 (模型 / 模板 / 数据) 全部统一 `.ds-modal-head` 设计语言, 关闭 / 操作按钮回归 `.ds-icon-btn-sm` + `.ds-pill-btn`, emoji 全部换 svg, TextDiff 完全重写为 `.ds-diff-shell` 子系统. ele-autopilot 端无视觉变更, 表格行 + KPI + Task 操作菜单与 v1.9.1 一致. React Router v7 路由 / API loader/action / D1 schema / R2 截图链路完全不变.
+
 ## [1.9.1] - 2026-05-20
 
 整体目标: 在 v1.9.0 "工作台框架抬升" 之后, 进入"硌手细节抛光" Phase 1, 收敛 task 列表行的高频误触面 & 强化任务行选择感.

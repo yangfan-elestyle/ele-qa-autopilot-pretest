@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.9.2] - 2026-05-20
+
+### Changed
+
+- lockstep 同步, 与上游 gateway / ele-autopilot / ele-autotesting v1.9.2 一同发布; 本项目无业务改动. 上游本轮聚焦 AutoTest 工作台 3 个 Manager 弹窗 (模型 / 模板 / 数据) 全部统一 `.ds-modal-head` 设计语言 + `.ds-pill-btn` 行内按钮 + svg 图标替代 emoji; ele-autotesting TextDiff 完全重写为 `.ds-diff-shell` 子系统, 字号从 16px 改 12.5px mono, fragment 着色用 token 半透明 + 边线. ele-autotesting theme.css 新增 30+ 组 utility 全 token 化. FastAPI app / 路由 / 监听 / R2 wheel 发布链路不变.
+
 ## [1.9.1] - 2026-05-20
 
 ### Changed

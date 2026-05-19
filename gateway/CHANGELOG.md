@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.9.2] - 2026-05-20
+
+### Changed
+
+- lockstep 同步, 与上游 ele-autotesting v1.9.2 一同发布; 本项目无业务改动. 本轮上游聚焦"硌手细节抛光" Phase 2 — AutoTest 工作台 3 个 Manager 弹窗 (模型 / 模板 / 数据) 全部统一到 `.ds-modal-head` 头部 + `.ds-modal-body` 主体 + `.ds-pill-btn` 行内按钮设计语言. ModelManager / TemplateManager / DataManager 的关闭按钮从硬编码 `text-xl ×` 全部改为 `.ds-icon-btn-sm` + svg cross; 弹窗内嵌弹窗 backdrop 从硬编码 `bg-black/60 backdrop-blur-sm` 改 `.theme-mask`; 模板类型 emoji "🎯 / 🔄 / 📝 / ⚡" 全部改为 svg 图标; 模板类型切换从手写双按钮改 `.ds-segmented` 段控件; 模板类型 chip `bg-blue-100 / bg-purple-100` 改 `.ds-chip-info / .ds-chip-brand`; ModelManager 内 `text-purple-600 / text-yellow-600 / text-red-500 / focus:ring-purple-500` 硬编码全部回归 design token; DataManager 拖拽区从 `border-2 border-dashed` 散写改 `.ds-dropzone` (44x44 icon container + brand hover + is-over 实线 brand-500 + 内 3px ring); 导出/导入按钮里的 "📥 📤" emoji 改 svg 下载/上传 icon, 旋转 spinner 改 `.ds-spinner` (4px brand 等宽 spinner). TextDiff 组件完全重写视觉: 字号从 16px (1rem) 改 12.5px mono, 行高 1.65; diff stats 改 `.ds-diff-stat--added/--removed/--unchanged` token pill, 替代原 `theme-textdiff-stat-*` 硬编码; fragment 从内嵌色背景 改 `.ds-diff-fragment--added/--removed` 12-16% 半透明背景 + 1px 22-28% 边线 + removed 自带删除线 (1.5px 45% 红色); 删掉 90 行 scoped style. ele-autotesting theme.css 新增 `.ds-modal-head` + `.ds-modal-body` + `.ds-modal-title*` + `.ds-modal-section-title*` + `.ds-pill-btn` + `--primary/--ghost/--success/--warning/--danger` 5 变体 + `.ds-manager-item*` + `.ds-dropzone*` + `.ds-spinner` + `.ds-diff-shell/-header/-stat/-body/-fragment` 共 30+ 组 utility, 全部 design token, 与 ele-autopilot 视觉契约对仗. landing 页路由分发 / `/autotest/*` strip / SSR loader / service bindings 行为不变.
+
 ## [1.9.1] - 2026-05-20
 
 ### Changed

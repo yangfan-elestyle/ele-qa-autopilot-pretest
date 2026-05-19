@@ -1,3 +1,46 @@
+# 2026.05.20 (lockstep v1.9.2)
+
+整体目标: 接 v1.9.1 "硌手细节抛光" Phase 1, 进入 Phase 2 —— 把 AutoTest 工作台的 3 个 Manager 弹窗 (模型 / 模板 / 数据) 与 TextDiff 视觉打磨, 让管理后台从"功能可用"拉到"高科技公司管理后台"层级.
+
+1. `packages/ui/src/styles/theme.css` 新增 30+ 组 utility 类, 全部使用 `--ds-*` token:
+   - `.ds-modal-head` + `-head-left` + `-head-right` + `.ds-modal-title` + `.ds-modal-title-icon` + `.ds-modal-subtitle` 一组弹窗头: head 自带 `.ds-panel-head` 同款渐变背景 + 1px 软分隔, icon 自带 28x28 brand-50 软底 + brand-600 svg, 标题主 (15px primary -0.01em) + 副 (12px tertiary), 替代之前 ModelManager / TemplateManager / DataManager 三处各自手写的 `p-6 border-b + text-xl ×` 不一致头部.
+   - `.ds-modal-body` (20px padding + flex-1 overflow-auto), `.ds-modal-section-title` + `-dot` + `-desc` 一组弹窗内段落标题: 13px primary + brand dot + 3px brand glow, 替代散写的 `text-lg font-semibold`.
+   - `.ds-pill-btn` + 5 个变体 (`--primary` / `--ghost` / `--success` / `--warning` / `--danger`): 28px 高 + 8px 圆角 + 13px font icon 等宽控制, 收敛 3 个 Manager 大量散写的 `text-sm theme-manager-button-*` 与 inline padding.
+   - `.ds-manager-item` + `-head` + `-title` + `-meta` + `-actions` + `-footer` + `-accent` (brand/success 2 个 accent 变体): 列表 item 卡片标准化, 替代 inline `p-4 rounded-xl border` 散写.
+   - `.ds-dropzone` + `-icon` + `-title` + `-hint` + `-selected*` + `is-over` 状态: DataManager 拖拽区从 `border-2 border-dashed` 改成"44x44 brand icon container + brand-50 hover + is-over 切实线 brand-500 + 内 3px brand-12% ring"完整状态机.
+   - `.ds-spinner` (14x14 等宽通用 spinner, currentColor 自适应) 替代 3 个 Manager 各自手写的 spin SVG.
+   - `.ds-diff-shell` + `-header` + `-stat--added/--removed/--unchanged` + `-body` + `-fragment--added/--removed`: TextDiff 全套样式, header 用 panel-head 同款渐变, fragment 用 12-16% 半透明底 + 22-28% 1px ring, removed 自带 1.5px 红色删除线.
+
+2. `packages/ui/src/components/ModelManager.vue` 视觉重构:
+   - 头部从 `flex justify-between p-6 border-b` + `text-xl × button` 改 `.ds-modal-head` + `.ds-modal-title-icon` (4 方格 svg) + `.ds-modal-title` 主标题 + `.ds-modal-subtitle` 副标题 + `.ds-icon-btn-sm` 关闭按钮.
+   - "模型列表" 标题改 `.ds-modal-section-title` + `.ds-chip ds-chip-neutral` 显示总数, "添加" 按钮 icon 从 "文件 + 新增" 错用图标改 plus svg + 改 `.ds-pill-btn--primary` "添加模型".
+   - 编辑 / 添加弹窗 backdrop 从 `bg-black/60 backdrop-blur-sm` 改 `.theme-mask`, 弹窗头 h3 全部改 `.ds-modal-title` + `.ds-modal-title-icon` (edit pencil svg / plus svg), 关闭 × 改 `.ds-icon-btn-sm`.
+   - 高级参数面板 inline `text-purple-600 / text-yellow-600 / text-red-500` 改 `style="color: var(--ds-brand-700 / warning / danger)"`, checkbox `focus:ring-purple-500` 改 `accent-color: var(--ds-brand-600)`; 参数删除按钮 `w-6 h-6 text-red-500 hover:text-white hover:bg-red-500` 改 `.ds-pill-btn ds-pill-btn--danger !h-6 !w-6 !p-0`.
+
+3. `packages/ui/src/components/TemplateManager.vue` 视觉重构:
+   - 头部改 `.ds-modal-head` 同款 + 文件 svg icon + 副标题 "优化与迭代模板管理", 关闭 × 改 `.ds-icon-btn-sm`, "语法指南" 按钮改 `.ds-pill-btn--ghost` + circle help svg icon.
+   - 类型切换 (内容生成 / 提示词优化) 从手写 `theme-manager-button-primary/secondary` 双按钮改 `.ds-segmented` 段控件 (与 OutputDisplayCore 视图切换同款), 内容生成切到 target/dartboard svg, 提示词优化切到 history clock svg, 替代 "🎯 / 🔄" emoji.
+   - 列表内模板格式 chip "📝 简单模板 / ⚡ 高级模板" 改 `.ds-chip ds-chip-info / ds-chip-brand` 纯文字 (与 ele-autopilot 表格 chip 视觉契约一致).
+   - 编辑/添加/查看弹窗 backdrop 改 `.theme-mask`, head h3 全部 `.ds-modal-title` + `.ds-modal-title-icon` (eye / pencil / plus 三态), 关闭 × 改 `.ds-icon-btn-sm`; 类型 chip 同步改 `.ds-chip-info / ds-chip-brand`.
+   - 模板格式选择器 (新建时切简单/高级) 内 "📝 / ⚡" emoji 改 svg (text-lines / lightning bolt), 文字保留.
+   - 语法指南弹窗 + 迁移弹窗的 head 全部统一改 `.ds-modal-title` + icon + `.ds-icon-btn-sm` 关闭.
+
+4. `packages/ui/src/components/DataManager.vue` 视觉重构:
+   - 头部改 `.ds-modal-head` + 数据柱状图 svg icon + 副标题, 关闭按钮从 6x6 大尺寸 svg 改 `.ds-icon-btn-sm` (32x32 容器内 14x14 cross).
+   - 导出 / 导入两个 section 标题改 `.ds-modal-section-title` + brand dot, 描述用 `.ds-modal-section-desc`.
+   - 导出按钮内 "📥 导出数据" emoji 改 svg arrow-down 图标, loading spinner 从手写 svg animate-spin 改 `.ds-spinner` (14x14 brand-spin), 同款修复导入按钮 "📤 导入数据" emoji.
+   - 文件拖拽区从 `border-2 border-dashed + theme-manager-border-active` 改 `.ds-dropzone` + `is-over` 状态机, 默认态显示 file-upload svg icon container + "点击选择 .json 文件" 主标 + "或将文件拖拽至此处" hint 三层; 选中态显示 success-color check svg icon + 文件名 (mono size) + ds-pill-btn 双按钮 (更换文件 / 清空 danger).
+
+5. `packages/ui/src/components/TextDiff.vue` 完全重写视觉:
+   - 模板从 `.text-diff theme-textdiff` + 90 行 scoped style 改 `.ds-diff-shell` (4 个 ds-diff-* class), 删除 scoped style 整块 (现 0 行).
+   - 切换按钮从 `.diff-toggle-btn theme-textdiff-toggle` 改 `.ds-pill-btn` + 关闭对比时切 `--primary` 实底 + 双向 chevron svg icon, 文字 "开启对比 / 关闭对比".
+   - diff stats `+N / -N` 从 `theme-textdiff-stat-added/-removed` 实色块改 `.ds-diff-stat--added/--removed/--unchanged` 半透明 pill + 1px ring + mono font, 增加 "无差异" 中性态.
+   - 内容区 `.diff-text / .normal-text` (16px line-height 1.6 + 3rem 底 padding) 改 `.ds-diff-body` (12.5px mono + 1.65 行高 + 32px 底 padding).
+   - fragment 从 `theme-textdiff-added/-removed` (success-soft / danger-soft 满底色) 改 `.ds-diff-fragment--added/--removed` (color-mix 16% / 12% 半透明 + 1px 22-28% ring), removed 自带 1.5px 45% 红色删除线, 视觉密度从"满地红绿"改"语义清晰锚点".
+   - 移除内嵌响应式 `@media (max-width: 768px)` 控制行翻转 (现在 header 已经 flex-wrap, 不需要单独 query).
+
+6. **零功能改动**: ele-autotesting 服务端 / D1 / Container / API 路由 / 业务逻辑完全不变. 仅 UI 视觉与样式系统层抛光.
+
 # 2026.05.20 (lockstep v1.9.1)
 
 整体目标: 接 v1.9.0 工作台框架抬升, 进入"硌手细节抛光" Phase 1, 把 AutoTest 工作台高频接触点 (输出展示工具栏 / 测试数据源 / 历史抽屉 / 模态框关闭) 的视觉硬编码与不一致整体清理, 全部回归 design token 体系.

@@ -1,38 +1,47 @@
 <template>
   <div v-if="show" class="fixed inset-0 theme-mask z-[60] flex items-center justify-center p-4" @click="onMainBackdropClick">
     <div class="relative theme-manager-container w-full max-w-3xl max-h-[90vh] m-4 flex flex-col overflow-hidden">
-      <div class="flex items-center justify-between p-6 border-b theme-manager-border flex-none">
-        <h2 class="text-xl font-semibold theme-manager-text">
-          模型管理
-        </h2>
-        <button @click="close" class="theme-manager-text-secondary hover:theme-manager-text transition-colors text-xl">×</button>
-      </div>
+      <header class="ds-modal-head">
+        <div class="ds-modal-head-left">
+          <span class="ds-modal-title-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7" rx="1.5" />
+              <rect x="14" y="3" width="7" height="7" rx="1.5" />
+              <rect x="3" y="14" width="7" height="7" rx="1.5" />
+              <rect x="14" y="14" width="7" height="7" rx="1.5" />
+            </svg>
+          </span>
+          <h2 class="ds-modal-title">
+            模型管理
+            <span class="ds-modal-subtitle hidden sm:inline">管理 LLM API 密钥与可用模型</span>
+          </h2>
+        </div>
+        <div class="ds-modal-head-right">
+          <button @click="close" class="ds-icon-btn-sm" aria-label="关闭">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
+            </svg>
+          </button>
+        </div>
+      </header>
 
       <!-- 可滚动内容区域 -->
-      <div class="flex-1 min-h-0 p-6 overflow-y-auto">
+      <div class="ds-modal-body">
         <!-- 已启用模型列表 -->
         <div class="space-y-3">
           <div class="flex justify-between items-center">
-            <h3 class="text-lg font-semibold theme-manager-text">
+            <h3 class="ds-modal-section-title">
+              <span class="ds-modal-section-title-dot" aria-hidden="true"></span>
               模型列表
+              <span class="ds-chip ds-chip-neutral ds-text-mono ml-1">{{ models.length }}</span>
             </h3>
-            <button @click="showAddForm = true" class="flex text-sm items-center gap-1 theme-manager-button-secondary">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                class="h-4 w-4"
-              >
-                <path d="M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v4" />
-                <path d="M14 2v4a2 2 0 0 0 2 2h4" />
-                <path d="M3 15h6" />
-                <path d="M6 12v6" />
+            <button @click="showAddForm = true" class="ds-pill-btn ds-pill-btn--primary" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 5v14" />
+                <path d="M5 12h14" />
               </svg>
-              添加
+              添加模型
             </button>
           </div>
           <div class="space-y-3 pb-3">
@@ -147,15 +156,25 @@
         <Teleport to="body">
           <!-- 编辑模型弹窗 -->
           <div v-if="isEditing" class="fixed inset-0 z-[60] flex items-center justify-center p-4">
-            <div class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
+            <div class="fixed inset-0 theme-mask"></div>
 
             <div class="relative theme-manager-container w-full max-w-2xl max-h-[90vh] overflow-y-auto z-10" @click.stop>
               <div class="p-6 space-y-6">
                 <div class="flex items-center justify-between">
-                  <h3 class="text-xl font-semibold theme-manager-text">
-                    编辑
+                  <h3 class="ds-modal-title">
+                    <span class="ds-modal-title-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z" />
+                      </svg>
+                    </span>
+                    编辑模型
                   </h3>
-                  <button @click="cancelEdit" class="theme-manager-text-secondary hover:theme-manager-text transition-colors text-xl">×</button>
+                  <button @click="cancelEdit" class="ds-icon-btn-sm" type="button" aria-label="关闭">
+                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M18 6 6 18" />
+                    <path d="m6 6 12 12" />
+                  </svg>
+                </button>
                 </div>
 
                 <form @submit.prevent="saveEdit" class="space-y-4">
@@ -204,13 +223,13 @@
                         </h4>
                         <p class="text-xs theme-manager-text-secondary mt-1">
                           当前提供商:
-                          <span class="font-medium text-purple-600">{{
+                          <span class="font-medium" style="color: var(--ds-brand-700)">{{
                             currentProviderType === 'custom' ? '自定义' : currentProviderType.toUpperCase()
                           }}</span>
                           <span v-if="availableLLMParamDefinitions.length > 0">
                             ({{ availableLLMParamDefinitions.length }}个可选参数)</span
                           >
-                          <span v-else class="text-yellow-600"> (无可选参数)</span>
+                          <span v-else style="color: var(--ds-warning)"> (无可选参数)</span>
                         </p>
                       </div>
 
@@ -252,7 +271,7 @@
                           <button
                             @click="removeLLMParam(key)"
                             type="button"
-                            class="w-6 h-6 text-red-500 hover:text-white hover:bg-red-500 rounded text-xs flex items-center justify-center transition-colors"
+                            class="ds-pill-btn ds-pill-btn--danger !h-6 !w-6 !p-0 !justify-center"
                           >
                             ×
                           </button>
@@ -272,7 +291,8 @@
                                 v-model="currentLLMParams[key]"
                                 type="checkbox"
                                 :id="`llmparam-${isEditing ? 'edit' : 'add'}-${key}`"
-                                class="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
+                                class="w-4 h-4 rounded"
+                                style="accent-color: var(--ds-brand-600)"
                               />
                               <span class="ml-2 text-sm theme-manager-text">
                                 {{ currentLLMParams[key] ? '已启用' : '已禁用' }}
@@ -310,7 +330,7 @@
                               </div>
 
                               <!-- 错误提示 -->
-                              <div v-if="isParamInvalid(key, currentLLMParams[key])" class="text-red-500 text-xs">
+                              <div v-if="isParamInvalid(key, currentLLMParams[key])" class="text-xs" style="color: var(--ds-danger)">
                                 {{ getParamValidationMessage(key, currentLLMParams[key]) }}
                               </div>
                             </div>
@@ -354,15 +374,26 @@
 
           <!-- 添加模型弹窗 -->
           <div v-if="showAddForm" class="fixed inset-0 z-[60] flex items-center justify-center p-4">
-            <div class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
+            <div class="fixed inset-0 theme-mask"></div>
 
             <div class="relative theme-manager-container w-full max-w-2xl max-h-[90vh] overflow-y-auto z-10" @click.stop>
               <div class="p-6 space-y-6">
                 <div class="flex items-center justify-between">
-                  <h3 class="text-xl font-semibold theme-manager-text">
+                  <h3 class="ds-modal-title">
+                    <span class="ds-modal-title-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 5v14" />
+                        <path d="M5 12h14" />
+                      </svg>
+                    </span>
                     添加
                   </h3>
-                  <button @click="showAddForm = false" class="theme-manager-text-secondary hover:theme-manager-text transition-colors text-xl">×</button>
+                  <button @click="showAddForm = false" class="ds-icon-btn-sm" type="button" aria-label="关闭">
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M18 6 6 18" />
+                      <path d="m6 6 12 12" />
+                    </svg>
+                  </button>
                 </div>
 
                 <form @submit.prevent="addCustomModel" class="space-y-4">
@@ -408,13 +439,13 @@
                         </h4>
                         <p class="text-xs theme-manager-text-secondary mt-1">
                           当前提供商:
-                          <span class="font-medium text-purple-600">{{
+                          <span class="font-medium" style="color: var(--ds-brand-700)">{{
                             currentProviderType === 'custom' ? '自定义' : currentProviderType.toUpperCase()
                           }}</span>
                           <span v-if="availableLLMParamDefinitions.length > 0">
                             ({{ availableLLMParamDefinitions.length }}个可选参数)</span
                           >
-                          <span v-else class="text-yellow-600"> (无可选参数)</span>
+                          <span v-else style="color: var(--ds-warning)"> (无可选参数)</span>
                         </p>
                       </div>
 
@@ -456,7 +487,7 @@
                           <button
                             @click="removeLLMParam(key)"
                             type="button"
-                            class="w-6 h-6 text-red-500 hover:text-white hover:bg-red-500 rounded text-xs flex items-center justify-center transition-colors"
+                            class="ds-pill-btn ds-pill-btn--danger !h-6 !w-6 !p-0 !justify-center"
                           >
                             ×
                           </button>
@@ -476,7 +507,8 @@
                                 v-model="currentLLMParams[key]"
                                 type="checkbox"
                                 :id="`llmparam-${isEditing ? 'edit' : 'add'}-${key}`"
-                                class="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
+                                class="w-4 h-4 rounded"
+                                style="accent-color: var(--ds-brand-600)"
                               />
                               <span class="ml-2 text-sm theme-manager-text">
                                 {{ currentLLMParams[key] ? '已启用' : '已禁用' }}
@@ -514,7 +546,7 @@
                               </div>
 
                               <!-- 错误提示 -->
-                              <div v-if="isParamInvalid(key, currentLLMParams[key])" class="text-red-500 text-xs">
+                              <div v-if="isParamInvalid(key, currentLLMParams[key])" class="text-xs" style="color: var(--ds-danger)">
                                 {{ getParamValidationMessage(key, currentLLMParams[key]) }}
                               </div>
                             </div>

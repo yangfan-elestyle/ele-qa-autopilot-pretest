@@ -1,92 +1,94 @@
 <template>
   <div v-if="show" class="fixed inset-0 theme-mask z-[60] flex items-center justify-center overflow-y-auto" @click="onBackdropClick">
-    <div class="relative theme-manager-container w-full max-w-4xl m-4">
-      <div class="p-6 space-y-6">
-        <!-- 标题和关闭按钮 -->
-        <div class="flex items-center justify-between">
-          <div class="flex items-center space-x-4">
-            <h2 class="text-xl font-semibold theme-manager-text">
-              功能提示词管理
-            </h2>
-            <button
-              @click="showSyntaxGuide = true"
-              class="text-sm inline-flex items-center gap-1 theme-manager-button-secondary"
-              title="语法指南"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z"
-                />
-              </svg>
-              <span class="hidden md:inline">语法指南</span>
-            </button>
-          </div>
-          <div class="flex items-center space-x-4">
-            <button @click="close" class="theme-manager-text-secondary hover:theme-manager-text transition-colors text-xl">×</button>
-          </div>
+    <div class="relative theme-manager-container w-full max-w-4xl m-4 flex flex-col overflow-hidden" style="max-height: 90vh">
+      <header class="ds-modal-head">
+        <div class="ds-modal-head-left">
+          <span class="ds-modal-title-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="8" y1="13" x2="16" y2="13" />
+              <line x1="8" y1="17" x2="13" y2="17" />
+            </svg>
+          </span>
+          <h2 class="ds-modal-title">
+            功能提示词
+            <span class="ds-modal-subtitle hidden sm:inline">优化与迭代模板管理</span>
+          </h2>
         </div>
-
-        <!-- 新增类型切换标签 -->
-        <div class="flex space-x-2 mb-6 p-1 theme-manager-card">
+        <div class="ds-modal-head-right">
           <button
-            @click="currentCategory = 'system-optimize'"
-            :class="[
-              'flex-1 font-medium transition-all duration-200 text-sm',
-              currentCategory === 'system-optimize' ? 'theme-manager-button-primary' : 'theme-manager-button-secondary',
-            ]"
+            @click="showSyntaxGuide = true"
+            class="ds-pill-btn ds-pill-btn--ghost"
+            type="button"
+            title="语法指南"
           >
-            <div class="flex items-center justify-center space-x-2">
-              <span class="text-lg">🎯</span>
-              <span>内容生成模板</span>
-            </div>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75" />
+              <path d="M12 17.25h.008v.008H12v-.008Z" />
+            </svg>
+            <span class="hidden md:inline">语法指南</span>
           </button>
+          <button @click="close" class="ds-icon-btn-sm" type="button" aria-label="关闭">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
+            </svg>
+          </button>
+        </div>
+      </header>
 
+      <div class="ds-modal-body space-y-5">
+        <!-- 类型切换 segmented -->
+        <div class="ds-segmented" role="tablist" aria-label="模板类别" style="width: 100%">
           <button
-            @click="currentCategory = 'iterate'"
-            :class="[
-              'flex-1 font-medium transition-all duration-200 text-sm',
-              currentCategory === 'iterate' ? 'theme-manager-button-primary' : 'theme-manager-button-secondary',
-            ]"
+            type="button"
+            role="tab"
+            :aria-selected="currentCategory === 'system-optimize'"
+            @click="currentCategory = 'system-optimize'"
+            class="ds-segmented-btn"
+            :class="{ 'ds-segmented-btn--active': currentCategory === 'system-optimize' }"
+            style="flex: 1; justify-content: center; padding-top: 8px; padding-bottom: 8px;"
           >
-            <div class="flex items-center justify-center space-x-2">
-              <span class="text-lg">🔄</span>
-              <span>提示词优化模板</span>
-            </div>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="h-3.5 w-3.5">
+              <circle cx="12" cy="12" r="8" />
+              <circle cx="12" cy="12" r="4" />
+              <circle cx="12" cy="12" r="1" fill="currentColor" />
+            </svg>
+            内容生成模板
+          </button>
+          <button
+            type="button"
+            role="tab"
+            :aria-selected="currentCategory === 'iterate'"
+            @click="currentCategory = 'iterate'"
+            class="ds-segmented-btn"
+            :class="{ 'ds-segmented-btn--active': currentCategory === 'iterate' }"
+            style="flex: 1; justify-content: center; padding-top: 8px; padding-bottom: 8px;"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="h-3.5 w-3.5">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+              <path d="M3 3v5h5" />
+            </svg>
+            提示词优化模板
           </button>
         </div>
 
         <!-- 提示词列表 -->
         <div class="space-y-3">
           <div class="flex justify-between items-center">
-            <h3 class="text-lg font-semibold flex items-center gap-2 min-w-0 overflow-hidden">
-              <span class="theme-manager-text truncate">
-                {{ getCurrentCategoryLabel() }}
-              </span>
-              <span class="theme-manager-tag whitespace-nowrap flex-shrink-0 mr-2">
-                {{
-                  `${filteredTemplates.length}个提示词`
-                }}
-              </span>
+            <h3 class="ds-modal-section-title">
+              <span class="ds-modal-section-title-dot" aria-hidden="true"></span>
+              <span class="truncate">{{ getCurrentCategoryLabel() }}</span>
+              <span class="ds-chip ds-chip-neutral ds-text-mono">{{ filteredTemplates.length }}</span>
             </h3>
-            <button @click="showAddForm = true" class="flex text-sm items-center gap-1 flex-shrink-0 theme-manager-button-secondary">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                class="h-4 w-4"
-              >
-                <path d="M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v4" />
-                <path d="M14 2v4a2 2 0 0 0 2 2h4" />
-                <path d="M3 15h6" />
-                <path d="M6 12v6" />
+            <button @click="showAddForm = true" class="ds-pill-btn ds-pill-btn--primary" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 5v14" />
+                <path d="M5 12h14" />
               </svg>
-              添加
+              新建模板
             </button>
           </div>
 
@@ -205,16 +207,10 @@
                 </span>
                 <!-- 模板类型标签 -->
                 <span
-                  class="theme-manager-tag ml-2"
-                  :class="
-                    TemplateProcessor.isSimpleTemplate(template)
-                      ? 'bg-blue-100 text-blue-700 border-blue-200'
-                      : 'bg-purple-100 text-purple-700 border-purple-200'
-                  "
+                  class="ds-chip"
+                  :class="TemplateProcessor.isSimpleTemplate(template) ? 'ds-chip-info' : 'ds-chip-brand'"
                 >
-                  {{
-                    TemplateProcessor.isSimpleTemplate(template) ? '📝 ' + '简单模板' : '⚡ ' + '高级模板'
-                  }}
+                  {{ TemplateProcessor.isSimpleTemplate(template) ? '简单模板' : '高级模板' }}
                 </span>
               </div>
             </div>
@@ -229,29 +225,41 @@
             class="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto py-4"
             @click="onEditModalBackdropClick"
           >
-            <div class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
+            <div class="fixed inset-0 theme-mask"></div>
 
             <div class="relative theme-manager-container w-full max-w-4xl mx-4 my-4 max-h-[calc(100vh-2rem)] overflow-y-auto z-10">
               <div class="p-6 space-y-6">
                 <div class="flex items-center justify-between">
                   <div class="flex items-center space-x-3">
-                    <h3 class="text-xl font-semibold theme-manager-text">
-                      {{ viewingTemplate ? '查看' : editingTemplate ? '编辑' : '添加' }}
+                    <h3 class="ds-modal-title">
+                      <span class="ds-modal-title-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                          <path v-if="viewingTemplate" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                          <circle v-if="viewingTemplate" cx="12" cy="12" r="3" />
+                          <template v-else-if="editingTemplate">
+                            <path d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z" />
+                          </template>
+                          <template v-else>
+                            <path d="M12 5v14" />
+                            <path d="M5 12h14" />
+                          </template>
+                        </svg>
+                      </span>
+                      {{ viewingTemplate ? '查看模板' : editingTemplate ? '编辑模板' : '新建模板' }}
                     </h3>
-                    <!-- 在查看或编辑时显示模板类型 -->
                     <span
                       v-if="viewingTemplate || editingTemplate"
-                      class="px-2 py-1 rounded text-xs font-medium"
+                      class="ds-chip"
                       :class="
                         (viewingTemplate || editingTemplate) && TemplateProcessor.isSimpleTemplate((viewingTemplate || editingTemplate)!)
-                          ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                          : 'bg-purple-100 text-purple-700 border border-purple-200'
+                          ? 'ds-chip-info'
+                          : 'ds-chip-brand'
                       "
                     >
                       {{
                         (viewingTemplate || editingTemplate) && TemplateProcessor.isSimpleTemplate((viewingTemplate || editingTemplate)!)
-                          ? '📝 ' + '简单模板'
-                          : '⚡ ' + '高级模板'
+                          ? '简单模板'
+                          : '高级模板'
                       }}
                     </span>
                   </div>
@@ -271,7 +279,12 @@
                       </svg>
                       <span class="hidden md:inline">帮助</span>
                     </button>
-                    <button @click="cancelEdit" class="theme-manager-text-secondary hover:theme-manager-text transition-colors text-xl">×</button>
+                    <button @click="cancelEdit" class="ds-icon-btn-sm" type="button" aria-label="关闭">
+                      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M18 6 6 18" />
+                        <path d="m6 6 12 12" />
+                      </svg>
+                    </button>
                   </div>
                 </div>
 
@@ -304,7 +317,7 @@
                         ]"
                       >
                         <div class="flex items-center justify-center space-x-2">
-                          <span>📝</span>
+                          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="18" y2="18"/></svg>
                           <span>简单模板</span>
                         </div>
                       </button>
@@ -317,7 +330,7 @@
                         ]"
                       >
                         <div class="flex items-center justify-center space-x-2">
-                          <span>⚡</span>
+                          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
                           <span>高级模板</span>
                         </div>
                       </button>
@@ -512,15 +525,27 @@
 
           <!-- Syntax Guide Panel -->
           <div v-if="showSyntaxGuide" class="fixed inset-0 z-[70] flex items-start justify-center overflow-y-auto py-4" @click="onSyntaxGuideBackdropClick">
-            <div class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
+            <div class="fixed inset-0 theme-mask"></div>
 
             <div class="relative theme-manager-container w-full max-w-4xl mx-4 my-4 max-h-[calc(100vh-2rem)] overflow-y-auto z-10">
               <div class="p-6 space-y-6">
                 <div class="flex items-center justify-between">
-                  <h3 class="text-xl font-semibold theme-manager-text">
+                  <h3 class="ds-modal-title">
+                    <span class="ds-modal-title-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="9" />
+                        <path d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75" />
+                        <path d="M12 17.25h.008v.008H12v-.008Z" />
+                      </svg>
+                    </span>
                     语法指南
                   </h3>
-                  <button @click="showSyntaxGuide = false" class="theme-manager-text-secondary hover:theme-manager-text transition-colors text-xl">×</button>
+                  <button @click="showSyntaxGuide = false" class="ds-icon-btn-sm" type="button" aria-label="关闭">
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M18 6 6 18" />
+                      <path d="m6 6 12 12" />
+                    </svg>
+                  </button>
                 </div>
 
                 <!-- Markdown Content -->
@@ -543,16 +568,24 @@
             class="fixed inset-0 z-[70] flex items-center justify-center overflow-y-auto"
             @click="onMigrationDialogBackdropClick"
           >
-            <div class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
+            <div class="fixed inset-0 theme-mask"></div>
 
             <div class="relative theme-manager-container w-full max-w-2xl m-4 z-10">
               <div class="p-6 space-y-6">
                 <div class="flex items-center justify-between">
-                  <h3 class="text-xl font-semibold theme-manager-text">
+                  <h3 class="ds-modal-title">
+                    <span class="ds-modal-title-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+                      </svg>
+                    </span>
                     转换为高级格式
                   </h3>
-                  <button @click="migrationDialog.show = false" class="theme-manager-text-secondary hover:theme-manager-text transition-colors text-xl">
-                    ×
+                  <button @click="migrationDialog.show = false" class="ds-icon-btn-sm" type="button" aria-label="关闭">
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M18 6 6 18" />
+                      <path d="m6 6 12 12" />
+                    </svg>
                   </button>
                 </div>
 
