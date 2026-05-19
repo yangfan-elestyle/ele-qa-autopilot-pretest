@@ -2,6 +2,17 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.5.14] - 2026-05-19
+
+### Fixed
+
+- mobile 小屏 (< 640px) 阅读阻塞收尾, 上接 v1.5.12 / v1.5.13 已做的 Sider 抽屉化 / Table `scroll x` / Modal 加 `min(N, vw)` 封顶 / Descriptions 单列堆叠. 收尾覆盖以下 3 处:
+  - `task-content.tsx` 主任务表格的 `ID` 列 (`width: 120`) 与 `执行统计` 列 (`width: 100`) 加 `responsive: ['sm']`, < 640px 直接隐藏, 让 `任务内容` 列独占视窗宽度; `操作` 列 grid `grid-cols-2 gap-1` + 五个按钮 `!h-10 !w-10` 改为 xs `flex flex-wrap gap-0.5` + `!h-8 !w-8`, sm+ 仍 `grid-cols-2 gap-1` + `!h-10 !w-10`. 同时把列宽 `width: 100` 改 `width: 96` 适配按钮 4x2 = 64px 实际占用. 搜索框 `w-full max-w-80 sm:w-80` 改 `w-full max-w-full sm:w-80 sm:max-w-80`, xs 上限不再被 320px 截断而是占满主区. 此前 360px 屏: ID 缩略 + 统计 + 操作列共占 320px+, `scroll={{ x: 'max-content' }}` 触发横滚, 任务内容只剩可怜的一段, 必须左右拖动才能读全. 改后 360px 屏只剩 `任务内容 + 操作` 双列, 内容列拿到 ~260px 可读宽度.
+  - `selected-tasks-drawer.tsx` 已选任务侧抽屉行 (`flex items-center gap-2`) 改 `flex flex-wrap items-center gap-2 sm:flex-nowrap` + 任务文本 `min-w-0 flex-1` 加 `basis-full sm:basis-0` 小屏整行占一行; 文件夹名 `max-w-44 truncate` (176px) 改 `ml-auto max-w-32 shrink-0 truncate text-xs sm:ml-0 sm:max-w-44 sm:text-sm`, 小屏靠右、字号缩小、占位减半 (128px). 此前 360px 屏: 序号 + grab + 任务文本 + 文件夹 (176px) + 删除按钮 5 个 item 强行单行排, 任务文本被压到 ~40px 仅剩 1-2 字省略号; 改后 360px 屏自动两行 (任务文本独占第一行, 文件夹 + 删除按钮第二行靠右).
+  - `job-task-detail.tsx` 执行步骤 `StepLabel` 行 `flex w-full items-center gap-2` + 末尾 `<Space size={4} className="shrink-0">` 包三个 link 按钮 (全部展开/全部关闭/↓展开10), 改为 `flex flex-wrap items-center gap-x-2 gap-y-1 sm:flex-nowrap` + 按钮容器 `flex shrink-0 basis-full flex-wrap gap-x-1 sm:basis-auto`. 此前父级 `[&_.ant-collapse-header]:overflow-hidden` 一旦溢出会直接裁掉按钮; 360px 屏: 序号 + 状态图标 + page_title (`truncate flex-1`) + 累计耗时 + 三按钮 同行排, page_title 几乎被压到 0 而按钮被裁不可点; 改后 360px 屏自动两行 (摘要行 + 三按钮独占第二行). 同时清理未使用的 `Space` import.
+
+  桌面体验 (`>= 640px`) 完全不变.
+
 ## [1.5.13] - 2026-05-19
 
 ### Fixed

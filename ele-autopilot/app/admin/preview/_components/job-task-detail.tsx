@@ -14,7 +14,6 @@ import {
   Collapse,
   Descriptions,
   Image,
-  Space,
   Spin,
   Tag,
   Timeline,
@@ -347,7 +346,7 @@ function StepLabel({
   };
 
   return (
-    <div className="flex w-full items-center gap-2">
+    <div className="flex w-full flex-wrap items-center gap-x-2 gap-y-1 sm:flex-nowrap">
       <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-100 font-mono text-xs text-blue-600">
         {step.step_number}
       </span>
@@ -362,7 +361,7 @@ function StepLabel({
       <span className="shrink-0 text-xs text-gray-400">
         {formatDurationSeconds(cumulativeTime)}/{formatDurationSeconds(step.duration_seconds)}
       </span>
-      <Space size={4} className="shrink-0">
+      <div className="flex shrink-0 basis-full flex-wrap gap-x-1 sm:basis-auto">
         <Button
           size="small"
           type="link"
@@ -389,7 +388,7 @@ function StepLabel({
             ↓展开10
           </Button>
         )}
-      </Space>
+      </div>
     </div>
   );
 }

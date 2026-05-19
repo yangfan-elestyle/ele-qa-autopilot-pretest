@@ -5,11 +5,11 @@
       <div class="flex-none">
         <!-- For user prompt optimization, show simplified test controls -->
         <div class="space-y-4">
-          <div class="flex items-center justify-between">
+          <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <h3 class="text-lg font-medium theme-text">
               内容生成
             </h3>
-            <div class="flex items-center gap-2">
+            <div class="flex flex-wrap items-center gap-2">
               <ModelSelectUI
                 ref="testModelSelect"
                 :modelValue="selectedTestModel"
@@ -31,13 +31,13 @@
           <!-- Optimized Prompt Test Result -->
           <div class="flex flex-col min-h-0 transition-all duration-300 min-h-[80px] md:absolute md:inset-0 md:h-full md:w-full md:left-0">
             <!-- Test Result Header with Add Action -->
-            <div class="flex items-center justify-between mb-3 flex-none">
+            <div class="flex flex-col gap-2 mb-3 flex-none sm:flex-row sm:items-center sm:justify-between">
               <h3 class="text-lg font-semibold theme-text truncate flex-shrink-0">
                 生成结果
               </h3>
 
               <!-- Items and Add Action Container -->
-              <div class="flex items-center gap-2 flex-1 min-w-0 ml-4">
+              <div class="flex items-center gap-2 flex-1 min-w-0 sm:ml-4">
                 <!-- Added Items with Horizontal Scroll (always present for layout) -->
                 <div class="flex-1 min-w-0">
                   <div v-if="addedItems.length > 0" class="flex items-center gap-2 overflow-x-auto custom-scrollbar pb-1">

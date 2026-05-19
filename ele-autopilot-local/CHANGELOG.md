@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.5.14] - 2026-05-19
+
+### Changed
+
+- lockstep 同步, 与上游 gateway / ele-autopilot / ele-autotesting v1.5.14 一同发布; 本项目无业务改动. 上游修复: ele-autopilot 主任务表格 (ID / 执行统计列 xs 隐藏 + 操作列 xs `flex-wrap` + 按钮 8x8) + 已选任务侧抽屉行 (xs `flex-wrap` + 文件夹名缩小靠右) + 执行步骤 StepLabel (三按钮 xs 独占第二行) 的 mobile 收尾; ele-autotesting TestPanel header 与 InputPanel 标题行 xs 加 `flex-wrap`. 本项目 CLI / `install.sh` 安装命令 / `0.0.0.0:8000` HTTP 接口与回调契约不变.
+
 ## [1.5.13] - 2026-05-19
 
 ### Changed

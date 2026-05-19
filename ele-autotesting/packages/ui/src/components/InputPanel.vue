@@ -3,7 +3,7 @@
   <div class="space-y-3">
     <!-- 标题 -->
     <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-      <div class="flex items-center space-x-4">
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
         <slot name="optimization-mode-selector"></slot>
         <!-- <label class="block text-lg theme-label">{{ label }}</label> -->
         <!-- 别名输入框 -->

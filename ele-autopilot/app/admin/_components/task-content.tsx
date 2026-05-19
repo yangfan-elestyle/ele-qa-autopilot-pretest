@@ -75,7 +75,8 @@ export default function TaskContent({
     {
       title: 'ID',
       dataIndex: 'id',
-      width: 120,
+      width: 80,
+      responsive: ['sm'],
       render: (id: Id) => (
         <Tooltip title={id}>
           <span className="font-mono text-xs">{id.slice(0, 8)}</span>
@@ -109,20 +110,21 @@ export default function TaskContent({
       key: 'stats',
       width: 100,
       align: 'center',
+      responsive: ['sm'],
       render: (_: unknown, record) => <JobStatsDisplay stats={taskStats[record.id]} />,
     },
     {
       title: '操作',
       key: 'actions',
-      width: 100,
+      width: 96,
       render: (_: unknown, record) => (
-        <div className="grid grid-cols-2 gap-1" onClick={(e) => e.stopPropagation()}>
+        <div className="flex flex-wrap gap-0.5 sm:grid sm:grid-cols-2 sm:gap-1" onClick={(e) => e.stopPropagation()}>
           <Tooltip title="执行">
             <Button
               type="text"
               icon={<PlayCircleOutlined />}
               onClick={() => onExecuteTask(record)}
-              className="!h-10 !w-10"
+              className="!h-8 !w-8 sm:!h-10 sm:!w-10"
             />
           </Tooltip>
           <Tooltip title="预览">
@@ -130,7 +132,7 @@ export default function TaskContent({
               type="text"
               icon={<EyeOutlined />}
               onClick={() => window.open(`/autopilot/preview/${record.id}`, '_blank')}
-              className="!h-10 !w-10"
+              className="!h-8 !w-8 sm:!h-10 sm:!w-10"
             />
           </Tooltip>
           {record.sub_ids && record.sub_ids.length > 0 && (
@@ -139,7 +141,7 @@ export default function TaskContent({
                 type="text"
                 icon={<BranchesOutlined />}
                 onClick={() => onViewTaskChain(record)}
-                className="!h-10 !w-10"
+                className="!h-8 !w-8 sm:!h-10 sm:!w-10"
               />
             </Tooltip>
           )}
@@ -148,7 +150,7 @@ export default function TaskContent({
               type="text"
               icon={<EditOutlined />}
               onClick={() => onEditTask(record)}
-              className="!h-10 !w-10"
+              className="!h-8 !w-8 sm:!h-10 sm:!w-10"
             />
           </Tooltip>
           <Tooltip title="删除">
@@ -157,7 +159,7 @@ export default function TaskContent({
               danger
               icon={<DeleteOutlined />}
               onClick={() => void onDeleteTasks([record.id])}
-              className="!h-10 !w-10"
+              className="!h-8 !w-8 sm:!h-10 sm:!w-10"
             />
           </Tooltip>
         </div>
@@ -197,7 +199,7 @@ export default function TaskContent({
             placeholder="按内容搜索任务"
             value={taskSearch}
             onChange={(e) => onTaskSearchChange(e.target.value)}
-            className="w-full max-w-80 sm:w-80"
+            className="w-full max-w-full sm:w-80 sm:max-w-80"
           />
         </Space>
 

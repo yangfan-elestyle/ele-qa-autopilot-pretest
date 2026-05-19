@@ -1,3 +1,11 @@
+# 2026.05.19 (lockstep v1.5.14)
+
+1. mobile 小屏阅读阻塞收尾, 上接 v1.5.13 已做的 InputPanel 控制面板 `flex-wrap` 与提交按钮 `flex-1 sm:flex-none`. 收尾覆盖以下 2 处:
+   - `packages/ui/src/components/TestPanel.vue` 顶部 header (`<h3>内容生成</h3>` + `ModelSelectUI` + `开始生成 →` 按钮) `flex items-center justify-between` 改 `flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between`, 右侧按钮组 `flex items-center gap-2` 加 `flex-wrap`; `生成结果` header (含 `添加数据源` dropdown + 已添加 tag 横向滚动条) `flex items-center justify-between mb-3 flex-none` 改 `flex flex-col gap-2 mb-3 flex-none sm:flex-row sm:items-center sm:justify-between`, dropdown 容器 `ml-4` 加 `sm:` 前缀. 此前 360px 屏: ModelSelect (≥180px) + `开始生成 →` 按钮强行同行排, ModelSelect 被压扁到不可点; `生成结果 + 已添加 tag 滚动条 + 添加数据源 dropdown` 三者同行排, dropdown 弹出层 `absolute right-0 w-48` 在 360px 屏右沿溢出. 改后 360px 屏 header 自动两行 (标题独占第一行, 控件第二行 `flex-wrap` 自然换行).
+   - `packages/ui/src/components/InputPanel.vue` 标题行内层 `<div class="flex items-center space-x-4">` (包 optimization-mode-selector + 上下文别名 input `flex-1 min-w-[120px]` + PromptTypeSelector) 改 `flex flex-wrap items-center gap-x-4 gap-y-2`. 此前 360px 屏 + `optimizationMode === 'context'` 时三个 item 强行同行排, 别名输入框被压到 ~80px (放不下 4 个汉字 placeholder), PromptTypeSelector dropdown 触发器被挤截; 改后小屏自动两行 (mode selector + 别名输入第一行, PromptTypeSelector 第二行).
+
+   桌面体验 (`>= 640px`) 完全不变. autotest SPA `MainLayout` 已有的 `flex-col lg:flex-row` + `ActionButton` `max-md:hidden` 文字 + 其他 14 个组件已有的 `sm:` / `lg:` 断点本次不动.
+
 # 2026.05.19 (lockstep v1.5.13)
 
 1. 版本号 lockstep 同步 1.5.12 → 1.5.13, 与上游 gateway / ele-autopilot / ele-autopilot-local v1.5.13 一同发布. 上游 ele-autopilot 把 v1.5.12 遗留的 7 处 mobile 小屏阅读阻塞 (3 个 Modal/Drawer 用 `min(N, vw)` 封顶 + JobDetailPanel 任务列表 max-h 加 `sm:` 前缀 + Descriptions 单列堆叠 + folder-sider Agent 配置 Popover 内容动态宽 + 步骤截图 `<Image>` 加 `max-w-full`) 一并修完.

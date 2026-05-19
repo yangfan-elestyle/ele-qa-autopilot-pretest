@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.5.14] - 2026-05-19
+
+### Changed
+
+- lockstep 同步, 与上游 ele-autopilot / ele-autotesting v1.5.14 一同发布; 本项目无业务改动. 上游修复: ele-autopilot admin 主表格 ID / 执行统计列在 xs 隐藏 (`responsive: ['sm']`) + 操作列 xs `flex-wrap` + 按钮缩小 (8x8); 已选任务侧抽屉行 xs `flex-wrap` + 文件夹名 `max-w-32` 缩小靠右; 执行步骤 StepLabel 三个 link 按钮 xs `basis-full` 独占第二行. ele-autotesting TestPanel 顶部 header (`内容生成` + 模型选择 + 开始按钮) 与 `生成结果` header xs 改 `flex-col`, InputPanel 标题行内层加 `flex-wrap` 防止 optimization-mode-selector + 别名输入 + PromptTypeSelector 在 360px 屏挤压. gateway landing 自身 mobile 适配 (`@media (max-width: 640px)` + `clamp()` + cmd `overflow-x: auto`) 在 v1.5.7 已就位, `/autotest/*` strip 转发与 service binding 契约不变.
+
 ## [1.5.13] - 2026-05-19
 
 ### Changed

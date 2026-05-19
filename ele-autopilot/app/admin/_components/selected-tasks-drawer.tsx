@@ -145,29 +145,33 @@ export default function SelectedTasksDrawer({
                       }
                 }
                 className={[
-                  'flex items-center gap-2 rounded-md border px-3 py-2',
+                  'flex flex-wrap items-center gap-2 rounded-md border px-3 py-2 sm:flex-nowrap',
                   'border-(--ant-color-border) bg-(--ant-color-bg-container)',
                   !readonly && over ? 'ring-1 ring-(--ant-color-primary)' : '',
                   !readonly && dragging ? 'opacity-60' : '',
                 ].join(' ')}
               >
-                <span className="w-6 text-right text-(--ant-color-text-secondary)">
+                <span className="w-6 shrink-0 text-right text-(--ant-color-text-secondary)">
                   {index + 1}
                 </span>
                 {!readonly && (
-                  <span className="cursor-grab text-(--ant-color-text-secondary)">
+                  <span className="shrink-0 cursor-grab text-(--ant-color-text-secondary)">
                     <MenuOutlined />
                   </span>
                 )}
 
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 flex-1 basis-full sm:basis-0">
                   <Typography.Text ellipsis={{ tooltip: task.text }} className="max-w-full">
                     <TaskTitleTag title={task.title} />
                     {task.text}
                   </Typography.Text>
                 </div>
 
-                <Typography.Text type="secondary" className="max-w-44 truncate" title={folderName}>
+                <Typography.Text
+                  type="secondary"
+                  className="ml-auto max-w-32 shrink-0 truncate text-xs sm:ml-0 sm:max-w-44 sm:text-sm"
+                  title={folderName}
+                >
                   {folderName}
                 </Typography.Text>
 
@@ -177,6 +181,7 @@ export default function SelectedTasksDrawer({
                     danger
                     icon={<DeleteOutlined />}
                     onClick={() => onRemove(task.id)}
+                    className="shrink-0"
                   />
                 )}
               </div>
