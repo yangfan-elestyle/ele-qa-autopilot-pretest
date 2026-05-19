@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.6.1] - 2026-05-19
+
+### Changed
+
+- lockstep 同步, 与上游 gateway / ele-autopilot / ele-autotesting v1.6.1 一同发布; 本项目无业务改动. 上游 ele-autotesting 修复 v1.6.0 SSR `node:fs` 报错 (handlebars 主入口被 bundle 触发, 改 vite alias 到浏览器 bundle).
+
 ## [1.6.0] - 2026-05-19
 
 ### Changed

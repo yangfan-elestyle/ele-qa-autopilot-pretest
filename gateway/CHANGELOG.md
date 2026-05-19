@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.6.1] - 2026-05-19
+
+### Changed
+
+- lockstep 同步, 与上游 ele-autopilot / ele-autopilot-local / ele-autotesting v1.6.1 一同发布; 本项目无业务改动. 上游 ele-autotesting 修复 v1.6.0 SSR 时 Worker 启动期抛 `No such module "node:fs"` (handlebars 主入口被 esbuild 静态 bundle 进 server build 触发), 通过 vite alias 切到 `handlebars/dist/handlebars.js` 浏览器 bundle 解决.
+
 ## [1.6.0] - 2026-05-19
 
 ### Changed
@@ -144,6 +150,7 @@
 - Service bindings: `AUTOPILOT` → `ele-autopilot`, `AUTOTEST` → `ele-autotesting` (两业务 Worker 同步关闭 `workers_dev`).
 - 单文件 fetch handler, 无框架依赖, 内嵌 landing HTML.
 
+[1.6.1]: about:blank
 [1.6.0]: about:blank
 [1.5.18]: about:blank
 [1.5.17]: about:blank

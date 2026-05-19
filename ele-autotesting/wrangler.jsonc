@@ -3,7 +3,7 @@
   "name": "ele-autotesting",
   "main": "./workers/app.ts",
   "compatibility_date": "2025-11-01",
-  "compatibility_flags": ["nodejs_compat_v2"],
+  "compatibility_flags": ["nodejs_compat"],
   "workers_dev": false,
   "observability": {
     "enabled": true

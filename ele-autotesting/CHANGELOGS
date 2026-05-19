@@ -1,3 +1,7 @@
+# 2026.05.19 (v1.6.1)
+
+1. **修复 SSR `node:fs` Module Not Found**: v1.6.0 上线后 `/autotest/*` 进 RR7 SSR 时 Cloudflare Worker 抛 `Error: No such module "node:fs"`. 根因: `app/lib/services/template/minimal.ts` 默认导入 `handlebars`, esbuild 把 handlebars npm 包主入口 (`lib/index.js`) 的 `require.extensions[".handlebars"]` + `require("fs").readFileSync()` 静态 bundle 进 server build, Workers 启动期 import 即报错 (即便代码路径运行时不会被走到). 修: `vite.config.ts` 加 alias `handlebars -> handlebars/dist/handlebars.js` (浏览器 bundle, 无 `node:fs` 引用); SSR bundle 自此 `grep -c "node:fs" build/server/**/*.js` = 0. `TemplateProcessor` / `minimal.compile` / `registerHelper` API 不变.
+
 # 2026.05.19 (v1.6.0)
 
 1. **整体重构**: 从「Vue 3 SPA + pnpm monorepo (core / ui / web / server)」迁移到「React Router v7 framework mode (Cloudflare SSR) + 扁平化单包 + Bun」, 与 gateway 同栈. 业务行为与外部契约 100% 等价: D1 schema (`storage` 表, PK=owner_id+key) 不变; 10 个 API 端点 (sync × 3 / proxy × 2 / parse × 2 / research × 2 / healthz) 路径与响应结构 1:1; gateway `/autotest/*` strip 转发契约不变; SHARED_OWNER_ID `device:shared-owner-v1` 不变; LLM 流式调用 / Confluence / Figma / Markdown / Image 解析 / 模型 / 模板 / 历史 / 数据 CRUD 行为一致.
