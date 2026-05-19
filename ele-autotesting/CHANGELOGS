@@ -1,3 +1,9 @@
+# 2026.05.19 (v1.6.3)
+
+v1.6.2 上线后用户访问 `https://qa.<account-sub>.workers.dev/autotest` 永久卡在 SSR 渲染的 "正在初始化服务..." 占位文本, 客户端 hydration 永远不启动 — `/autotest` 路径回应 HTML 200 但 12 个 client asset (entry.client / jsx-runtime / root / ToastProvider / ThemeProvider / _index / useModels / useTemplates / root.css 等) 全部 503.
+
+1. **修复 client asset URL 缺 `/autotest/` 前缀 (P0, 阻塞业务)**: v1.6.2 修复 hydration 后 404 时只动了 RR7 `basename: "/autotest"`, 但 RR7 `basename` 文档明确仅作用于路由匹配 (route paths / `<Link>`), 不影响 Vite emit 的 asset URL ([RR7 Config docs](https://reactrouter.com/api/framework-conventions/react-router.config.ts) 与 [issue #11116](https://github.com/remix-run/react-router/issues/11116) 均确认 "basename ≠ asset base"). build 出来的 SSR HTML `<script src="/assets/entry.client-*.js">` 仍是裸 `/assets/...` 绝对路径, 浏览器请求 `https://qa.../assets/entry.client-*.js` (无 `/autotest` 前缀) 在 gateway `workers/app.ts` 路由表中 fall through 到 `env.AUTOPILOT.fetch`, autopilot worker 无此 asset 返回 503. 修: `vite.config.ts` 顶层加 `base: "/autotest/"`, build 后所有 SSR-emit 的 asset URL (`/autotest/assets/*.js`, `/autotest/assets/*.css`) 全部带前缀; 浏览器请求 `/autotest/assets/*` 经 gateway strip 后变 `/assets/*`, AUTOTEST worker 的 wrangler `assets` binding (`directory: "../client"`) 命中并返回. RR7 `basename` / gateway `/autotest/*` strip 前缀 / AUTOTEST `workers/app.ts` URL 前缀回写 / D1 schema / API 路径 / SHARED_OWNER_ID 全部不变.
+
 # 2026.05.19 (v1.6.2)
 
 v1.6.0 RR7 SSR 重构后的全检审查修复 4 项 P0/P1 业务稳定性缺陷, 无外部契约改动, D1 schema / API 路径 / gateway 转发逻辑 / SHARED_OWNER_ID 全部不变.

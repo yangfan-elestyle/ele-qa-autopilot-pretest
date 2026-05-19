@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.6.3] - 2026-05-19
+
+### Changed
+
+- lockstep 同步, 与上游 ele-autopilot / ele-autopilot-local / ele-autotesting v1.6.3 一同发布; 本项目无业务改动. 上游 ele-autotesting 修复 v1.6.2 上线后 `/autotest` 客户端 hydration 永久卡在 SSR 占位文案 "正在初始化服务..." 的 P0 问题: 根因是 RR7 `basename: "/autotest"` 仅作用于路由匹配, 不影响 Vite emit 的 asset URL, build 出 SSR HTML 引用的 `<script src="/assets/entry.client-*.js">` 共 12 个 client bundle 仍是裸 `/assets/...` 绝对路径, 经 gateway `workers/app.ts` 路由表 fall through 到 AUTOPILOT, AUTOPILOT 无此资源全部回 503, 浏览器无法启动 hydration. 修: 上游 `vite.config.ts` 顶层加 `base: "/autotest/"`, build 后所有 SSR-emit 的 asset URL 带 `/autotest/` 前缀, gateway 收到 `/autotest/assets/*` strip 后变 `/assets/*` 命中 AUTOTEST 的 wrangler `assets` binding. 本 gateway 的 `/autotest/*` strip 转发逻辑、`AUTOPILOT/AUTOTEST` service bindings、landing 双卡片 + 安装区 + 版本号 fetch 全部不变.
+
 ## [1.6.2] - 2026-05-19
 
 ### Changed
@@ -156,6 +162,7 @@
 - Service bindings: `AUTOPILOT` → `ele-autopilot`, `AUTOTEST` → `ele-autotesting` (两业务 Worker 同步关闭 `workers_dev`).
 - 单文件 fetch handler, 无框架依赖, 内嵌 landing HTML.
 
+[1.6.3]: about:blank
 [1.6.2]: about:blank
 [1.6.1]: about:blank
 [1.6.0]: about:blank

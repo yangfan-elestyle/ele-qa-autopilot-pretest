@@ -4,6 +4,10 @@ import { defineConfig } from "vite";
 import pkg from "./package.json";
 
 export default defineConfig({
+  // 公网入口在 gateway `/autotest/*` 下; RR7 的 `basename` 只管路由匹配, 不影响
+  // 构建产物里 SSR HTML 引用的 client asset URL. 必须用 vite `base` 让所有 emit
+  // 的资源 URL 带 `/autotest/` 前缀, 浏览器才能加载到 hydration bundle.
+  base: "/autotest/",
   plugins: [
     cloudflare({ viteEnvironment: { name: "ssr" } }),
     reactRouter(),

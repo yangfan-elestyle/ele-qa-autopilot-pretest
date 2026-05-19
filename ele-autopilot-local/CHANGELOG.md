@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.6.3] - 2026-05-19
+
+### Changed
+
+- lockstep 同步, 与上游 gateway / ele-autopilot / ele-autotesting v1.6.3 一同发布; 本项目无业务改动. 上游 ele-autotesting 修复 v1.6.2 上线后 `/autotest` 客户端 hydration 永久卡在 SSR 占位文案 "正在初始化服务..." 的 P0 问题: 根因是 RR7 `basename` 仅作用于路由匹配, 不影响 Vite emit 的 client asset URL, build 出 SSR HTML 引用的 12 个 `<script src="/assets/*.js">` / CSS 仍裸 `/assets/...` 绝对路径, 经 gateway fall through 到 AUTOPILOT, AUTOPILOT 无此资源全部回 503. 修: 上游 `vite.config.ts` 顶层加 `base: "/autotest/"`, build 后所有 SSR-emit asset URL 带 `/autotest/` 前缀经 gateway strip 后命中 AUTOTEST `assets` binding. FastAPI app / browser-use Agent / Job/Task 链 / wheel 构建发布到 R2 / `upgrade` shim 行为完全不变.
+
 ## [1.6.2] - 2026-05-19
 
 ### Changed
