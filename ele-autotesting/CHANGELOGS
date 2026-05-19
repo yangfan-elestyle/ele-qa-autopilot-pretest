@@ -1,3 +1,7 @@
+# 2026.05.19 (lockstep v1.5.11)
+
+1. `packages/web/public/favicon.ico` 与 ele-autopilot 同步替换为 multi-size 16/32/48 (≈ 7.4 KB); 此 ICO 实际只在 autotest SPA 直接被请求 `/autotest/favicon.ico` 时使用 (Vite build 阶段把 root-relative `/favicon.ico` 改写为带 base 前缀的 `/autotest/favicon.ico`), 修复 Retina 屏上 autotest tab favicon 被放大模糊的问题. SPA 行为契约不变.
+
 # 2026.05.19 (lockstep v1.5.10)
 
 1. SPA 品牌与文案对齐: `packages/web/index.html` `<title>` 由 `提示词优化器` 改为 `QA AutoPilot · AutoTest`, 加 description / theme-color + `<link rel=icon|alternate icon|apple-touch-icon|mask-icon|manifest>` 五件套, 指向 gateway 透传的 `/favicon.svg` / `/favicon.ico` / `/apple-touch-icon.png` / `/site.webmanifest`; `packages/web/src/App.vue` 顶部 title slot 去掉 `Ele QA Test Case v<APP_VERSION>` 版本号显示 (版本号在 gateway landing footer 唯一展示), 改为 `QA AutoPilot · AutoTest`, 同步移除 `const APP_VERSION = __APP_VERSION__` (build-time define 仍保留, 仅 UI 不再透出); `packages/ui/src/components/MainLayout.vue` 默认 title slot 由 `Ele QA Test Case` 改 `QA AutoPilot · AutoTest`, logo `<img alt="Logo">` 改 `alt=""` (装饰图片不朗读 alt); `packages/ui/src/components/PromptTypeSelector.vue` MCP client name 从 `QA Test Case` v0.0.1 改为 `qa-autotest` v1.0, 修正服务端日志品牌字样.

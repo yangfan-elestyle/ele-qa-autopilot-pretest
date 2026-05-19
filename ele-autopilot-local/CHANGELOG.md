@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.5.11] - 2026-05-19
+
+### Changed
+
+- lockstep 同步, 与上游 gateway / ele-autopilot / ele-autotesting v1.5.11 一同发布; 本项目无业务改动. 上游修复仅是 `favicon.ico` 由单 entry 改为 multi-size 16/32/48, 不影响本项目 CLI / `install.sh` / 本机 `0.0.0.0:8000` HTTP 服务.
+
 ## [1.5.10] - 2026-05-19
 
 ### Changed

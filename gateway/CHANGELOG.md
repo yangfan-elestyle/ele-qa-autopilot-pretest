@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.5.11] - 2026-05-19
+
+### Changed
+
+- lockstep 同步, 与上游 ele-autopilot v1.5.11 一同发布; 本项目无业务改动. 上游修复: `public/favicon.ico` 由单 entry (16×16, 716 B) 改为 multi-size 16/32/48 (≈ 7.4 KB), 修复 ImageMagick / Pillow ICO writer 误用导致只保留首个 entry 的问题. 浏览器 tab / OS 任务栏 / Win 桌面快捷方式可分别按 DPI 命中合适尺寸, 旧版在 Retina 屏上 favicon.ico 会被放大模糊.
+
 ## [1.5.10] - 2026-05-19
 
 ### Changed
@@ -90,6 +96,7 @@
 - Service bindings: `AUTOPILOT` → `ele-autopilot`, `AUTOTEST` → `ele-autotesting` (两业务 Worker 同步关闭 `workers_dev`).
 - 单文件 fetch handler, 无框架依赖, 内嵌 landing HTML.
 
+[1.5.11]: about:blank
 [1.5.10]: about:blank
 [1.5.4]: about:blank
 [1.5.3]: about:blank

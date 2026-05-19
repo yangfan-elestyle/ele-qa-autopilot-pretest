@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.5.11] - 2026-05-19
+
+### Fixed
+
+- `public/favicon.ico` 实际只生成了 1 个 entry (16×16, 716 B). 起因是 `Image.save(format="ICO", sizes=[...], append_images=[16x16, 32x32, 48x48])` 误用了 `append_images` (该参数给 GIF / WebP / Animated PNG 之类多帧格式), Pillow 的 ICO writer 忽略了它, 然后又因为 `images[0]` 自身已是 16×16 而拒绝放大. 改为直接给 master 1024×1024 调 `master.save(path, format="ICO", sizes=[(16,16),(32,32),(48,48)])`, 让 Pillow 内部按 sizes 高质量下采样生成 3 个 entry (16/32/48, 总 ≈ 7.4 KB). 浏览器在 Retina / HiDPI 屏上 favicon.ico 不再被放大模糊, 桌面快捷方式与任务栏图标也清晰.
+
 ## [1.5.10] - 2026-05-19
 
 ### Added
