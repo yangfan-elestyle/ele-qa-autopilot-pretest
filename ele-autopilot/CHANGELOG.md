@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.5.6] - 2026-05-19
+
+### Changed
+
+- lockstep 同步, 与上游 ele-autopilot-local v1.5.6 一同发布; 本项目无业务改动. 上游修复: `.github/workflows/autopilot-local.yml` 4 处 `wrangler r2 object put` 补 `--remote` (wrangler v4 默认 local), production R2 写入恢复, `/releases/local/*` resource route 能真正命中对象返 200.
+
 ## [1.5.5] - 2026-05-19
 
 ### Removed

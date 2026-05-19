@@ -71,14 +71,15 @@ jobs:
           [ -f "${sdist}" ] || { echo "missing sdist ${sdist}" >&2; exit 1; }
           [ -f "checksums.txt" ] || { echo "missing checksums.txt" >&2; exit 1; }
 
-          ${WRANGLER} r2 object put "${BUCKET}/local/${VER}/${wheel}" \
+          # wrangler v4 起 `r2 object` 默认 local 数据存储, 必须显式 --remote 才写到生产 bucket.
+          ${WRANGLER} r2 object put "${BUCKET}/local/${VER}/${wheel}" --remote \
             --file "${wheel}" --content-type "application/octet-stream"
-          ${WRANGLER} r2 object put "${BUCKET}/local/${VER}/${sdist}" \
+          ${WRANGLER} r2 object put "${BUCKET}/local/${VER}/${sdist}" --remote \
             --file "${sdist}" --content-type "application/gzip"
-          ${WRANGLER} r2 object put "${BUCKET}/local/${VER}/checksums.txt" \
+          ${WRANGLER} r2 object put "${BUCKET}/local/${VER}/checksums.txt" --remote \
             --file "checksums.txt" --content-type "text/plain; charset=utf-8"
 
           # latest 指针 (单行版本号, 不含 v 前缀; gateway landing 与 install.sh 据此解析)
           printf '%s' "${VER}" > latest.txt
-          ${WRANGLER} r2 object put "${BUCKET}/local/latest.txt" \
+          ${WRANGLER} r2 object put "${BUCKET}/local/latest.txt" --remote \
             --file "latest.txt" --content-type "text/plain; charset=utf-8"

@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.5.6] - 2026-05-19
+
+### Fixed
+
+- `.github/workflows/autopilot-local.yml` 4 处 `wrangler r2 object put` 加 `--remote`. wrangler v4 起 `r2 object` 默认 local 数据存储, 缺 `--remote` 会 silently 写到 ephemeral local cache, production bucket `ele-autopilot-releases` 长期为空. v1.5.5 把 gateway landing 改为浏览器侧 fetch `/releases/local/latest.txt` 后该 bug 暴露 (旧 `/help` 页 SSR 直读 R2 binding 同样拿不到, 仅显示 `v—` 占位符不报错). 本版重发将 `local/<ver>/{wheel,sdist,checksums.txt}` 与 `local/latest.txt` 真正推到 production R2.
+
 ## [1.5.5] - 2026-05-19
 
 ### Changed
