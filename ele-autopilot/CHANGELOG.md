@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.5.17] - 2026-05-19
+
+### Changed
+
+- lockstep 同步, 与上游 gateway / ele-autopilot-local v1.5.17 一同发布; 本项目无业务改动. 上游变化: (a) `ele-autopilot-local` `autopilot/cli.py` 接入 `argparse`, 修复 `ele-autopilot --help` 此前被 `uvicorn.run` 吞掉的失效, 新增 `--help` / `-h`, `--version` / `-V` (输出 `ele-autopilot 1.5.17`), `upgrade` (alias `update`) 子命令复用 `install.sh` 重装 (base URL 优先级 `--base` > 环境变量 `ELE_AUTOPILOT_BASE`, 缺失时 stderr 提示并 exit 2); 默认无参数仍 `uvicorn.run("autopilot.cli:app", host="0.0.0.0", port=8000)`, 完全向后兼容. (b) gateway landing 安装本地 agent 区块说明文案改为面向非开发用户 (去掉 `0.0.0.0:8000` 监听地址与外层 `<code>` 标签, 改为 `两步完成. 启动后 AutoPilot 工作台会自动连接本地 agent, 即可派单执行任务.`). D1 / R2 / API / Worker 绑定无改动, `install.sh` 渲染 / R2 wheel 拉取 / SHA256 校验行为不变.
+
 ## [1.5.16] - 2026-05-19
 
 ### Changed

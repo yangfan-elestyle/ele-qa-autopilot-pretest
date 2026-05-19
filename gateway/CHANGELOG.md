@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.5.17] - 2026-05-19
+
+### Changed
+
+- `app/routes/home.tsx` landing 安装本地 agent 区块说明文案改为面向非开发用户: 原文 `两步完成. 启动后 agent 监听 0.0.0.0:8000, 等待任务派单.` 改为 `两步完成. 启动后 AutoPilot 工作台会自动连接本地 agent, 即可派单执行任务.`. 移除 `0.0.0.0:8000` 这类 IP / 端口技术术语 (含外层 `<code>` 标签), 避免向非技术使用者暴露监听地址细节; 改以"AutoPilot 工作台自动连接"描述用户视角的连通行为. SSR 输出结构其余不变, install 命令 / 版本号 fetch / service binding / 路径分发行为均无改动.
+
 ## [1.5.16] - 2026-05-19
 
 ### Fixed
@@ -126,6 +132,7 @@
 - Service bindings: `AUTOPILOT` → `ele-autopilot`, `AUTOTEST` → `ele-autotesting` (两业务 Worker 同步关闭 `workers_dev`).
 - 单文件 fetch handler, 无框架依赖, 内嵌 landing HTML.
 
+[1.5.17]: about:blank
 [1.5.16]: about:blank
 [1.5.15]: about:blank
 [1.5.14]: about:blank

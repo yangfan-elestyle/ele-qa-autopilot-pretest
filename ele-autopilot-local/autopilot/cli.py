@@ -3,6 +3,11 @@
 `uv tool install` 后通过 `ele-autopilot` 启动 HTTP 服务 (默认 0.0.0.0:8000).
 """
 
+import argparse
+import os
+import subprocess
+import sys
+
 import uvicorn
 from fastapi import FastAPI, HTTPException
 from fastapi.exceptions import RequestValidationError
@@ -49,8 +54,54 @@ async def root():
     return {"message": "Hello from ele-autopilot-local!"}
 
 
+def _build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="ele-autopilot",
+        description="QA AutoPilot 本地浏览器自动化 HTTP 服务. 无参数启动 uvicorn 监听 0.0.0.0:8000.",
+    )
+    parser.add_argument(
+        "-V",
+        "--version",
+        action="version",
+        version=f"%(prog)s {project_version()}",
+    )
+
+    sub = parser.add_subparsers(dest="command", metavar="{upgrade,update}")
+    upgrade = sub.add_parser(
+        "upgrade",
+        aliases=["update"],
+        help="重新拉取并安装最新版本 (复用 install.sh).",
+        description="通过 gateway 的 install.sh 重新安装本 CLI 到最新版本.",
+    )
+    upgrade.add_argument(
+        "--base",
+        metavar="URL",
+        default=os.environ.get("ELE_AUTOPILOT_BASE"),
+        help="gateway base URL (默认读环境变量 ELE_AUTOPILOT_BASE), 例如 https://qa.<account-sub>.workers.dev",
+    )
+    return parser
+
+
+def _run_upgrade(base: str | None) -> int:
+    if not base:
+        print(
+            "error: 缺少 gateway base URL. 使用 `--base https://qa.<account-sub>.workers.dev` 或设置环境变量 ELE_AUTOPILOT_BASE.",
+            file=sys.stderr,
+        )
+        return 2
+    base = base.rstrip("/")
+    cmd = f"curl -fsSL {base}/install.sh | bash"
+    print(f"==> Running: {cmd}", file=sys.stderr)
+    return subprocess.run(["bash", "-c", cmd]).returncode
+
+
 def cli():
-    """启动 HTTP 服务 (0.0.0.0:8000)."""
+    """CLI 入口: 无参数启动 HTTP 服务; 子命令 upgrade/update 触发重装."""
+    args = _build_parser().parse_args()
+
+    if args.command in ("upgrade", "update"):
+        sys.exit(_run_upgrade(args.base))
+
     uvicorn.run("autopilot.cli:app", host="0.0.0.0", port=8000)
 
 

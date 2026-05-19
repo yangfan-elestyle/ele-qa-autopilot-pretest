@@ -156,8 +156,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
             <span className="meta">macOS · AutoPilot 派单时由本机执行任务</span>
           </div>
           <p className="install-desc">
-            两步完成. 启动后 agent 监听 <code>0.0.0.0:8000</code>,
-            等待任务派单.
+            两步完成. 启动后 AutoPilot 工作台会自动连接本地 agent, 即可派单执行任务.
           </p>
           <ol className="steps">
             <Step num={1} title="安装 ele-autopilot" cmd={installCmd} />

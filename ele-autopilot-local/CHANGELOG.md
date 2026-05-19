@@ -2,6 +2,16 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.5.17] - 2026-05-19
+
+### Added
+
+- `autopilot/cli.py` 接入 `argparse`, 修复 `ele-autopilot --help` / `--version` 此前被 `uvicorn.run` 吞掉的失效行为. 新增三个最基础参数, 不引入额外子命令: (1) `--help` / `-h` argparse 自动生成; (2) `--version` / `-V` 通过 `action="version"` 读 `app_meta.project_version()`, 输出 `ele-autopilot <ver>`; (3) `upgrade` (alias `update`) 子命令复用 gateway `install.sh` 重装最新 wheel, base URL 来源优先级 `--base URL` > 环境变量 `ELE_AUTOPILOT_BASE`, 缺失时打印 stderr 提示并以 exit code 2 退出. upgrade 执行 `bash -c "curl -fsSL <base>/install.sh | bash"` 并以子进程 returncode 退出 (失败 / 用户 Ctrl+C 透传). 默认无参数仍 `uvicorn.run("autopilot.cli:app", host="0.0.0.0", port=8000)` 启动 HTTP 服务, 完全向后兼容. FastAPI app / 路由 / 中间件 / `0.0.0.0:8000` 监听地址 / `install.sh` 渲染 / `latest.txt` 路径 / SHA256 校验 / `uv tool install` 行为不变.
+
+### Changed
+
+- lockstep 同步, 与上游 gateway v1.5.17 一同发布. 上游变化: gateway landing 安装本地 agent 区块说明文案改为面向非开发用户 (去掉 `0.0.0.0:8000` 监听地址描述与外层 `<code>` 标签, 改为 `两步完成. 启动后 AutoPilot 工作台会自动连接本地 agent, 即可派单执行任务.`). 本机 agent 实际仍监听 `0.0.0.0:8000` 提供 HTTP 接口, wheel / sdist 产物经 `uv build` 推到 R2 `ele-autopilot-releases/local/<ver>/` 路径不变.
+
 ## [1.5.16] - 2026-05-19
 
 ### Changed
