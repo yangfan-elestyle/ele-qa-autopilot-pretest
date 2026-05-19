@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.5.7] - 2026-05-19
+
+### Changed
+
+- lockstep 同步, 与上游 gateway v1.5.7 一同发布; 本项目无业务改动. 上游变化: gateway landing 重写为 React Router v7 framework mode (SSR), 视觉重做; 安装区步骤命令 (含 `curl -fsSL <origin>/install.sh | bash` 与 `ELE_LLM_API_KEY=<key> ele-autopilot`) 文本与本项目 CLI 行为一致, 未做契约调整.
+
 ## [1.5.6] - 2026-05-19
 
 ### Fixed

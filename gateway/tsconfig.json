@@ -1,17 +1,14 @@
 {
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.node.json" },
+    { "path": "./tsconfig.cloudflare.json" }
+  ],
   "compilerOptions": {
-    "target": "ES2022",
-    "lib": ["ES2022"],
-    "types": ["./worker-configuration.d.ts"],
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "strict": true,
+    "checkJs": true,
+    "verbatimModuleSyntax": true,
     "skipLibCheck": true,
-    "noEmit": true,
-    "esModuleInterop": true
-  },
-  "include": ["src/**/*.ts", "worker-configuration.d.ts"],
-  "exclude": ["node_modules"]
+    "strict": true,
+    "noEmit": true
+  }
 }

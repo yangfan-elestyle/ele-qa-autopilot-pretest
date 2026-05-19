@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.5.7] - 2026-05-19
+
+### Changed
+
+- lockstep 同步, 与上游 gateway v1.5.7 一同发布; 本项目无业务改动. 上游变化: gateway landing 从单文件内嵌 HTML 重写为 React Router v7 framework mode (SSR), 视觉重做并改用 `env.AUTOPILOT.fetch("/releases/local/latest.txt")` 服务端拿版本号 (失败兜底客户端 fetch). 本项目 `/releases/local/latest.txt` resource route 行为不变.
+
 ## [1.5.6] - 2026-05-19
 
 ### Changed

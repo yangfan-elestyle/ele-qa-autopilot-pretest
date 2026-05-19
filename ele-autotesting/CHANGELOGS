@@ -1,3 +1,7 @@
+# 2026.05.19 (lockstep v1.5.7)
+
+1. 版本号 lockstep 同步 1.5.6 → 1.5.7, 与上游 gateway / ele-autopilot / ele-autopilot-local v1.5.7 一同发布; 本项目无业务改动. 上游变化: gateway landing 从单文件内嵌 HTML 重写为 React Router v7 framework mode (SSR), 视觉重做; gateway 路由分发顺序与对 `/autotest/*` 的 strip 转发逻辑不变.
+
 # 2026.05.19 (lockstep v1.5.6)
 
 1. 版本号 lockstep 同步 1.5.5 → 1.5.6, 与上游 gateway / ele-autopilot / ele-autopilot-local v1.5.6 一同发布; 本项目无业务改动. 上游修复: autopilot-local workflow 4 处 `wrangler r2 object put` 补 `--remote` (wrangler v4 默认 local), production R2 写入恢复.

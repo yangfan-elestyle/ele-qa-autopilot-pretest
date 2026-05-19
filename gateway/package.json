@@ -1,17 +1,31 @@
 {
   "name": "qa-gateway",
-  "version": "1.5.6",
+  "version": "1.5.7",
   "private": true,
   "type": "module",
   "scripts": {
-    "deploy": "wrangler deploy",
-    "dev": "wrangler dev",
-    "typegen": "wrangler types",
-    "typecheck": "wrangler types && tsc"
+    "build": "react-router build",
+    "deploy": "react-router build && wrangler deploy",
+    "dev": "react-router dev",
+    "preview": "react-router build && vite preview",
+    "typegen": "wrangler types && react-router typegen",
+    "typecheck": "wrangler types && react-router typegen && tsc -b"
+  },
+  "dependencies": {
+    "isbot": "^5.1.36",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "react-router": "7.15.1"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.29.1",
     "@cloudflare/workers-types": "^4.20251101.0",
-    "typescript": "^5.7.0",
+    "@react-router/dev": "7.15.1",
+    "@types/node": "^22.10.5",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "^5.9.3",
+    "vite": "^8.0.3",
     "wrangler": "^4.92.0"
   }
 }
