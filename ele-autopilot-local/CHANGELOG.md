@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.6.7] - 2026-05-19
+
+### Changed
+
+- lockstep 同步, 与上游 ele-autotesting v1.6.7 一同发布; 本项目无业务改动. 本版用途: seed 一次 autotesting workflow 新增的 markitdown image URI cache — 下次 (v1.6.8 起) lockstep 占位发版自动走 reuse path, wrangler deploy 跳过 docker build + image push. FastAPI app / 路由 / `0.0.0.0:8000` 监听 / `--version` / `--help` / `upgrade` shim 链路 / R2 wheel 发布路径不变.
+
 ## [1.6.6] - 2026-05-19
 
 ### Changed

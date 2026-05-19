@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.6.7] - 2026-05-19
+
+### Changed
+
+- lockstep 同步, 与上游 ele-autotesting v1.6.7 一同发布; 本项目无业务改动. 本版用途: 触发 autotesting workflow `4df99e9` (`fix(ci/autotesting): skip container build/push when markitdown unchanged`) 的 rebuild path 跑一次, 让 wrangler deploy 把 markitdown image push 到 Cloudflare registry 后, autotesting workflow 的 `Capture deployed image URI` step 从 deploy log grep 出 image tag, 用 `${{ secrets.CLOUDFLARE_ACCOUNT_ID }}` 拼成 `registry.cloudflare.com/<account>/ele-autotesting-markitdowncontainer:<tag>` 写入 actions/cache (key `markitdown-image-uri-<hashFiles('ele-autotesting/containers/markitdown/**')>`). 下次 (v1.6.8 起) lockstep 占位发版若 markitdown/ 未改动, autotesting workflow 通过 cache hit 自动 jq patch `packages/server/wrangler.jsonc` 的 `containers[0].image` 字段为该 URI, wrangler deploy 看到 URI 跳过 docker build + image push, autotesting tag run 从 ~130s 降到 ~30-50s. SSR landing / service binding / 路径分发 / `version` fetch / 友情链接卡片 / 安装区 / 返回首页 button 契约不变.
+
 ## [1.6.6] - 2026-05-19
 
 ### Changed

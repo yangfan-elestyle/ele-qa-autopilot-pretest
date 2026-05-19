@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.6.7] - 2026-05-19
+
+### Changed
+
+- lockstep 同步, 与上游 ele-autotesting v1.6.7 一同发布; 本项目无业务改动. 本版用途: seed 一次 autotesting workflow 新增的 markitdown image URI cache (`markitdown-image-uri-<hashFiles>` key) — 下次 (v1.6.8 起) lockstep 占位发版自动走 reuse path, jq patch `wrangler.jsonc` 的 `containers[0].image` 为 registry URI, wrangler deploy 跳过 docker build + image push. D1 / R2 / API / Worker 绑定 / `install.sh` 渲染 / R2 wheel 拉取 / SHA256 校验 / 返回首页 button 行为不变.
+
 ## [1.6.6] - 2026-05-19
 
 ### Changed
