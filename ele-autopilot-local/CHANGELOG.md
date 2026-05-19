@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.8.1] - 2026-05-20
+
+### Changed
+
+- lockstep 同步, 与上游 ele-autopilot v1.8.1 一同发布; 本项目无业务改动. 上游 ele-autopilot 后台工作台 UX 提级 (新增 MetricTile / EmptyState / TableSkeleton 三件套, 任务列表加 5 列 KPI strip 跨任务聚合, 执行概要 5 KPI + 进度条, 执行历史卡片加状态色 vertical bar + 相对时间, 首屏完整骨架替代 Spin). FastAPI app / 路由 / `0.0.0.0:8000` 监听 / `--version` / `--help` / `upgrade` shim 链路 / R2 wheel 发布路径 / browser-use Agent 执行链路不变.
+
 ## [1.8.0] - 2026-05-20
 
 ### Changed

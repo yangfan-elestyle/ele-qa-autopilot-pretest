@@ -1,4 +1,12 @@
-import { StopOutlined } from '@ant-design/icons';
+import {
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  CloseCircleOutlined,
+  HourglassOutlined,
+  LoadingOutlined,
+  StopOutlined,
+  UnorderedListOutlined,
+} from '@ant-design/icons';
 import {
   Alert,
   Button,
@@ -12,6 +20,7 @@ import {
 } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import MetricTile from '../../_components/metric-tile';
 import StatusPill from '../../_components/status-pill';
 import { stopJobOnLocal } from '../../_services/local-api';
 
@@ -43,38 +52,12 @@ function formatDuration(startedAt: string | null, completedAt: string | null): s
   return `${Math.floor(duration / 3600)}时${Math.floor((duration % 3600) / 60)}分`;
 }
 
-function StatBlock({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: number;
-  tone: 'neutral' | 'success' | 'danger' | 'info';
-}) {
-  const toneMap: Record<typeof tone, { color: string; bg: string }> = {
-    neutral: { color: '#475569', bg: 'rgba(148, 163, 184, 0.12)' },
-    success: { color: '#15803d', bg: 'rgba(22, 163, 74, 0.1)' },
-    danger: { color: '#b91c1c', bg: 'rgba(220, 38, 38, 0.08)' },
-    info: { color: '#2563eb', bg: 'rgba(37, 99, 235, 0.1)' },
-  };
-  const t = toneMap[tone];
-  return (
-    <div
-      className="flex flex-col items-start rounded-lg px-3 py-2"
-      style={{ background: t.bg }}
-    >
-      <span className="text-[11px] font-medium" style={{ color: t.color, opacity: 0.85 }}>
-        {label}
-      </span>
-      <span
-        className="ds-text-mono text-[18px] font-semibold"
-        style={{ color: t.color, lineHeight: 1.1 }}
-      >
-        {value}
-      </span>
-    </div>
-  );
+function computeProgressPct(stats: {
+  total: number;
+  done: number;
+}): number {
+  if (stats.total === 0) return 0;
+  return Math.round((stats.done / stats.total) * 100);
 }
 
 export default function JobDetailPanel({
@@ -209,6 +192,9 @@ export default function JobDetailPanel({
     };
   });
 
+  const doneCount = completedCount + failedCount;
+  const progressPct = computeProgressPct({ total: tasks.length, done: doneCount });
+
   return (
     <div className="space-y-4">
       {/* Job 概要信息 */}
@@ -222,6 +208,77 @@ export default function JobDetailPanel({
         }
         className="!bg-white"
       >
+        <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-5 lg:gap-3">
+          <MetricTile
+            label="任务总数"
+            value={tasks.length}
+            hint={
+              tasks.length > 0
+                ? `${doneCount} / ${tasks.length} 已完成 · ${progressPct}%`
+                : '—'
+            }
+            tone="neutral"
+            icon={<UnorderedListOutlined />}
+          />
+          <MetricTile
+            label="成功"
+            value={completedCount}
+            hint={tasks.length > 0 ? `占 ${Math.round((completedCount / tasks.length) * 100)}%` : '—'}
+            tone={completedCount > 0 ? 'success' : 'neutral'}
+            icon={<CheckCircleOutlined />}
+          />
+          <MetricTile
+            label="失败"
+            value={failedCount}
+            hint={failedCount === 0 ? '健康' : `占 ${Math.round((failedCount / tasks.length) * 100)}%`}
+            tone={failedCount > 0 ? 'danger' : 'neutral'}
+            icon={<CloseCircleOutlined />}
+          />
+          <MetricTile
+            label="执行中"
+            value={runningCount}
+            hint={runningCount > 0 ? '正在执行' : '空闲'}
+            tone={runningCount > 0 ? 'info' : 'neutral'}
+            icon={runningCount > 0 ? <LoadingOutlined /> : <ClockCircleOutlined />}
+          />
+          <MetricTile
+            label="等待中"
+            value={pendingCount}
+            hint={pendingCount > 0 ? '队列排队' : '—'}
+            tone={pendingCount > 0 ? 'warning' : 'neutral'}
+            icon={<HourglassOutlined />}
+          />
+        </div>
+
+        {tasks.length > 0 && (
+          <div className="mb-3">
+            <div
+              className="flex items-center justify-between text-[11px] font-medium"
+              style={{ color: 'var(--ds-text-tertiary)' }}
+            >
+              <span className="tracking-wide uppercase">执行进度</span>
+              <span className="ds-text-mono">{progressPct}%</span>
+            </div>
+            <div
+              className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full"
+              style={{ background: 'var(--ds-surface-subtle)' }}
+            >
+              <div
+                className="h-full rounded-full transition-all"
+                style={{
+                  width: `${progressPct}%`,
+                  background:
+                    failedCount > 0
+                      ? 'linear-gradient(90deg, #16a34a 0%, #16a34a ' +
+                        Math.max(0, progressPct - (failedCount / tasks.length) * 100) +
+                        '%, #dc2626 100%)'
+                      : 'linear-gradient(90deg, var(--ds-brand-500), var(--ds-brand-700))',
+                }}
+              />
+            </div>
+          </div>
+        )}
+
         <Descriptions size="small" column={{ xs: 1, sm: 2, lg: 3 }}>
           <Descriptions.Item label="执行 ID">
             <Text copyable className="ds-text-mono !text-[11px] break-all">
@@ -235,14 +292,6 @@ export default function JobDetailPanel({
           <Descriptions.Item label="开始时间">{formatDateTime(job.started_at)}</Descriptions.Item>
           <Descriptions.Item label="结束时间">{formatDateTime(job.completed_at)}</Descriptions.Item>
         </Descriptions>
-
-        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
-          <StatBlock label="任务总数" value={tasks.length} tone="neutral" />
-          <StatBlock label="成功" value={completedCount} tone="success" />
-          <StatBlock label="失败" value={failedCount} tone="danger" />
-          <StatBlock label="执行中" value={runningCount} tone="info" />
-          <StatBlock label="等待中" value={pendingCount} tone="neutral" />
-        </div>
 
         {job.error && (
           <Alert type="error" message="执行错误" description={job.error} className="mt-3" showIcon />

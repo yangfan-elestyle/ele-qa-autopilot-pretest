@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.8.1] - 2026-05-20
+
+### Changed
+
+- lockstep 同步, 与上游 ele-autopilot v1.8.1 一同发布; 本项目无业务改动. 上游 ele-autopilot 后台工作台 UX 提级 (新增 MetricTile / EmptyState / TableSkeleton 三件套, 任务列表加 5 列 KPI strip 跨任务聚合统计, 执行概要 5 KPI + 进度条, 执行历史卡片加状态色 vertical bar + 相对时间, 首屏从单 Spin 升级到完整布局骨架, preview 空态产品化). gateway landing 页 / 路径分发 / `/autotest/*` strip / SSR loader / service binding (AUTOPILOT, AUTOTEST) / `version` fetch / 友情链接卡片 / 安装区 / 返回首页 button 契约不变.
+
 ## [1.8.0] - 2026-05-20
 
 ### Changed

@@ -2,6 +2,29 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.8.1] - 2026-05-20
+
+### Added
+
+- `app/admin/_components/metric-tile.tsx`: 通用 KPI 指标砖. 单 tile 由 (label 大写 11px tertiary + dot indicator + 可选 trailing icon chip + value mono 20px tabular + hint 11px tertiary) 组成, 5 个 tone (`neutral` / `brand` / `success` / `warning` / `danger` / `info`) 决定 value 主色 / dot / icon chip 软色背景 + ring, 卡片本体保持 elevated 白底 + soft border + xs shadow + 12px 圆角. Value 启用 `font-feature-settings: "tnum" 1, "ss01" 1` 等宽数字, 大数字纵向不抖动. 主用于任务列表顶部 KPI 条与执行概要 5 列指标块.
+- `app/admin/_components/empty-state.tsx`: 统一空状态组件. 4 段结构 (icon 圆角软底容器 / title 14px primary / description 12.5px tertiary / action 按钮区), 3 档尺寸 (sm / md / lg), 2 档色调 (`brand` indigo soft / `neutral` surface subtle). 替换原项目里散落的 `<Empty>` + 自写 emoji 文案组合, 给"没数据"也带产品感.
+- `app/admin/_components/table-skeleton.tsx`: 任务列表 loading 骨架. CSS keyframes `ds-skeleton-shimmer` (240px shift 1.4s ease-in-out infinite), 多列宽度递减模拟真实列, 多行 opacity 渐变营造表格景深. 替代原 `<Spin>` 旋转圈, 首屏内容轮廓即刻出现.
+- `app/admin/_components/admin-task-explorer-page.tsx`: `ConsoleBootSkeleton` 首屏挂载前用 (整页 grid: 顶栏 logo + brand bar + agent pill / 296px sider 标题 + 输入 + 8 行 tree placeholder / main breadcrumb + h1 + 5 KPI 砖 + 6 行 table placeholder), 完整还原最终布局轮廓; 替代原"整屏只有一个大 Spin"的草稿感.
+- `app/routes/autopilot.preview.$taskId.tsx`: `PreviewBootSkeleton` preview 页同款骨架 (顶栏 + 任务摘要 banner 3 行 + 340px sider 列表 5 卡 + main 执行概要 5 KPI + 进度条 + 4 行步骤). Workspace 加载就位前先呈现页面骨架.
+
+### Changed
+
+- `app/admin/_components/task-content.tsx`: 顶部 page header 下新增 5 列 KPI strip — 任务数 / 累计执行 / 成功率 / 进行中 / 失败累计, 跨当前路径下全部任务 `taskStats` 聚合 (executed / completed / failed / running+pending), 成功率按 (completed / (completed+failed)) 计算并按 80/50 阈值切 success / warning / danger tone, 失败 tile 在失败 0 时回退 neutral, 进行中 tile 有任务时切 info 并显示 LoadingOutlined icon. 表格 loading 状态从 `<Spin>` 改为 `<TableSkeleton rows=8 columns=4>` (仅在 `tasks.length===0` 时), 已有数据后续刷新仍用 antd 内置 loading 但 indicator 切到 `<LoadingOutlined spin />`. 表格 empty 改为 `<EmptyState>` 4 段结构 + 上下文敏感文案 (无路径 / 无任务 / 搜索无结果三种状态对应三档不同 title/description/action).
+- `app/admin/_components/folder-sider.tsx`: 搜索框加 `<SearchOutlined>` prefix 与右侧一致. 空 tree 从内联 emoji + 一行文字升级到 `<EmptyState size="sm" tone="brand">` (FolderOpen icon brand soft + title + description + 「新建路径」CTA), 搜索无结果分支只显示文案不显示 CTA.
+- `app/admin/preview/_components/preview-workspace.tsx`: 任务摘要 banner 右侧新增 4 个 `StatBadge` (总 / 成功 / 失败 / 进行中, 进行中 0 时不渲染) 给页面顶部即时态势感. 左侧 sider 标题前加 `<HistoryOutlined>` brand 色 icon 与「执行历史」对齐. 右侧无 job 选中态从内联卡片改 `<EmptyState size="lg">` 包在 `ds-surface-card` 内, 文案更产品向.
+- `app/admin/preview/_components/job-history-list.tsx`: 每个 job 卡片左侧新增 3px 状态色 vertical bar (pending slate / running blue / completed green / failed red), 时间显示从 `MM-DD HH:mm:ss` 改相对时间 (刚刚 / N 分钟前 / N 小时前 / N 天前 / 月日, hover title 仍显示完整时间) 配合 mono 字体, 第二行加 `<CalendarOutlined>` 开始时间 + `<ClockCircleOutlined>` 耗时双 chip. 选中态阴影从 indigo 1px ring 升级到 1px + 4px brand 18% shadow 双层. 空列表改用 `<EmptyState size="sm" tone="neutral">`.
+- `app/admin/preview/_components/job-detail-panel.tsx`: 执行概要 5 列从原 `StatBlock` (软色 padding-2 简易块) 改为 5 个 `<MetricTile>` (任务总数 / 成功 / 失败 / 执行中 / 等待中), 每 tile 带 dot indicator + icon chip + hint (占比 / 健康 / 队列状态). 新增执行进度条 (h-1.5 圆角, brand 渐变填充; 有 failed 时切渐变 success → danger 分段), 上方 KPI tile 下方 Descriptions 仍保留 ID / 时间 / 耗时, 形成"概览 → 进度 → 详情"三段式信息层级. 顶部 Descriptions + grid 顺序对调, 让最关键的指标先映入眼帘.
+
+### Notes
+
+- 设计 token (`--ds-brand-*` / `--ds-surface-*` / `--ds-text-*` / `--ds-shadow-*` / `--ds-radius-*`) 与 antd theme 沿用 v1.7.0; 本版只新增组件 + 重排信息层级, 不改 token 值与全局样式. 兼容现有所有调用方.
+- D1 schema / R2 buckets / API 契约 / Worker bindings / 路由表 / install-script / 截图代理 / 本地 agent 通信链路 100% 不变.
+
 ## [1.8.0] - 2026-05-20
 
 ### Changed

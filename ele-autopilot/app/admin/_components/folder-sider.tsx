@@ -6,6 +6,7 @@ import {
   FolderAddOutlined,
   FolderOpenOutlined,
   PlusOutlined,
+  SearchOutlined,
 } from '@ant-design/icons';
 import { Button, Drawer, Input, Layout, Tooltip, Tree } from 'antd';
 import type { TreeDataNode, TreeProps } from 'antd';
@@ -13,6 +14,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useIsMobile } from '../_hooks/use-is-mobile';
 import type { Folder, Id } from '../_types';
+import EmptyState from './empty-state';
 
 const MIN_WIDTH = 240;
 const MAX_WIDTH = 520;
@@ -122,6 +124,7 @@ export default function FolderSider({
       <Input
         allowClear
         placeholder="搜索路径名称"
+        prefix={<SearchOutlined className="text-(--ds-text-tertiary)" />}
         value={treeSearch}
         onChange={(e) => onTreeSearchChange(e.target.value)}
         className="shrink-0"
@@ -157,15 +160,29 @@ export default function FolderSider({
         style={{ background: 'transparent' }}
       >
         {treeData.length === 0 ? (
-          <div
-            className="flex flex-col items-center justify-center gap-2 py-12 text-center"
-            style={{ color: 'var(--ds-text-tertiary)' }}
-          >
-            <FolderOpenOutlined style={{ fontSize: 28, opacity: 0.6 }} />
-            <div className="text-xs">
-              {treeSearch.trim() ? '没有匹配的路径' : '暂无路径，点击「新建路径」开始'}
-            </div>
-          </div>
+          <EmptyState
+            icon={<FolderOpenOutlined />}
+            title={treeSearch.trim() ? '没有匹配的路径' : '还没有任务路径'}
+            description={
+              treeSearch.trim()
+                ? '换个关键词，或清空搜索查看全部。'
+                : '路径用于把任务分组管理，点击下方按钮开始建一个。'
+            }
+            action={
+              treeSearch.trim() ? null : (
+                <Button
+                  type="primary"
+                  size="small"
+                  icon={<FolderAddOutlined />}
+                  onClick={onCreateRoot}
+                >
+                  新建路径
+                </Button>
+              )
+            }
+            size="sm"
+            tone="brand"
+          />
         ) : (
           <Tree
             showLine={{ showLeafIcon: false }}

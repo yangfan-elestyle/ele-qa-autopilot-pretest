@@ -1,8 +1,14 @@
-import { MenuOutlined, ReloadOutlined } from '@ant-design/icons';
+import {
+  HistoryOutlined,
+  InboxOutlined,
+  MenuOutlined,
+  ReloadOutlined,
+} from '@ant-design/icons';
 import { Button, Drawer, Layout } from 'antd';
 import { useState } from 'react';
 
 import AppHeader from '@/app/admin/_components/app-header';
+import EmptyState from '@/app/admin/_components/empty-state';
 import TaskTitleTag from '@/app/admin/_components/task-title-tag';
 import { useIsMobile } from '@/app/admin/_hooks/use-is-mobile';
 import type { JobListItem, JobLite, JobTask, Task } from '@/app/admin/_types';
@@ -41,6 +47,12 @@ export default function PreviewWorkspace({
     onSelectJob(id);
     setMobileHistoryOpen(false);
   };
+
+  const successCount = jobs.filter((j) => j.status === 'completed').length;
+  const failedCount = jobs.filter((j) => j.status === 'failed').length;
+  const activeCount = jobs.filter(
+    (j) => j.status === 'running' || j.status === 'pending',
+  ).length;
 
   return (
     <Layout className="ds-app-shell h-screen">
@@ -94,14 +106,13 @@ export default function PreviewWorkspace({
               {task.text}
             </div>
           </div>
-          <div
-            className="ds-text-mono shrink-0 rounded-md px-2.5 py-1 text-[11px] font-medium"
-            style={{
-              background: 'var(--ds-surface-subtle)',
-              color: 'var(--ds-text-secondary)',
-            }}
-          >
-            共 {jobs.length} 次执行
+          <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+            <StatBadge label="总" value={jobs.length} tone="neutral" />
+            <StatBadge label="成功" value={successCount} tone="success" />
+            <StatBadge label="失败" value={failedCount} tone="danger" />
+            {activeCount > 0 && (
+              <StatBadge label="进行中" value={activeCount} tone="info" />
+            )}
           </div>
         </div>
       )}
@@ -137,9 +148,14 @@ export default function PreviewWorkspace({
                 className="flex shrink-0 items-center justify-between border-b px-4 py-3"
                 style={{ borderColor: 'var(--ds-border-soft)' }}
               >
-                <span className="text-[13px] font-semibold tracking-tight text-(--ds-text-primary)">
-                  执行历史
-                </span>
+                <div className="flex items-center gap-2">
+                  <HistoryOutlined
+                    style={{ color: 'var(--ds-brand-600)', fontSize: 14 }}
+                  />
+                  <span className="text-[13px] font-semibold tracking-tight text-(--ds-text-primary)">
+                    执行历史
+                  </span>
+                </div>
                 <span
                   className="ds-text-mono rounded-full px-2 py-0.5 text-[11px] font-medium"
                   style={{
@@ -171,29 +187,51 @@ export default function PreviewWorkspace({
             />
           ) : (
             <div className="flex h-full items-center justify-center">
-              <div
-                className="ds-surface-card flex flex-col items-center justify-center px-10 py-16 text-center"
-                style={{ color: 'var(--ds-text-tertiary)' }}
-              >
-                <div
-                  className="mb-3 flex h-12 w-12 items-center justify-center rounded-full"
-                  style={{ background: 'var(--ds-brand-50)', color: 'var(--ds-brand-600)' }}
-                >
-                  <ReloadOutlined style={{ fontSize: 18 }} />
-                </div>
-                <div className="text-[14px] font-medium text-(--ds-text-secondary)">
-                  {jobs.length === 0 ? '暂无执行历史' : '从左侧选择一条执行记录'}
-                </div>
-                <div className="mt-1 text-[12px]">
-                  {jobs.length === 0
-                    ? '在任务列表执行该任务后，记录会显示在这里。'
-                    : '所有执行步骤、截图与判定都会在右侧展开。'}
-                </div>
+              <div className="ds-surface-card w-full max-w-md">
+                <EmptyState
+                  icon={<InboxOutlined />}
+                  title={jobs.length === 0 ? '暂无执行历史' : '从左侧选择一条执行记录'}
+                  description={
+                    jobs.length === 0
+                      ? '在任务列表执行该任务后，记录会显示在这里。每次执行的步骤、截图与 AI 判定都会完整保留。'
+                      : '所有执行步骤、截图与 AI 判定都会在此处展开。'
+                  }
+                  size="lg"
+                />
               </div>
             </div>
           )}
         </Content>
       </Layout>
     </Layout>
+  );
+}
+
+function StatBadge({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: 'neutral' | 'success' | 'danger' | 'info';
+}) {
+  const toneMap = {
+    neutral: { fg: 'var(--ds-text-secondary)', bg: 'var(--ds-surface-subtle)' },
+    success: { fg: '#15803d', bg: 'rgba(22, 163, 74, 0.1)' },
+    danger: { fg: '#b91c1c', bg: 'rgba(220, 38, 38, 0.08)' },
+    info: { fg: '#2563eb', bg: 'rgba(37, 99, 235, 0.1)' },
+  } as const;
+  const t = toneMap[tone];
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium"
+      style={{ color: t.fg, background: t.bg }}
+    >
+      <span className="opacity-70">{label}</span>
+      <span className="ds-text-mono text-[12px]" style={{ fontFeatureSettings: '"tnum" 1' }}>
+        {value}
+      </span>
+    </span>
   );
 }

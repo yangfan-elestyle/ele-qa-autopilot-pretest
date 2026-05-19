@@ -1,3 +1,17 @@
+# 2026.05.20 (lockstep v1.8.1)
+
+1. lockstep 同步, 与上游 ele-autopilot v1.8.1 一同发布; 本项目无业务改动.
+
+2. 上游 ele-autopilot 后台工作台 UX 提级:
+   - 新增 `MetricTile` / `EmptyState` / `TableSkeleton` 三个跨页面共享组件.
+   - 任务列表顶部新增 5 列 KPI strip (任务数 / 累计执行 / 成功率 / 进行中 / 失败累计), 跨当前路径下任务聚合统计, 成功率按 80/50 阈值切 tone.
+   - 执行概要从 `StatBlock` 简易块升级 5 个 `MetricTile` + h-1.5 渐变进度条 (含 failed 时切 success → danger 双段渐变), Descriptions 下沉到指标块之下.
+   - 执行历史卡片左侧新增 3px 状态色 vertical bar, 时间改相对时间, 第二行加 Calendar + Clock 双 chip 显示开始时间 / 耗时.
+   - 首屏挂载前从单 `<Spin>` 改完整布局骨架 (admin + preview 两条入口都改).
+   - Sider 空 tree / 无 job 选中空态全部从 emoji + 单行文字升级到 `EmptyState` 4 段结构.
+
+3. autotesting 前端 (`packages/{core,ui,server,web}` / D1 schema / Hono Worker / `/stream-proxy` / `/http-proxy` 路径前缀 / V1 device:shared-owner-v1 身份模型 / containers/markitdown) 全部不变.
+
 # 2026.05.20 (lockstep v1.8.0)
 
 1. AutoTest 前端工作台 UI 整体重塑, 对齐 v1.7.0 上游 ele-autopilot 的设计语言, 形成统一品牌 ("成熟科技公司管理后台"风格).

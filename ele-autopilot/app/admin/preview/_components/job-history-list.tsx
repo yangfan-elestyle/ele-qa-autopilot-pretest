@@ -1,7 +1,9 @@
-import { Empty, Spin } from 'antd';
+import { CalendarOutlined, ClockCircleOutlined, InboxOutlined } from '@ant-design/icons';
+import { Spin } from 'antd';
 
+import EmptyState from '@/app/admin/_components/empty-state';
 import StatusPill from '@/app/admin/_components/status-pill';
-import type { JobListItem } from '@/app/admin/_types';
+import type { JobListItem, JobStatus } from '@/app/admin/_types';
 
 type JobHistoryListProps = {
   jobs: JobListItem[];
@@ -10,12 +12,29 @@ type JobHistoryListProps = {
   loading?: boolean;
 };
 
-function formatDateTime(dateStr: string | null): string {
+const STATUS_ACCENT: Record<JobStatus, string> = {
+  pending: 'rgba(148, 163, 184, 0.55)',
+  running: '#2563eb',
+  completed: '#16a34a',
+  failed: '#dc2626',
+};
+
+function formatRelative(dateStr: string | null): string {
   if (!dateStr) return '-';
   const date = new Date(dateStr);
-  return date.toLocaleString('zh-CN', {
-    month: '2-digit',
-    day: '2-digit',
+  const now = Date.now();
+  const diff = now - date.getTime();
+  if (diff < 60_000) return '刚刚';
+  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)} 分钟前`;
+  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)} 小时前`;
+  if (diff < 86_400_000 * 7) return `${Math.floor(diff / 86_400_000)} 天前`;
+  return date.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' });
+}
+
+function formatTime(dateStr: string | null): string {
+  if (!dateStr) return '-';
+  const date = new Date(dateStr);
+  return date.toLocaleTimeString('zh-CN', {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
@@ -40,10 +59,13 @@ export default function JobHistoryList({
 }: JobHistoryListProps) {
   if (jobs.length === 0) {
     return (
-      <div className="flex h-full items-center justify-center px-6 py-10">
-        <Empty
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description={<span className="text-(--ds-text-tertiary)">暂无执行历史</span>}
+      <div className="flex h-full items-center justify-center px-4">
+        <EmptyState
+          icon={<InboxOutlined />}
+          title="暂无执行历史"
+          description="任务首次执行后，记录会以时间倒序出现在这里。"
+          size="sm"
+          tone="neutral"
         />
       </div>
     );
@@ -54,41 +76,59 @@ export default function JobHistoryList({
       <div className="h-full overflow-auto px-2 py-2">
         {jobs.map((job) => {
           const isSelected = job.id === selectedJobId;
+          const accent = STATUS_ACCENT[job.status];
           return (
             <button
               key={job.id}
               type="button"
               onClick={() => onSelect(job.id)}
-              className="block w-full cursor-pointer rounded-lg border px-3 py-2.5 text-left transition-all"
+              className="relative block w-full cursor-pointer rounded-lg text-left transition-all"
               style={{
-                borderColor: isSelected
-                  ? 'transparent'
-                  : 'var(--ds-border-soft)',
+                border: isSelected
+                  ? '1px solid transparent'
+                  : '1px solid var(--ds-border-soft)',
                 background: isSelected
                   ? 'var(--ds-brand-50)'
                   : 'var(--ds-surface-elevated)',
                 boxShadow: isSelected
-                  ? '0 0 0 1px var(--ds-brand-500), 0 2px 6px rgba(99, 102, 241, 0.16)'
+                  ? '0 0 0 1px var(--ds-brand-500), 0 4px 12px rgba(99, 102, 241, 0.18)'
                   : 'var(--ds-shadow-xs)',
                 marginBottom: 6,
+                padding: '10px 12px 10px 14px',
+                overflow: 'hidden',
               }}
             >
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute top-2 bottom-2 left-0 w-[3px] rounded-full"
+                style={{ background: accent, opacity: isSelected ? 1 : 0.85 }}
+              />
               <div className="flex items-center justify-between gap-2">
                 <StatusPill status={job.status} size="sm" />
                 <span
                   className="ds-text-mono text-[11px]"
                   style={{ color: 'var(--ds-text-tertiary)' }}
+                  title={new Date(job.created_at).toLocaleString('zh-CN')}
                 >
-                  {formatDateTime(job.created_at)}
+                  {formatRelative(job.created_at)}
                 </span>
               </div>
               <div
-                className="mt-1.5 flex items-center justify-between text-[11px]"
+                className="mt-1.5 flex items-center justify-between gap-2 text-[11px]"
                 style={{ color: 'var(--ds-text-tertiary)' }}
               >
-                <span className="ds-text-mono">#{job.id.slice(0, 8)}</span>
-                <span className="ds-text-mono">
-                  耗时 {formatDuration(job.started_at, job.completed_at)}
+                <span className="ds-text-mono truncate" title={job.id}>
+                  #{job.id.slice(0, 8)}
+                </span>
+                <span className="ds-text-mono inline-flex items-center gap-2">
+                  <span title="开始时间">
+                    <CalendarOutlined className="mr-0.5 opacity-70" />
+                    {formatTime(job.started_at ?? job.created_at)}
+                  </span>
+                  <span title="耗时">
+                    <ClockCircleOutlined className="mr-0.5 opacity-70" />
+                    {formatDuration(job.started_at, job.completed_at)}
+                  </span>
                 </span>
               </div>
               {job.error && (
