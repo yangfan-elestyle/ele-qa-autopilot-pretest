@@ -53,7 +53,7 @@ export type { IDataManager } from './services/data/manager'
 export * from './services/preference/types'
 export { PreferenceService, createPreferenceService } from './services/preference/service'
 
-export { getProxyUrl, setProxyBasePath } from './utils/environment'
+export { getProxyUrl, setProxyBasePath, getApiBasePath } from './utils/environment'
 export type { LLMValidationResult, ValidationError, ValidationWarning } from './services/model/validation'
 
 // 导出存储键常量

@@ -15,6 +15,12 @@ export const setProxyBasePath = (basePath: string): void => {
 }
 
 /**
+ * 读取已配置的 SPA 子路径前缀. UI 组件直接 `fetch('/foo')` 会丢前缀, 经 gateway
+ * 错路由到 AUTOPILOT, 需改成 `${getApiBasePath()}/foo`.
+ */
+export const getApiBasePath = (): string => configuredBasePath
+
+/**
  * 获取API代理URL
  * @param baseURL 原始基础URL
  * @param isStream 是否是流式请求

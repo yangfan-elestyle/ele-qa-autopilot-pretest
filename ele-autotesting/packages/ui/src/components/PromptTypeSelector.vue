@@ -180,7 +180,7 @@
 
 <script setup lang="ts">
 import { nextTick, onMounted, ref, type PropType, watch } from 'vue'
-import { type ContentType } from '@prompt-optimizer/core'
+import { type ContentType, getApiBasePath } from '@prompt-optimizer/core'
 import { createMcpServiceFor, getMcpTextContents } from '../services/mcp-client'
 import type { ContextConfig } from '@/composables'
 import { useToast } from '../composables/useToast'
@@ -283,7 +283,7 @@ const handleUrlEnter = async () => {
     }
 
     // 调用服务端的 confluence-parse API
-    const response = await fetch(`/confluence-parse?page_id=${encodeURIComponent(pageId)}`)
+    const response = await fetch(`${getApiBasePath()}/confluence-parse?page_id=${encodeURIComponent(pageId)}`)
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
@@ -321,7 +321,7 @@ const handleUrlEnter = async () => {
 
       // 调用 markdown-research，对 markdown 中的图片等进行识别与替换
       try {
-        const resp = await fetch('/markdown-research', {
+        const resp = await fetch(`${getApiBasePath()}/markdown-research`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ markdown, isConfluence: true }),
@@ -368,7 +368,7 @@ const handleFigmaEnter = async () => {
       payload.prompt = promptParam
     }
 
-    const response = await fetch('/figma-parse', {
+    const response = await fetch(`${getApiBasePath()}/figma-parse`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -555,7 +555,7 @@ const handleImageSelect = async (event: Event) => {
         mime: file.type || 'image/png',
       }
 
-      const resp = await fetch('/image-research/analyze', {
+      const resp = await fetch(`${getApiBasePath()}/image-research/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
