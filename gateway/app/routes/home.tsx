@@ -13,48 +13,41 @@ export function meta(_args: Route.MetaArgs) {
   ];
 }
 
-const INSTALL_PLACEHOLDER = "https://qa.<host>";
+const VERSION_RE = /^[0-9][0-9a-zA-Z.\-+]{0,31}$/;
 
-export async function loader({ context }: Route.LoaderArgs) {
+export async function loader({ request, context }: Route.LoaderArgs) {
   const { env } = context.cloudflare;
+  const origin = new URL(request.url).origin;
   let version: string | null = null;
   try {
     const res = await env.AUTOPILOT.fetch(
-      new Request("https://autopilot.internal/releases/local/latest.txt", {
-        cf: { cacheTtl: 60 },
-      }),
+      new Request("https://autopilot.internal/releases/local/latest.txt"),
     );
     if (res.ok) {
       const text = (await res.text()).trim();
-      if (/^[0-9][0-9a-zA-Z.\-+]{0,31}$/.test(text)) {
-        version = text;
-      }
+      if (VERSION_RE.test(text)) version = text;
     }
   } catch {
     /* fall back to client fetch */
   }
-  return { version };
+  return { version, origin };
 }
 
 export default function Home({ loaderData }: Route.ComponentProps) {
-  const initialVersion = loaderData.version;
-  const [version, setVersion] = useState<string | null>(initialVersion);
-  const [origin, setOrigin] = useState<string>(INSTALL_PLACEHOLDER);
+  const [version, setVersion] = useState<string | null>(loaderData.version);
 
   useEffect(() => {
-    setOrigin(window.location.origin);
-    if (!initialVersion) {
-      fetch("/releases/local/latest.txt", { cache: "no-store" })
-        .then((r) => (r.ok ? r.text() : ""))
-        .then((t) => {
-          const v = (t || "").trim();
-          if (/^[0-9][0-9a-zA-Z.\-+]{0,31}$/.test(v)) setVersion(v);
-        })
-        .catch(() => {});
-    }
-  }, [initialVersion]);
+    if (loaderData.version) return;
+    fetch("/releases/local/latest.txt", { cache: "no-store" })
+      .then((r) => (r.ok ? r.text() : ""))
+      .then((t) => {
+        const v = (t || "").trim();
+        if (VERSION_RE.test(v)) setVersion(v);
+      })
+      .catch(() => {});
+  }, [loaderData.version]);
 
-  const installCmd = `curl -fsSL ${origin}/install.sh | bash`;
+  const installCmd = `curl -fsSL ${loaderData.origin}/install.sh | bash`;
 
   return (
     <main className="page">
@@ -215,10 +208,13 @@ function Step({ num, title, cmd }: { num: number; title: string; cmd: string }) 
 
   function copy() {
     if (typeof navigator === "undefined" || !navigator.clipboard) return;
-    navigator.clipboard.writeText(cmd).then(() => {
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1200);
-    });
+    navigator.clipboard
+      .writeText(cmd)
+      .then(() => {
+        setCopied(true);
+        window.setTimeout(() => setCopied(false), 1200);
+      })
+      .catch(() => {});
   }
 
   return (

@@ -2,6 +2,20 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.5.8] - 2026-05-19
+
+### Fixed
+
+- `app/routes/home.tsx` SSR 期 install 命令显示占位符 `https://qa.<host>` 直到 hydration 完成才被 `useEffect` 改为真实 URL: 爬虫 / SEO / 慢网 / JS 禁用用户首屏看到的是错误命令. loader 现用 `new URL(request.url).origin` 在服务端直接拿真实 gateway origin 注入, 客户端 hydrate 后直接用 `loaderData.origin`, 不再有占位符闪烁. 同时删除冗余 `INSTALL_PLACEHOLDER` 常量与 `useState<origin>` / `setOrigin(window.location.origin)` 客户端写回逻辑.
+- `workers/app.ts` `/index.html` 之前与 `/` 一起进 RR `requestHandler`, 但 RR 路由表只有 `index("routes/home.tsx")` 对应 `/`, `/index.html` 进 RR 后无 match → 渲染 ErrorBoundary 404. 改为 worker 层 301 重定向 `/index.html` → `/`, 路径规范化, RR 仅承担真实 `/`.
+- `app/routes/home.tsx` `navigator.clipboard.writeText(...).then(...)` 缺 `.catch()`, 权限被拒会产生 unhandled promise rejection. 补 `.catch(() => {})`.
+- `app/routes/home.tsx` loader 内 `env.AUTOPILOT.fetch(new Request(url, { cf: { cacheTtl: 60 } }))` 的 `cf` 选项无效字段: service binding 直接调用下游 Worker, 不经 CDN 边缘, `cf.cacheTtl` 不生效. 删除避免误导. 版本号短 TTL 缓存由下游 `ele-autopilot` `releases.local.$.tsx` 通过 `Cache-Control: public, max-age=60` 控制.
+
+### Changed
+
+- 版本号正则 `/^[0-9][0-9a-zA-Z.\-+]{0,31}$/` 抽成模块级常量 `VERSION_RE`, loader 与客户端兜底 fetch 复用.
+- `AGENTS.md` 路径分发表拆 `/` 与 `/index.html` 两行, 显式标注 301 redirect.
+
 ## [1.5.7] - 2026-05-19
 
 ### Changed

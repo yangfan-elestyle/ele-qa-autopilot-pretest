@@ -4,7 +4,8 @@
  * 路径分发 (worker 处理顺序):
  *   /healthz       → "ok" (gateway 自检, 不进 RR)
  *   /autotest/*    → AUTOTEST (strip /autotest 前缀转发到 ele-autotesting)
- *   /, /index.html → React Router (SSR landing 页)
+ *   /index.html    → 301 重定向到 /
+ *   /              → React Router (SSR landing 页)
  *   其他            → AUTOPILOT (透传, 含 /autopilot, /api/*, /screenshots/*, /releases/*, /install.sh, /favicon.ico)
  *
  * 静态资源 (RR 客户端 bundle) 由 wrangler assets binding 优先命中, 命中即返回; 未命中再 fall through 到本 worker.
@@ -45,7 +46,13 @@ export default {
       return env.AUTOTEST.fetch(new Request(forwarded, request));
     }
 
-    if (p === "/" || p === "/index.html") {
+    if (p === "/index.html") {
+      const canonical = new URL(url);
+      canonical.pathname = "/";
+      return Response.redirect(canonical.toString(), 301);
+    }
+
+    if (p === "/") {
       return requestHandler(request, { cloudflare: { env, ctx } });
     }
 

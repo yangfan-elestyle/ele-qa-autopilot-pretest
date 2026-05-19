@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.5.8] - 2026-05-19
+
+### Changed
+
+- lockstep 同步, 与上游 gateway v1.5.8 一同发布; 本项目无业务改动. 上游修复: landing SSR 拿真实 origin 直接渲染 `curl -fsSL <gateway-origin>/install.sh | bash` (修复占位符闪烁), 安装命令文案与本项目 CLI 行为一致, 未做契约调整.
+
 ## [1.5.7] - 2026-05-19
 
 ### Changed

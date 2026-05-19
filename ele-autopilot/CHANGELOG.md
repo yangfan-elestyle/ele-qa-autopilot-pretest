@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.5.8] - 2026-05-19
+
+### Changed
+
+- lockstep 同步, 与上游 gateway v1.5.8 一同发布; 本项目无业务改动. 上游修复: landing SSR 拿 `request.url.origin` 直接渲染真实 install URL (修复占位符闪烁), `/index.html` 由 worker 层 301 → `/` (修复 RR 路由表无 `/index.html` 导致的 ErrorBoundary 404), clipboard catch + 删除 service binding 上无效的 `cf.cacheTtl`. 本项目 `releases.local.$.tsx` / `install-script.tsx` 资源路由契约不变.
+
 ## [1.5.7] - 2026-05-19
 
 ### Changed
