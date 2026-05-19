@@ -3,6 +3,7 @@ import {
   DeleteOutlined,
   EditOutlined,
   EyeOutlined,
+  MenuOutlined,
   OrderedListOutlined,
   PlayCircleOutlined,
   PlusOutlined,
@@ -29,6 +30,8 @@ type TaskContentProps = {
   onOpenSelectedTasks: () => void;
   onViewTaskChain: (task: Task) => void;
   onExecuteTask: (task: Task) => void;
+  showMobileMenu?: boolean;
+  onOpenMobileMenu?: () => void;
 };
 
 function JobStatsDisplay({ stats }: { stats: TaskJobStats | undefined }) {
@@ -65,6 +68,8 @@ export default function TaskContent({
   onOpenSelectedTasks,
   onViewTaskChain,
   onExecuteTask,
+  showMobileMenu = false,
+  onOpenMobileMenu,
 }: TaskContentProps) {
   const columns: ColumnsType<Task> = [
     {
@@ -163,10 +168,15 @@ export default function TaskContent({
   const { Content } = Layout;
 
   return (
-    <Content className="flex flex-col overflow-hidden p-4">
+    <Content className="flex flex-col overflow-hidden p-2 sm:p-4">
       <div className="mb-3 flex-shrink-0">
         <Space className="w-full justify-between" wrap>
-          <Space>
+          <Space wrap>
+            {showMobileMenu && (
+              <Button icon={<MenuOutlined />} onClick={onOpenMobileMenu}>
+                路径
+              </Button>
+            )}
             <Button type="primary" icon={<PlusOutlined />} onClick={onCreateTask}>
               新建任务
             </Button>
@@ -187,7 +197,7 @@ export default function TaskContent({
             placeholder="按内容搜索任务"
             value={taskSearch}
             onChange={(e) => onTaskSearchChange(e.target.value)}
-            className="w-80"
+            className="w-full max-w-80 sm:w-80"
           />
         </Space>
 
@@ -213,6 +223,7 @@ export default function TaskContent({
             className: 'cursor-pointer',
           })}
           size="middle"
+          scroll={{ x: 'max-content' }}
           className="bg-(--ant-color-bg-container)"
         />
       </div>

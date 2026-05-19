@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.5.12] - 2026-05-19
+
+### Changed
+
+- lockstep 同步, 与上游 gateway / ele-autopilot / ele-autotesting v1.5.12 一同发布; 本项目无业务改动. 上游修复: ele-autopilot admin / preview 在 mobile 小屏的 Sider 抽屉化 + Table 横向滚动 + Descriptions 单列堆叠. 本项目 CLI / `install.sh` 安装命令 / `0.0.0.0:8000` HTTP 接口与回调契约不变.
+
 ## [1.5.11] - 2026-05-19
 
 ### Changed

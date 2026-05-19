@@ -1,3 +1,7 @@
+# 2026.05.19 (lockstep v1.5.12)
+
+1. 版本号 lockstep 同步 1.5.11 → 1.5.12, 与上游 gateway / ele-autopilot / ele-autopilot-local v1.5.12 一同发布; 本项目无业务改动. 上游修复: ele-autopilot admin (`/autopilot`) 与执行历史页 (`/autopilot/preview/:taskId`) 在 mobile 小屏 (< 768px) 阅读阻塞 — 固定宽 Ant Sider 抽屉化, Table 加 `scroll={{ x: 'max-content' }}`, Descriptions column 改 `{ xs: 1, sm: 2 }`, Header `flex-wrap`. autotest SPA 自身经 Tailwind `MainLayout` (`flex-col lg:flex-row`) + `ActionButton` (`max-md:hidden` 文字) + 14 个组件已有的 `sm:`/`lg:` 断点已满足"无障碍信息预览", 本次不动.
+
 # 2026.05.19 (lockstep v1.5.11)
 
 1. `packages/web/public/favicon.ico` 与 ele-autopilot 同步替换为 multi-size 16/32/48 (≈ 7.4 KB); 此 ICO 实际只在 autotest SPA 直接被请求 `/autotest/favicon.ico` 时使用 (Vite build 阶段把 root-relative `/favicon.ico` 改写为带 base 前缀的 `/autotest/favicon.ico`), 修复 Retina 屏上 autotest tab favicon 被放大模糊的问题. SPA 行为契约不变.

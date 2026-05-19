@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.5.12] - 2026-05-19
+
+### Changed
+
+- lockstep 同步, 与上游 ele-autopilot v1.5.12 一同发布; 本项目无业务改动. 上游修复: ele-autopilot admin (`/autopilot`) 与执行历史页 (`/autopilot/preview/:taskId`) 小屏 (< 768px) 阅读阻塞 — 固定宽 `<Layout.Sider>` 改为 `<Drawer>` 抽屉, 主内容头部塞 hamburger 触发按钮; Table 加 `scroll={{ x: 'max-content' }}`, Descriptions column 改 `{ xs: 1, sm: 2 }`, Header `flex-wrap`. gateway landing 自身 mobile 适配 (`@media (max-width: 640px)` + `clamp()` + cmd `overflow-x: auto`) 在 v1.5.7 已就位, 本次不动. autotest SPA 经 Tailwind `sm:`/`lg:` 已满足"无障碍信息预览", 本次不动.
+
 ## [1.5.11] - 2026-05-19
 
 ### Changed
@@ -96,6 +102,7 @@
 - Service bindings: `AUTOPILOT` → `ele-autopilot`, `AUTOTEST` → `ele-autotesting` (两业务 Worker 同步关闭 `workers_dev`).
 - 单文件 fetch handler, 无框架依赖, 内嵌 landing HTML.
 
+[1.5.12]: about:blank
 [1.5.11]: about:blank
 [1.5.10]: about:blank
 [1.5.4]: about:blank

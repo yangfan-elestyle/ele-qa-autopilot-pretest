@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { apiJson, makeListUrl } from '../_data/admin-api';
 import { fetchAgentConfig, useAgentConnection } from '../_hooks/use-agent-connection';
+import { useIsMobile } from '../_hooks/use-is-mobile';
 import { executeJob } from '../_services/job-executor';
 import type { Folder, Id, Task, TaskJobStats } from '../_types';
 import { buildFolderTree } from '../_utils/folder-tree';
@@ -56,6 +57,9 @@ export default function AdminTaskExplorer() {
   const [taskChainViewSubTasksById, setTaskChainViewSubTasksById] = useState<Record<Id, Task>>({});
 
   const { status: agentStatus } = useAgentConnection();
+
+  const isMobile = useIsMobile();
+  const [mobileSiderOpen, setMobileSiderOpen] = useState(false);
 
   const visibleFolderIds = useMemo(() => {
     const q = treeSearch.trim().toLowerCase();
@@ -620,6 +624,8 @@ export default function AdminTaskExplorer() {
           onRename={openRenameFolderModal}
           onDelete={confirmDeleteFolder}
           onDrop={handleFolderDrop}
+          mobileOpen={mobileSiderOpen}
+          onMobileOpenChange={setMobileSiderOpen}
         />
 
         <TaskContent
@@ -640,6 +646,8 @@ export default function AdminTaskExplorer() {
           onOpenSelectedTasks={() => setSelectedTasksOpen(true)}
           onViewTaskChain={(task) => void openTaskChainView(task)}
           onExecuteTask={(task) => void handleExecuteTask(task)}
+          showMobileMenu={isMobile}
+          onOpenMobileMenu={() => setMobileSiderOpen(true)}
         />
       </Layout>
 

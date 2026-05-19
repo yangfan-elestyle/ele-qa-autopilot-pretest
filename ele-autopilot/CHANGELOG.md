@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.5.12] - 2026-05-19
+
+### Fixed
+
+- admin 后台 (`/autopilot`) 与执行历史页 (`/autopilot/preview/:taskId`) 在 mobile 小屏 (< 768px) 出现的阅读阻塞: 此前 Ant Design `<Layout.Sider>` 固定 280–500px 宽 / 320px 宽, 会强吃掉 iPhone 一类窄屏的大半视窗, 主内容被压扁到不可读; 搜索框 `w-80` (320px) + 操作按钮组叠加在小屏强制横向溢出; preview Header `flex` 不 wrap 导致刷新按钮被挤出. 改为: 新增 `app/admin/_hooks/use-is-mobile.ts` 监听 `matchMedia (max-width: 767px)`, `FolderSider` / preview Sider 在小屏改为 `Drawer` 抽屉, 触发按钮以 hamburger 形式塞进主内容头部 (`TaskContent` actions 区 / Header 左侧); `TaskContent` 搜索框宽度由 `w-80` 改 `w-full max-w-80 sm:w-80`, Ant Table 加 `scroll={{ x: 'max-content' }}` 防列挤压; preview Header 改 `flex-wrap items-center gap-2 sm:gap-4`, 任务文本 `basis-full` 单独占行; `JobDetailPanel` 执行概要 `Descriptions column` 由 `2` 改 `{ xs: 1, sm: 2 }`, 任务统计 span 同步; `JobTaskLabel` 顶部信息行小屏改 `flex-wrap` 让任务文本单独成行. 不改桌面体验 (`>= 768px` 完全保留原 Sider + 拖拽宽度手柄).
+
 ## [1.5.11] - 2026-05-19
 
 ### Fixed

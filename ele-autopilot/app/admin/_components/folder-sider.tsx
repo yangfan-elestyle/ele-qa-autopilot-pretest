@@ -10,11 +10,12 @@ import {
   PlusOutlined,
   SettingOutlined,
 } from '@ant-design/icons';
-import { App, Button, Input, Layout, Popover, Space, Tag, Tooltip, Tree } from 'antd';
+import { App, Button, Drawer, Input, Layout, Popover, Space, Tag, Tooltip, Tree } from 'antd';
 import type { TreeDataNode, TreeProps } from 'antd';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useAgentConnection } from '../_hooks/use-agent-connection';
+import { useIsMobile } from '../_hooks/use-is-mobile';
 import type { Folder, Id } from '../_types';
 
 const { TextArea } = Input;
@@ -38,6 +39,8 @@ type FolderSiderProps = {
   onRename: (folder: Folder) => void;
   onDelete: (folder: Folder) => void;
   onDrop: TreeProps['onDrop'];
+  mobileOpen?: boolean;
+  onMobileOpenChange?: (open: boolean) => void;
 };
 
 export default function FolderSider({
@@ -55,9 +58,12 @@ export default function FolderSider({
   onRename,
   onDelete,
   onDrop,
+  mobileOpen = false,
+  onMobileOpenChange,
 }: FolderSiderProps) {
   const { Sider } = Layout;
   const { message } = App.useApp();
+  const isMobile = useIsMobile();
   const [width, setWidth] = useState(DEFAULT_WIDTH);
   const isResizing = useRef(false);
 
@@ -150,13 +156,13 @@ export default function FolderSider({
     };
   }, []);
 
-  return (
-    <Sider
-      width={width}
-      theme="light"
-      className="relative border-r border-(--ant-color-split) bg-(--ant-color-bg-container) p-3"
-    >
-      <div className="flex h-full flex-col gap-3">
+  const handleSelect = (id: Id | null) => {
+    onSelect(id);
+    if (isMobile && id != null) onMobileOpenChange?.(false);
+  };
+
+  const body = (
+    <div className="flex h-full flex-col gap-3">
         <Input
           allowClear
           placeholder="请输入路径名称"
@@ -199,7 +205,7 @@ export default function FolderSider({
             onSelect={(keys) => {
               if (keys.length === 0) return; // 忽略取消选中
               const key = keys[0];
-              onSelect(typeof key === 'string' ? key : String(key));
+              handleSelect(typeof key === 'string' ? key : String(key));
             }}
             titleRender={(node) => {
               const resolvedTitle = (() => {
@@ -328,6 +334,30 @@ export default function FolderSider({
           </Popover>
         </div>
       </div>
+  );
+
+  if (isMobile) {
+    return (
+      <Drawer
+        open={mobileOpen}
+        onClose={() => onMobileOpenChange?.(false)}
+        placement="left"
+        width="85vw"
+        title="路径"
+        styles={{ body: { padding: 12 } }}
+      >
+        {body}
+      </Drawer>
+    );
+  }
+
+  return (
+    <Sider
+      width={width}
+      theme="light"
+      className="relative border-r border-(--ant-color-split) bg-(--ant-color-bg-container) p-3"
+    >
+      {body}
       {/* 拖拽调整宽度的手柄 */}
       <div
         onMouseDown={handleMouseDown}

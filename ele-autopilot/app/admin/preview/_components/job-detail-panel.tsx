@@ -230,9 +230,9 @@ export default function JobDetailPanel({
     <div className="space-y-4">
       {/* Job 概要信息 */}
       <Card size="small" title="执行概要">
-        <Descriptions size="small" column={2}>
+        <Descriptions size="small" column={{ xs: 1, sm: 2 }}>
           <Descriptions.Item label="执行 ID">
-            <Text copyable className="font-mono text-xs">
+            <Text copyable className="font-mono text-xs break-all">
               {job.id}
             </Text>
           </Descriptions.Item>
@@ -247,8 +247,8 @@ export default function JobDetailPanel({
           <Descriptions.Item label="执行耗时">
             {formatDuration(job.started_at, job.completed_at)}
           </Descriptions.Item>
-          <Descriptions.Item label="任务统计" span={2}>
-            <span className="font-mono">
+          <Descriptions.Item label="任务统计" span={{ xs: 1, sm: 2 }}>
+            <span className="font-mono text-xs sm:text-sm">
               总数: {tasks.length} | 成功: <span className="text-green-600">{completedCount}</span>{' '}
               | 失败: <span className="text-red-500">{failedCount}</span> | 执行中:{' '}
               <span className="text-blue-500">{runningCount}</span> | 等待中:{' '}
@@ -301,14 +301,14 @@ function JobTaskLabel({
   const jobIsActive = jobStatus === 'running' || jobStatus === 'pending';
 
   return (
-    <div className="flex w-full items-start gap-3">
+    <div className="flex w-full flex-wrap items-start gap-2 sm:flex-nowrap sm:gap-3">
       <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-gray-100 font-mono text-xs">
         {index + 1}
       </span>
       <Tag icon={config.icon} color={config.color} className="shrink-0">
         {config.text}
       </Tag>
-      <span className="min-w-0 flex-1 overflow-hidden text-sm break-all">
+      <span className="min-w-0 flex-1 basis-full overflow-hidden text-sm break-all sm:basis-auto">
         <TaskTitleTag title={task.task_title} />
         {task.task_text}
       </span>
