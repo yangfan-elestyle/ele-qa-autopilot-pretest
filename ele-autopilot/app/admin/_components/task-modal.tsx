@@ -13,34 +13,45 @@ type TaskModalProps = {
   onOk: () => void;
 };
 
+const BATCH_HINT =
+  '提示：批量创建用 +++ 分隔多任务，单条任务用 %%% 分隔「标题」与「内容」。例：\nTitleA\n%%%\nContentA\n+++\nTitleB\n%%%\nContentB';
+
 export default function TaskModal({ open, mode, form, onCancel, onOk }: TaskModalProps) {
+  const isCreate = mode === 'create';
   return (
     <Modal
-      title={mode === 'create' ? '新建任务' : '编辑任务'}
+      title={isCreate ? '新建任务' : '编辑任务'}
       open={open}
       onCancel={onCancel}
       onOk={onOk}
-      okText={mode === 'create' ? '创建' : '保存'}
+      okText={isCreate ? '创建' : '保存'}
       cancelText="取消"
-      width="min(880px, 92vw)"
+      width="min(960px, 92vw)"
+      destroyOnClose
     >
-      <Form form={form} layout="vertical">
+      <Form form={form} layout="vertical" preserve={false}>
         <Form.Item label="标题（可选）" name="title">
           <Input placeholder="简短标注，便于快速识别任务" allowClear />
         </Form.Item>
         <Form.Item
-          label="任务内容"
+          label={
+            <div className="flex w-full items-center justify-between">
+              <span>任务内容</span>
+              {isCreate && (
+                <span className="text-[11px] font-normal text-(--ds-text-tertiary)">
+                  支持 +++ / %%% 批量分隔
+                </span>
+              )}
+            </div>
+          }
           name="text"
           rules={[{ required: true, message: '请输入任务内容' }]}
         >
           <Input.TextArea
-            placeholder={
-              mode === 'create'
-                ? '请输入任务内容\n\n或者批量创建，示例如下(通过 %%% 分割标题与内容，通过 +++ 分割多任务)：\nTitleA\n%%%\nContentA\n+++\nTitleB\n%%%\nContentB'
-                : '请输入任务内容'
-            }
+            placeholder={isCreate ? `请输入任务内容\n\n${BATCH_HINT}` : '请输入任务内容'}
             autoFocus
-            style={{ height: 'calc(60vh - 70px)' }}
+            autoSize={{ minRows: 14, maxRows: 28 }}
+            className="!font-mono !text-[13px] !leading-relaxed"
           />
         </Form.Item>
       </Form>

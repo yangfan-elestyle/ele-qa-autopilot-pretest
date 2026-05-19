@@ -1,5 +1,5 @@
-import { DeleteOutlined, MenuOutlined } from '@ant-design/icons';
-import { Button, Drawer, Empty, Modal, Space, Typography } from 'antd';
+import { DeleteOutlined, HolderOutlined } from '@ant-design/icons';
+import { Button, Drawer, Empty, Modal, Typography } from 'antd';
 import { useMemo, useState } from 'react';
 
 import type { Folder, Id, Task } from '../_types';
@@ -58,8 +58,8 @@ export default function SelectedTasksDrawer({
   function confirmClear() {
     if (!selectedTaskIds.length || !onClear) return;
     Modal.confirm({
-      title: '全部删除？',
-      content: '这会清空已选择的任务（不会删除任务本身）。',
+      title: '清空已选任务？',
+      content: '这只会清空当前选择，不会删除任务本身。',
       okText: '清空',
       okButtonProps: { danger: true },
       cancelText: '取消',
@@ -69,33 +69,44 @@ export default function SelectedTasksDrawer({
     });
   }
 
+  const resolvedTitle = title ?? `已选任务 · ${selectedTaskIds.length}`;
+
   return (
     <Drawer
       open={open}
       onClose={onClose}
-      title={title ?? `已选任务（${selectedTaskIds.length}）`}
-      width="min(736px, 100vw)"
+      title={resolvedTitle}
+      width="min(760px, 100vw)"
       footer={
         readonly ? null : (
-          <Space className="w-full justify-between">
+          <div className="flex w-full items-center justify-between">
             <Button danger disabled={!selectedTaskIds.length} onClick={confirmClear}>
-              全部删除
+              清空选择
             </Button>
             <Button type="primary" disabled={!selectedTaskIds.length} onClick={onCreateTaskChain}>
               创建任务链
             </Button>
-          </Space>
+          </div>
         )
       }
     >
       {selectedTasks.length === 0 ? (
-        <Empty description="暂无已选任务" />
+        <div className="flex h-64 items-center justify-center">
+          <Empty description={<span className="text-(--ds-text-tertiary)">暂无已选任务</span>} />
+        </div>
       ) : (
-        <Space orientation="vertical" size={8} className="w-full">
+        <div className="space-y-2">
           {!readonly && (
-            <Typography.Text type="secondary">
-              拖动排序后，创建任务链会按当前顺序处理。
-            </Typography.Text>
+            <div
+              className="mb-3 rounded-md border px-3 py-2 text-[12px]"
+              style={{
+                background: 'var(--ds-brand-50)',
+                borderColor: 'rgba(99, 102, 241, 0.18)',
+                color: 'var(--ds-brand-700)',
+              }}
+            >
+              拖动可排序，创建任务链时将按当前顺序处理。
+            </div>
           )}
 
           {selectedTasks.map((task, index) => {
@@ -144,50 +155,66 @@ export default function SelectedTasksDrawer({
                         setDragOverId(null);
                       }
                 }
-                className={[
-                  'flex flex-wrap items-center gap-2 rounded-md border px-3 py-2 sm:flex-nowrap',
-                  'border-(--ant-color-border) bg-(--ant-color-bg-container)',
-                  !readonly && over ? 'ring-1 ring-(--ant-color-primary)' : '',
-                  !readonly && dragging ? 'opacity-60' : '',
-                ].join(' ')}
+                className="flex flex-wrap items-start gap-3 rounded-lg border bg-white px-3 py-2.5 transition-all sm:flex-nowrap"
+                style={{
+                  borderColor: over
+                    ? 'var(--ds-brand-500)'
+                    : dragging
+                      ? 'var(--ds-brand-300, #a5b4fc)'
+                      : 'var(--ds-border-soft)',
+                  boxShadow: over
+                    ? '0 0 0 4px rgba(99, 102, 241, 0.18)'
+                    : 'var(--ds-shadow-xs)',
+                  opacity: dragging ? 0.6 : 1,
+                }}
               >
-                <span className="w-6 shrink-0 text-right text-(--ant-color-text-secondary)">
+                <span
+                  className="ds-text-mono flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[11px] font-semibold"
+                  style={{
+                    background: 'var(--ds-brand-50)',
+                    color: 'var(--ds-brand-700)',
+                  }}
+                >
                   {index + 1}
                 </span>
                 {!readonly && (
-                  <span className="shrink-0 cursor-grab text-(--ant-color-text-secondary)">
-                    <MenuOutlined />
+                  <span className="shrink-0 cursor-grab pt-1 text-(--ds-text-tertiary) active:cursor-grabbing">
+                    <HolderOutlined />
                   </span>
                 )}
 
                 <div className="min-w-0 flex-1 basis-full sm:basis-0">
-                  <Typography.Text ellipsis={{ tooltip: task.text }} className="max-w-full">
+                  <Typography.Paragraph
+                    ellipsis={{ rows: 3, tooltip: task.text }}
+                    className="!mb-0 !text-[13px] leading-relaxed"
+                  >
                     <TaskTitleTag title={task.title} />
                     {task.text}
-                  </Typography.Text>
+                  </Typography.Paragraph>
+                  <div
+                    className="mt-1 truncate text-[11px]"
+                    style={{ color: 'var(--ds-text-tertiary)' }}
+                    title={folderName}
+                  >
+                    路径：{folderName}
+                  </div>
                 </div>
-
-                <Typography.Text
-                  type="secondary"
-                  className="ml-auto max-w-32 shrink-0 truncate text-xs sm:ml-0 sm:max-w-44 sm:text-sm"
-                  title={folderName}
-                >
-                  {folderName}
-                </Typography.Text>
 
                 {!readonly && onRemove && (
                   <Button
                     type="text"
                     danger
+                    size="small"
                     icon={<DeleteOutlined />}
                     onClick={() => onRemove(task.id)}
+                    aria-label="移除"
                     className="shrink-0"
                   />
                 )}
               </div>
             );
           })}
-        </Space>
+        </div>
       )}
     </Drawer>
   );

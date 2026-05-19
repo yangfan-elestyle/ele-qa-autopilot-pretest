@@ -24,7 +24,7 @@ export function meta() {
   return [
     { title: 'QA AutoPilot · 任务后台' },
     { name: 'description', content: 'QA AutoPilot 任务后台 — 编排测试任务并派单到本地 agent.' },
-    { name: 'theme-color', content: '#0969da' },
+    { name: 'theme-color', content: '#4f46e5' },
   ];
 }
 

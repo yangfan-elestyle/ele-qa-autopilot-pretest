@@ -2,6 +2,35 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.7.0] - 2026-05-20
+
+### Added
+
+- `app/admin/_components/app-header.tsx`: 全新顶部品牌栏 (60px 高, sticky + `backdrop-filter: blur(12px)`, 半透明白底). 左侧 brand mark 渐变 SVG + 产品名 `QA AutoPilot` + 副标题 `Test Orchestration Console`; 右侧本地 Agent 状态徽章 (绿/蓝/红圆点 + 文字, 点击展开 Popover 编辑 URL + JSON 配置, 替代原 `folder-sider.tsx` 底部内嵌入口) + `HomeOutlined` 圆形回首页按钮. `subtitle` / `rightExtra` props 让 admin / preview 两个页面复用同一 header.
+- `app/admin/_components/status-pill.tsx`: 统一的 JobStatus 徽章 (pending / running / completed / failed) — pill 形 + 状态色软背景 + inset ring + 图标. 替代散落在 task-content / job-history-list / job-detail-panel / job-task-detail 里的 `text-green-600` / `text-red-500` / `text-blue-500` 硬编码 Tailwind 颜色与不同 `Tag color` 写法.
+- `app/admin/preview/_components/preview-workspace.tsx`: preview 页主工作区抽离, 套上同款 AppHeader, 任务摘要 banner (ID + title + text + 共 N 次执行), 左侧 340 px Sider (含执行历史卡片化列表) + 右侧 Content (空态卡片 + JobDetailPanel).
+
+### Changed
+
+- 设计语言整体重塑: `app/globals.css` 引入 CSS variables design tokens (`--ds-brand-50..800` indigo, `--ds-surface-*`, `--ds-text-*`, `--ds-success/warning/danger/info` + soft 变体, `--ds-border-soft/default/strong`, `--ds-radius-xs/sm/md/lg/xl/pill`, `--ds-shadow-xs/sm/md/lg/focus`, `--ds-font-sans` Inter 优先 + 中文 fallback 链, `--ds-font-mono` JetBrains Mono); body 字体切换到 Inter + 中文系统字体, 启用 `cv02/cv03/cv04/cv11/ss01` font-feature-settings + antialiased; 自定义滚动条 (`scrollbar-width: thin` + ::-webkit-scrollbar 10px 圆角, hover 加深); 全局 `::selection` 改 indigo soft. `@layer antd` 精修 Table hover/header / Card / Modal radius + header / Tree node radius+selected / Tag radius+weight / Button primary shadow / Input focus ring 4px / Drawer header / Empty description / Collapse border 全套.
+- `app/admin/_theme/antd-theme.ts`: 主色 `#1677ff` → `#4f46e5` indigo-600, 圆角 6 → 8, 控件高度 36 (LG 40 / SM 28), font 全套切到 Inter + JetBrains Mono, 状态色 success/warning/error/info 对齐 token, Layout / Button / Input / Select / Table / Card / Modal / Drawer / Tag / Tree / Tooltip / Tabs / Popover / Alert / Descriptions / Collapse 全部 components 表精细化 (header bg, row hover, padding, font, shadow, border radius).
+- `app/admin/_components/admin-task-explorer.tsx`: Layout 套一层 `ds-app-shell` (radial gradient indigo + sky 微纹理 + canvas 底色), 顶部插入 `AppHeader subtitle={selectedFolder?.name}`, Sider + Content 改成 header 下方的子 Layout.
+- `app/admin/_components/folder-sider.tsx`: 默认宽 280 → 296 (min 240 / max 520), 顶部加 `FolderOpenOutlined` + 「任务目录」标题 + 路径计数 pill, 搜索框 + 新建按钮 + 展开/折叠按钮分组, 节点 hover 操作按钮组 (新建子路径 / 重命名 / 删除) 改 6x6 圆角灰底 floating, 拖拽手柄改 indigo-200 hover; **彻底移除底部 Agent 连接 + JSON 配置 Popover** (迁到 AppHeader); Tree 空态加 placeholder (区分搜索无结果 / 真空路径); 移除 `useAgentConnection` import 与依赖.
+- `app/admin/_components/task-content.tsx`: 顶部改成 PageHeader 风格 — breadcrumb (`任务工作台 / <folder>`) + h1 标题 + 任务计数 pill + 右侧主操作按钮组 (刷新 / 已选 / 新建任务); 搜索框独立一行带 `SearchOutlined` prefix. 表格用 `ds-surface-card` 包裹 (圆角 12 + 1px soft border + xs shadow); ID 列字号 11px tertiary + responsive `md`, 内容列加 indigo hover 背景, 执行统计列从 4 个并排 mono span 改为 4 个 `StatChip` (mono + 软色背景 pill, 总数/成功/失败/进行中 + Tooltip), 操作列加 `hover:text-brand` 与统一 8x8 size + 右对齐, 空态加 Empty + 大号新建任务按钮 CTA. 移除原"返回首页"按钮 (AppHeader 已承载).
+- `app/admin/_components/task-modal.tsx`: 宽度 880 → 960 (min 92vw), TextArea 从固定 `height: calc(60vh - 70px)` 改 `autoSize {minRows: 14, maxRows: 28}` + mono 字体 + 13px leading-relaxed; label 区域加批量分隔语法提示 (`+++` / `%%%`).
+- `app/admin/_components/folder-modal.tsx` / `task-chain-modal.tsx`: 加 `destroyOnClose`, `task-chain-modal` 顶部新增 indigo soft 信息条说明任务链条数, 输入加 maxLength + 业务向占位符.
+- `app/admin/_components/selected-tasks-drawer.tsx`: 项卡片化 (white bg + 1px soft border + xs shadow + lg radius), drag 时 indigo focus ring 4px + 半透明, 序号改 6x6 indigo soft pill, 拖拽 icon 改 `HolderOutlined`, 路径行单独一行 11px tertiary; 顶部加 indigo soft 信息条; readonly 模式继续支持.
+- `app/admin/_components/task-title-tag.tsx`: 从 `[Title]` 文本 + 主色加粗改 inline pill (mono + 11px + indigo soft bg + inset ring).
+- `app/routes/autopilot.preview.$taskId.tsx`: 拆出 PreviewWorkspace, 套 `App + AgentConnectionProvider` (header Agent 徽章需要 context).
+- `app/admin/preview/_components/job-history-list.tsx`: 列表项从 border-left 选中态改卡片态 (圆角 8 + selected 时 indigo soft bg + 双 shadow ring), 用 `StatusPill` 替代原 `Tag` 写法, 字号与字体走 mono token, error 行加 danger soft 软背景 pill.
+- `app/admin/preview/_components/job-detail-panel.tsx`: 状态字段从 Descriptions 拆到 title 行 + 用 `StatusPill` 展示; 任务统计从一行 `font-mono` text 改成 2/5 列 grid `StatBlock` 卡片 (软背景 + 18px mono 数值 + 11px label); error Alert 加 `showIcon`; 任务标签行序号改 6x6 mono pill, 用 `StatusPill` 替代 Tag; 折叠最后一项不再画底边. 移除 `statusConfig` 重复定义.
+- `app/admin/preview/_components/job-task-detail.tsx`: 全部 `bg-gray-50` / `bg-gray-100` / `border-gray-100` / `text-gray-400` / `text-gray-500` / `text-red-500` 硬编码 Tailwind 色替换为 `var(--ds-surface-subtle)` / `var(--ds-surface-muted)` / `var(--ds-border-soft)` / `var(--ds-text-tertiary)` / `#dc2626` token; 步骤序号小 pill 按 hasError 切红/紫两态; 摘要分区抽 `<Section>`, 详情字段抽 `<DetailBlock>`, runtime info 改 mono 11px; Alert title 全部规范化到 `message` (AntD 6 API). 修复多处 `Alert title=` (deprecated) → `message=`.
+- `app/root.tsx`: `meta theme-color` 从 GitHub blue `#0969da` → 品牌 indigo `#4f46e5`.
+
+### Removed
+
+- `app/admin/_components/folder-sider.tsx`: 底部 Agent 连接 + JSON 配置 Popover 整块 (迁移至 AppHeader, 详见 Added 段). 同步删除 `App` / `Popover` / `Space` / `Tag` / `CheckCircleOutlined` / `CloseCircleOutlined` / `LoadingOutlined` / `SettingOutlined` / `TextArea` import + `useAgentConnection` 相关 state (`inputUrl` / `popoverOpen` / `configText` / `configError`) 与 handler (`handleAgentCheck` / `handleConfigChange` / `handleSaveConfig`).
+
 ## [1.6.9] - 2026-05-19
 
 ### Removed

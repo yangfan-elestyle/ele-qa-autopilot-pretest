@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.7.0] - 2026-05-20
+
+### Changed
+
+- lockstep 同步, 与上游 ele-autopilot v1.7.0 一同发布; 本项目无业务改动. 上游 ele-autopilot 后台工作台 UI 整体重塑 (设计 tokens / Inter 字体 / indigo 主色 / 顶部品牌栏 / 卡片化任务列表 / preview 页重组 / 状态徽章统一 / Modal 与 Drawer 精修). FastAPI app / 路由 / `0.0.0.0:8000` 监听 / `--version` / `--help` / `upgrade` shim 链路 / R2 wheel 发布路径 / browser-use Agent 执行链路不变.
+
 ## [1.6.9] - 2026-05-19
 
 ### Removed

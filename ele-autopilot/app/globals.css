@@ -3,25 +3,284 @@
 @import 'antd/dist/reset.css' layer(reset);
 @import 'tailwindcss';
 
+/* ---------- Design Tokens ---------- */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Brand — indigo, more modern than the AntD default blue */
+  --ds-brand-50: #eef2ff;
+  --ds-brand-100: #e0e7ff;
+  --ds-brand-200: #c7d2fe;
+  --ds-brand-400: #818cf8;
+  --ds-brand-500: #6366f1;
+  --ds-brand-600: #4f46e5;
+  --ds-brand-700: #4338ca;
+  --ds-brand-800: #3730a3;
+
+  /* Surface — softer than pure white/gray */
+  --ds-surface-canvas: #f5f7fb;
+  --ds-surface-elevated: #ffffff;
+  --ds-surface-subtle: #f1f4f9;
+  --ds-surface-muted: #e8edf5;
+  --ds-surface-inverse: #0f172a;
+
+  /* Text */
+  --ds-text-primary: #0f172a;
+  --ds-text-secondary: #475569;
+  --ds-text-tertiary: #94a3b8;
+  --ds-text-inverse: #f8fafc;
+  --ds-text-on-brand: #ffffff;
+
+  /* Status */
+  --ds-success: #16a34a;
+  --ds-success-soft: #dcfce7;
+  --ds-warning: #d97706;
+  --ds-warning-soft: #fef3c7;
+  --ds-danger: #dc2626;
+  --ds-danger-soft: #fee2e2;
+  --ds-info: #2563eb;
+  --ds-info-soft: #dbeafe;
+
+  /* Border */
+  --ds-border-soft: rgba(15, 23, 42, 0.06);
+  --ds-border-default: rgba(15, 23, 42, 0.1);
+  --ds-border-strong: rgba(15, 23, 42, 0.16);
+
+  /* Radius */
+  --ds-radius-xs: 4px;
+  --ds-radius-sm: 6px;
+  --ds-radius-md: 8px;
+  --ds-radius-lg: 12px;
+  --ds-radius-xl: 16px;
+  --ds-radius-pill: 9999px;
+
+  /* Shadows */
+  --ds-shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --ds-shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --ds-shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08), 0 2px 4px rgba(15, 23, 42, 0.04);
+  --ds-shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.1), 0 4px 8px rgba(15, 23, 42, 0.05);
+  --ds-shadow-focus: 0 0 0 4px rgba(99, 102, 241, 0.18);
+
+  /* Typography */
+  --ds-font-sans:
+    'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
+  --ds-font-mono:
+    'JetBrains Mono', 'SF Mono', 'Roboto Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+
+  /* Layout */
+  --ds-header-height: 60px;
+  --ds-sider-width: 296px;
+
+  /* Legacy compat */
+  --background: var(--ds-surface-canvas);
+  --foreground: var(--ds-text-primary);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--ds-font-sans);
+  --font-mono: var(--ds-font-mono);
 }
 
+/* ---------- Base ---------- */
 html,
 body {
   height: 100%;
 }
 
+html {
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11', 'ss01';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--ds-surface-canvas);
+  color: var(--ds-text-primary);
+  font-family: var(--ds-font-sans);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+::selection {
+  background: var(--ds-brand-200);
+  color: var(--ds-brand-800);
+}
+
+/* ---------- Scrollbars ---------- */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(15, 23, 42, 0.2) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, 0.15);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(15, 23, 42, 0.28);
+  background-clip: padding-box;
+}
+
+/* ---------- AntD refinement (layered above antd, below utilities) ---------- */
+@layer antd {
+  /* Subtle table hover row */
+  .ant-table-tbody > tr.ant-table-row:hover > td {
+    background: var(--ds-brand-50) !important;
+  }
+  .ant-table-thead > tr > th {
+    background: var(--ds-surface-subtle) !important;
+    color: var(--ds-text-secondary) !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.01em;
+  }
+  .ant-table-cell {
+    transition: background-color 0.15s ease;
+  }
+
+  /* Card softer shadow */
+  .ant-card {
+    border-color: var(--ds-border-soft);
+  }
+  .ant-card-head {
+    border-bottom-color: var(--ds-border-soft);
+    min-height: 44px !important;
+  }
+  .ant-card-head-title {
+    font-weight: 600;
+    color: var(--ds-text-primary);
+  }
+
+  /* Modal */
+  .ant-modal-content {
+    box-shadow: var(--ds-shadow-lg) !important;
+    border-radius: var(--ds-radius-lg) !important;
+  }
+  .ant-modal-header {
+    border-bottom: 1px solid var(--ds-border-soft) !important;
+    padding-bottom: 12px !important;
+    margin-bottom: 16px !important;
+  }
+  .ant-modal-title {
+    font-weight: 600 !important;
+    font-size: 16px !important;
+  }
+
+  /* Tree node feel */
+  .ant-tree .ant-tree-treenode {
+    padding: 0 !important;
+    width: 100%;
+  }
+  .ant-tree .ant-tree-node-content-wrapper {
+    border-radius: var(--ds-radius-sm) !important;
+    transition:
+      background-color 0.15s ease,
+      color 0.15s ease;
+    padding: 2px 6px !important;
+    min-height: 30px;
+    display: flex;
+    align-items: center;
+  }
+  .ant-tree .ant-tree-node-content-wrapper:hover {
+    background: var(--ds-brand-50) !important;
+  }
+  .ant-tree .ant-tree-node-content-wrapper.ant-tree-node-selected {
+    background: var(--ds-brand-100) !important;
+    color: var(--ds-brand-700) !important;
+    font-weight: 500;
+  }
+  .ant-tree .ant-tree-switcher {
+    color: var(--ds-text-tertiary);
+  }
+
+  /* Tag — slimmer, brand-aware */
+  .ant-tag {
+    border-radius: var(--ds-radius-sm) !important;
+    font-weight: 500;
+    line-height: 1.5;
+  }
+
+  /* Primary button gradient hint */
+  .ant-btn-primary:not(:disabled):not(.ant-btn-loading) {
+    box-shadow: 0 1px 0 rgba(99, 102, 241, 0.18);
+  }
+  .ant-btn-primary:not(:disabled):not(.ant-btn-loading):hover {
+    box-shadow:
+      0 2px 6px rgba(99, 102, 241, 0.32),
+      0 1px 0 rgba(99, 102, 241, 0.18) !important;
+  }
+
+  /* Input/Textarea polish */
+  .ant-input,
+  .ant-input-affix-wrapper,
+  .ant-select-selector {
+    transition:
+      border-color 0.15s ease,
+      box-shadow 0.15s ease,
+      background-color 0.15s ease !important;
+  }
+  .ant-input:focus,
+  .ant-input-focused,
+  .ant-input-affix-wrapper:focus,
+  .ant-input-affix-wrapper-focused,
+  .ant-select-focused .ant-select-selector {
+    box-shadow: var(--ds-shadow-focus) !important;
+  }
+
+  /* Drawer */
+  .ant-drawer-header {
+    border-bottom: 1px solid var(--ds-border-soft) !important;
+  }
+  .ant-drawer-title {
+    font-weight: 600 !important;
+  }
+
+  /* Empty state nicer copy color */
+  .ant-empty-description {
+    color: var(--ds-text-tertiary) !important;
+  }
+
+  /* Collapse */
+  .ant-collapse > .ant-collapse-item > .ant-collapse-header {
+    align-items: center !important;
+  }
+  .ant-collapse > .ant-collapse-item {
+    border-bottom-color: var(--ds-border-soft) !important;
+  }
+}
+
+/* ---------- Shared utilities ---------- */
+@layer components {
+  .ds-app-shell {
+    background:
+      radial-gradient(1200px 600px at 110% -10%, rgba(99, 102, 241, 0.08), transparent 60%),
+      radial-gradient(1000px 500px at -10% 110%, rgba(14, 165, 233, 0.06), transparent 60%),
+      var(--ds-surface-canvas);
+  }
+  .ds-surface-card {
+    background: var(--ds-surface-elevated);
+    border: 1px solid var(--ds-border-soft);
+    border-radius: var(--ds-radius-lg);
+    box-shadow: var(--ds-shadow-sm);
+  }
+  .ds-text-mono {
+    font-family: var(--ds-font-mono);
+    font-feature-settings: 'tnum' 1;
+  }
+  .ds-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    display: inline-block;
+  }
 }

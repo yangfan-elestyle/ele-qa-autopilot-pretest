@@ -8,6 +8,7 @@ import { useIsMobile } from '../_hooks/use-is-mobile';
 import { executeJob } from '../_services/job-executor';
 import type { Folder, Id, Task, TaskJobStats } from '../_types';
 import { buildFolderTree } from '../_utils/folder-tree';
+import AppHeader from './app-header';
 import FolderModal from './folder-modal';
 import FolderSider from './folder-sider';
 import SelectedTasksDrawer from './selected-tasks-drawer';
@@ -605,7 +606,9 @@ export default function AdminTaskExplorer() {
 
   return (
     <>
-      <Layout className="h-screen bg-(--ant-color-bg-layout)">
+      <Layout className="ds-app-shell h-screen">
+        <AppHeader subtitle={selectedFolder ? selectedFolder.name : undefined} />
+        <Layout className="min-h-0 flex-1 bg-transparent">
         <FolderSider
           treeSearch={treeSearch}
           onTreeSearchChange={setTreeSearch}
@@ -649,6 +652,7 @@ export default function AdminTaskExplorer() {
           showMobileMenu={isMobile}
           onOpenMobileMenu={() => setMobileSiderOpen(true)}
         />
+        </Layout>
       </Layout>
 
       <FolderModal

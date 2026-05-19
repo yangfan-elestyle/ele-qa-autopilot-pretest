@@ -1,10 +1,4 @@
-import {
-  CheckCircleOutlined,
-  ClockCircleOutlined,
-  CloseCircleOutlined,
-  LoadingOutlined,
-  StopOutlined,
-} from '@ant-design/icons';
+import { StopOutlined } from '@ant-design/icons';
 import {
   Alert,
   Button,
@@ -14,46 +8,23 @@ import {
   message,
   Popconfirm,
   Spin,
-  Tag,
   Typography,
 } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import StatusPill from '../../_components/status-pill';
 import { stopJobOnLocal } from '../../_services/local-api';
 
 import JobTaskDetail from './job-task-detail';
 import type { JobLite, JobStatus, JobTask, JobTaskLite } from '../../_types';
 import TaskTitleTag from '../../_components/task-title-tag';
 
-const { Text, Paragraph } = Typography;
+const { Text } = Typography;
 
 type JobDetailPanelProps = {
   jobId: string;
   fetchJobDetail: (jobId: string) => Promise<JobLite | null>;
   fetchJobTaskDetail: (jobId: string, taskIndex: number) => Promise<JobTask | null>;
-};
-
-const statusConfig: Record<JobStatus, { color: string; icon: React.ReactNode; text: string }> = {
-  pending: {
-    color: 'default',
-    icon: <ClockCircleOutlined />,
-    text: '等待中',
-  },
-  running: {
-    color: 'processing',
-    icon: <LoadingOutlined />,
-    text: '执行中',
-  },
-  completed: {
-    color: 'success',
-    icon: <CheckCircleOutlined />,
-    text: '成功',
-  },
-  failed: {
-    color: 'error',
-    icon: <CloseCircleOutlined />,
-    text: '失败',
-  },
 };
 
 function formatDateTime(dateStr: string | null): string {
@@ -67,10 +38,43 @@ function formatDuration(startedAt: string | null, completedAt: string | null): s
   const start = new Date(startedAt).getTime();
   const end = completedAt ? new Date(completedAt).getTime() : Date.now();
   const duration = Math.round((end - start) / 1000);
-
   if (duration < 60) return `${duration}秒`;
   if (duration < 3600) return `${Math.floor(duration / 60)}分${duration % 60}秒`;
   return `${Math.floor(duration / 3600)}时${Math.floor((duration % 3600) / 60)}分`;
+}
+
+function StatBlock({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: 'neutral' | 'success' | 'danger' | 'info';
+}) {
+  const toneMap: Record<typeof tone, { color: string; bg: string }> = {
+    neutral: { color: '#475569', bg: 'rgba(148, 163, 184, 0.12)' },
+    success: { color: '#15803d', bg: 'rgba(22, 163, 74, 0.1)' },
+    danger: { color: '#b91c1c', bg: 'rgba(220, 38, 38, 0.08)' },
+    info: { color: '#2563eb', bg: 'rgba(37, 99, 235, 0.1)' },
+  };
+  const t = toneMap[tone];
+  return (
+    <div
+      className="flex flex-col items-start rounded-lg px-3 py-2"
+      style={{ background: t.bg }}
+    >
+      <span className="text-[11px] font-medium" style={{ color: t.color, opacity: 0.85 }}>
+        {label}
+      </span>
+      <span
+        className="ds-text-mono text-[18px] font-semibold"
+        style={{ color: t.color, lineHeight: 1.1 }}
+      >
+        {value}
+      </span>
+    </div>
+  );
 }
 
 export default function JobDetailPanel({
@@ -82,24 +86,18 @@ export default function JobDetailPanel({
   const [loading, setLoading] = useState(true);
   const pollerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // 缓存已加载的 job_task 完整详情（按 task_index 索引）
   const [taskDetailCache, setTaskDetailCache] = useState<Map<number, JobTask>>(new Map());
   const [loadingTaskIndex, setLoadingTaskIndex] = useState<number | null>(null);
 
   const loadJob = useCallback(async () => {
     const data = await fetchJobDetail(jobId);
-    if (data) {
-      setJob(data);
-    }
+    if (data) setJob(data);
     setLoading(false);
   }, [jobId, fetchJobDetail]);
 
-  // 加载单个 job_task 的完整详情
   const loadTaskDetail = useCallback(
     async (taskIndex: number) => {
-      // 如果已缓存，直接返回
       if (taskDetailCache.has(taskIndex)) return;
-
       setLoadingTaskIndex(taskIndex);
       try {
         const detail = await fetchJobTaskDetail(jobId, taskIndex);
@@ -113,25 +111,18 @@ export default function JobDetailPanel({
     [jobId, fetchJobTaskDetail, taskDetailCache],
   );
 
-  // 处理 Collapse 展开事件
   const handleCollapseChange = useCallback(
     (key: string | string[]) => {
       const activeKey = Array.isArray(key) ? key[0] : key;
       if (!activeKey || !job) return;
-
-      // 找到对应的 task_index
       const task = job.tasks.find((t) => t.id === activeKey);
-      if (task) {
-        loadTaskDetail(task.task_index);
-      }
+      if (task) loadTaskDetail(task.task_index);
     },
     [job, loadTaskDetail],
   );
 
-  // 初始加载
   useEffect(() => {
     setLoading(true);
-    // 切换 job 时清空缓存
     setTaskDetailCache(new Map());
     loadJob();
   }, [loadJob]);
@@ -161,7 +152,6 @@ export default function JobDetailPanel({
     [job, loadJob],
   );
 
-  // 轮询正在执行的 job
   useEffect(() => {
     if (!job || (job.status !== 'running' && job.status !== 'pending')) {
       if (pollerRef.current) {
@@ -170,11 +160,9 @@ export default function JobDetailPanel({
       }
       return;
     }
-
     pollerRef.current = setInterval(() => {
       loadJob();
     }, 2000);
-
     return () => {
       if (pollerRef.current) {
         clearInterval(pollerRef.current);
@@ -192,23 +180,18 @@ export default function JobDetailPanel({
   }
 
   if (!job) {
-    return <Alert type="error" title="无法加载执行信息" />;
+    return <Alert type="error" message="无法加载执行信息" />;
   }
 
-  const config = statusConfig[job.status];
   const tasks = job.tasks || [];
-
-  // 统计
   const completedCount = tasks.filter((t) => t.status === 'completed').length;
   const failedCount = tasks.filter((t) => t.status === 'failed').length;
   const runningCount = tasks.filter((t) => t.status === 'running').length;
   const pendingCount = tasks.filter((t) => t.status === 'pending').length;
 
-  // 生成 Collapse items
   const collapseItems = tasks.map((task, index) => {
     const cachedDetail = taskDetailCache.get(task.task_index);
     const isLoading = loadingTaskIndex === task.task_index;
-
     return {
       key: task.id,
       label: (
@@ -229,52 +212,57 @@ export default function JobDetailPanel({
   return (
     <div className="space-y-4">
       {/* Job 概要信息 */}
-      <Card size="small" title="执行概要">
-        <Descriptions size="small" column={{ xs: 1, sm: 2 }}>
+      <Card
+        size="small"
+        title={
+          <div className="flex items-center gap-2">
+            <span className="text-[14px] font-semibold">执行概要</span>
+            <StatusPill status={job.status} />
+          </div>
+        }
+        className="!bg-white"
+      >
+        <Descriptions size="small" column={{ xs: 1, sm: 2, lg: 3 }}>
           <Descriptions.Item label="执行 ID">
-            <Text copyable className="font-mono text-xs break-all">
+            <Text copyable className="ds-text-mono !text-[11px] break-all">
               {job.id}
             </Text>
           </Descriptions.Item>
-          <Descriptions.Item label="状态">
-            <Tag icon={config.icon} color={config.color}>
-              {config.text}
-            </Tag>
-          </Descriptions.Item>
           <Descriptions.Item label="创建时间">{formatDateTime(job.created_at)}</Descriptions.Item>
-          <Descriptions.Item label="开始时间">{formatDateTime(job.started_at)}</Descriptions.Item>
-          <Descriptions.Item label="结束时间">{formatDateTime(job.completed_at)}</Descriptions.Item>
           <Descriptions.Item label="执行耗时">
             {formatDuration(job.started_at, job.completed_at)}
           </Descriptions.Item>
-          <Descriptions.Item label="任务统计" span={{ xs: 1, sm: 2 }}>
-            <span className="font-mono text-xs sm:text-sm">
-              总数: {tasks.length} | 成功: <span className="text-green-600">{completedCount}</span>{' '}
-              | 失败: <span className="text-red-500">{failedCount}</span> | 执行中:{' '}
-              <span className="text-blue-500">{runningCount}</span> | 等待中:{' '}
-              <span className="text-gray-500">{pendingCount}</span>
-            </span>
-          </Descriptions.Item>
+          <Descriptions.Item label="开始时间">{formatDateTime(job.started_at)}</Descriptions.Item>
+          <Descriptions.Item label="结束时间">{formatDateTime(job.completed_at)}</Descriptions.Item>
         </Descriptions>
+
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
+          <StatBlock label="任务总数" value={tasks.length} tone="neutral" />
+          <StatBlock label="成功" value={completedCount} tone="success" />
+          <StatBlock label="失败" value={failedCount} tone="danger" />
+          <StatBlock label="执行中" value={runningCount} tone="info" />
+          <StatBlock label="等待中" value={pendingCount} tone="neutral" />
+        </div>
+
         {job.error && (
-          <Alert type="error" title="执行错误" description={job.error} className="mt-3" />
+          <Alert type="error" message="执行错误" description={job.error} className="mt-3" showIcon />
         )}
       </Card>
 
       {/* Job Tasks 列表 */}
       <Card
         size="small"
-        title={`任务列表 (${tasks.length})`}
-        className="[&_.ant-card-body]:overflow-auto [&_.ant-card-body]:p-0 sm:[&_.ant-card-body]:max-h-[calc(100vh-340px)]"
+        title={`任务列表 · ${tasks.length}`}
+        className="[&_.ant-card-body]:overflow-auto [&_.ant-card-body]:p-0 sm:[&_.ant-card-body]:max-h-[calc(100vh-380px)]"
       >
         {tasks.length === 0 ? (
-          <div className="p-4 text-center text-gray-400">暂无任务</div>
+          <div className="p-10 text-center text-(--ds-text-tertiary)">暂无任务</div>
         ) : (
           <Collapse
             accordion
             items={collapseItems}
             onChange={handleCollapseChange}
-            className="rounded-none border-0 [&_.ant-collapse-content-box]:p-0 [&_.ant-collapse-header]:overflow-hidden [&_.ant-collapse-item]:border-b [&_.ant-collapse-item]:border-b-gray-100"
+            className="rounded-none border-0 [&_.ant-collapse-content-box]:p-0 [&_.ant-collapse-header]:overflow-hidden [&_.ant-collapse-item:last-child]:border-b-0 [&_.ant-collapse-item]:border-b [&_.ant-collapse-item]:border-b-(--ds-border-soft)"
           />
         )}
       </Card>
@@ -282,7 +270,6 @@ export default function JobDetailPanel({
   );
 }
 
-// JobTask 标题组件
 function JobTaskLabel({
   task,
   index,
@@ -296,24 +283,30 @@ function JobTaskLabel({
   onStopJob: () => void;
   onStopTask: (taskId: string) => void;
 }) {
-  const config = statusConfig[task.status];
   const isRunning = task.status === 'running';
   const jobIsActive = jobStatus === 'running' || jobStatus === 'pending';
 
   return (
     <div className="flex w-full flex-wrap items-start gap-2 sm:flex-nowrap sm:gap-3">
-      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-gray-100 font-mono text-xs">
+      <span
+        className="ds-text-mono flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[11px] font-semibold"
+        style={{
+          background: 'var(--ds-surface-subtle)',
+          color: 'var(--ds-text-secondary)',
+        }}
+      >
         {index + 1}
       </span>
-      <Tag icon={config.icon} color={config.color} className="shrink-0">
-        {config.text}
-      </Tag>
-      <span className="min-w-0 flex-1 basis-full overflow-hidden text-sm break-all sm:basis-auto">
+      <StatusPill status={task.status} size="sm" />
+      <span className="min-w-0 flex-1 basis-full overflow-hidden text-[13px] leading-relaxed break-all sm:basis-auto">
         <TaskTitleTag title={task.task_title} />
         {task.task_text}
       </span>
       {isRunning && jobIsActive && (
-        <span className="flex shrink-0 gap-1" onClick={(e) => e.stopPropagation()}>
+        <span
+          className="flex shrink-0 gap-1"
+          onClick={(e) => e.stopPropagation()}
+        >
           <Popconfirm
             title="停止当前任务"
             description="仅停止当前正在执行的任务，后续任务继续执行"
@@ -345,7 +338,10 @@ function JobTaskLabel({
         </span>
       )}
       {task.started_at && (
-        <span className="shrink-0 text-xs text-gray-400">
+        <span
+          className="ds-text-mono shrink-0 text-[11px]"
+          style={{ color: 'var(--ds-text-tertiary)' }}
+        >
           {formatDuration(task.started_at, task.completed_at)}
         </span>
       )}

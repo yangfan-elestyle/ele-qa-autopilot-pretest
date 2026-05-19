@@ -1,3 +1,9 @@
+# 2026.05.20 (lockstep v1.7.0)
+
+1. lockstep 同步, 与上游 ele-autopilot v1.7.0 一同发布; 本项目无业务改动. 上游 ele-autopilot 后台工作台 UI 整体重塑: 新增 `app/admin/_components/app-header.tsx` (品牌栏 + Agent 状态徽章 + 设置 Popover) + `app/admin/_components/status-pill.tsx` (统一 JobStatus 徽章) + `app/admin/preview/_components/preview-workspace.tsx` (preview 页主工作区抽离); 重写 `app/globals.css` 引入 CSS variables design tokens (indigo 主色 / Inter 字体 / soft 阴影 / 8/12px 圆角 / 软滚动条) + `@layer antd` 精修; 重写 `app/admin/_theme/antd-theme.ts` 主色 `#1677ff → #4f46e5`, 圆角 6→8, 全组件 token 表精细化; 改造 admin-task-explorer / folder-sider (移除底部 Agent Popover, 迁到 header) / task-content (breadcrumb + h1 + 卡片化表格 + StatChip) / task-modal (宽度 + autoSize) / selected-tasks-drawer (卡片化拖拽项) / preview 页全套. `meta theme-color` `#0969da → #4f46e5`.
+
+2. 版本号 lockstep 同步 1.6.9 → 1.7.0. autotesting SPA `base=/autotest/` 经 gateway `/autotest/*` strip 转发的契约不变, D1 schema / containers / Hono Worker / `/stream-proxy` / `/http-proxy` 路径前缀 / V1 device:shared-owner-v1 身份模型不变.
+
 # 2026.05.19 (lockstep v1.6.9)
 
 1. 回滚 `.github/workflows/autotesting.yml` 全部 cache 优化改动, 还原到 v1.5.2 (commit b213aa8) 干净状态 (66 行). 删除范围:

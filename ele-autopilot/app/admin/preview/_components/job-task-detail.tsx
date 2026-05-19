@@ -1,7 +1,5 @@
 import {
   CheckCircleOutlined,
-  ClockCircleOutlined,
-  CloseCircleOutlined,
   ExclamationCircleOutlined,
   LinkOutlined,
   LoadingOutlined,
@@ -16,7 +14,6 @@ import {
   Image,
   Spin,
   Tag,
-  Timeline,
   Typography,
 } from 'antd';
 import { useState } from 'react';
@@ -25,7 +22,6 @@ import type { JobTask, JobTaskLite, TaskActionResult } from '../../_types';
 
 const { Text, Paragraph } = Typography;
 
-// 格式化秒数为 时/分/秒 格式
 function formatDurationSeconds(seconds: number | null | undefined): string {
   if (seconds == null) return '-';
   const s = Math.round(seconds);
@@ -35,29 +31,25 @@ function formatDurationSeconds(seconds: number | null | undefined): string {
 }
 
 type JobTaskDetailProps = {
-  /** 轻量版数据（只包含 summary 摘要） */
   taskLite: JobTaskLite;
-  /** 完整详情（按需加载，可能为 null） */
   taskDetail: JobTask | null;
-  /** 是否正在加载完整详情 */
   loading: boolean;
 };
 
 type StepInfo = TaskActionResult['steps'][number];
 
 export default function JobTaskDetail({ taskLite, taskDetail, loading }: JobTaskDetailProps) {
-  // 优先使用完整详情，否则使用轻量数据的 summary
   const fullResult = taskDetail?.result as TaskActionResult | null;
   const summary = fullResult?.summary ?? taskLite.result_summary;
   const error = taskDetail?.error ?? taskLite.error;
 
   if (loading && !summary) {
     return (
-      <div className="space-y-4 bg-gray-50 p-4">
+      <div className="space-y-3 p-4" style={{ background: 'var(--ds-surface-subtle)' }}>
         <Card size="small" title="执行详情" className="bg-white">
           <div className="flex items-center justify-center py-8">
             <Spin indicator={<LoadingOutlined spin />} />
-            <span className="ml-2 text-gray-400">加载详情中...</span>
+            <span className="ml-2 text-(--ds-text-tertiary)">加载详情中...</span>
           </div>
         </Card>
       </div>
@@ -65,36 +57,34 @@ export default function JobTaskDetail({ taskLite, taskDetail, loading }: JobTask
   }
 
   return (
-    <div className="space-y-4 bg-gray-50 p-4">
-      {/* 错误信息 */}
-      {error && <Alert type="error" title="执行错误" description={error} showIcon />}
+    <div className="space-y-3 p-4" style={{ background: 'var(--ds-surface-subtle)' }}>
+      {error && (
+        <Alert type="error" message="执行错误" description={error} showIcon />
+      )}
 
-      {/* 执行结果 */}
       {summary ? (
         <>
-          {/* 执行摘要（使用 summary 数据） */}
           <ResultSummary summary={summary} runtime={fullResult?.runtime} />
 
-          {/* 执行步骤（需要完整详情） */}
           {loading ? (
             <Card size="small" title="执行步骤" className="bg-white">
               <div className="flex items-center justify-center py-8">
                 <Spin indicator={<LoadingOutlined spin />} />
-                <span className="ml-2 text-gray-400">加载详情中...</span>
+                <span className="ml-2 text-(--ds-text-tertiary)">加载详情中...</span>
               </div>
             </Card>
           ) : fullResult?.steps && fullResult.steps.length > 0 ? (
             <StepsList steps={fullResult.steps} />
           ) : (
             <Card size="small" title="执行步骤" className="bg-white">
-              <div className="py-4 text-center text-gray-400">
+              <div className="py-4 text-center text-(--ds-text-tertiary)">
                 {taskLite.status === 'running' ? '执行中...' : '暂无步骤详情'}
               </div>
             </Card>
           )}
         </>
       ) : (
-        <div className="py-8 text-center text-gray-400">
+        <div className="py-8 text-center text-(--ds-text-tertiary)">
           {taskLite.status === 'pending'
             ? '等待执行'
             : taskLite.status === 'running'
@@ -106,7 +96,6 @@ export default function JobTaskDetail({ taskLite, taskDetail, loading }: JobTask
   );
 }
 
-// 执行摘要组件
 function ResultSummary({
   summary,
   runtime,
@@ -115,7 +104,6 @@ function ResultSummary({
   runtime?: TaskActionResult['runtime'];
 }) {
   if (!summary) return null;
-
   const isSuccess = summary.is_successful === true;
   const judgement = summary.judgement;
 
@@ -135,37 +123,32 @@ function ResultSummary({
         <Descriptions.Item label="总步骤数">{summary.total_steps ?? '-'}</Descriptions.Item>
         <Descriptions.Item label="总动作数">{summary.total_actions ?? '-'}</Descriptions.Item>
         <Descriptions.Item label="步骤错误数">
-          <span className={summary.step_error_count > 0 ? 'text-red-500' : ''}>
+          <span style={summary.step_error_count > 0 ? { color: '#dc2626' } : undefined}>
             {summary.step_error_count ?? 0}
           </span>
         </Descriptions.Item>
         <Descriptions.Item label="动作错误数">
-          <span className={summary.action_error_count > 0 ? 'text-red-500' : ''}>
+          <span style={summary.action_error_count > 0 ? { color: '#dc2626' } : undefined}>
             {summary.action_error_count ?? 0}
           </span>
         </Descriptions.Item>
       </Descriptions>
 
-      {/* 最终结果 */}
       {summary.final_result && (
-        <div className="mt-3 border-t border-gray-100 pt-3">
-          <Text type="secondary" className="text-xs">
-            最终结果
-          </Text>
-          <Paragraph className="mt-1 mb-0 rounded bg-gray-50 p-2 text-sm">
+        <Section label="最终结果">
+          <Paragraph
+            className="!mt-1 !mb-0 rounded p-2 text-sm"
+            style={{ background: 'var(--ds-surface-subtle)' }}
+          >
             {summary.final_result}
           </Paragraph>
-        </div>
+        </Section>
       )}
 
-      {/* AI 判定 */}
       {judgement && (
-        <div className="mt-3 border-t border-gray-100 pt-3">
-          <Text type="secondary" className="text-xs">
-            AI 判定
-          </Text>
+        <Section label="AI 判定">
           <div className="mt-1 space-y-2">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Tag color={judgement.verdict ? 'success' : 'error'}>
                 {judgement.verdict ? '成功' : '失败'}
               </Tag>
@@ -173,23 +156,22 @@ function ResultSummary({
               {judgement.reached_captcha && <Tag color="warning">遇到验证码</Tag>}
             </div>
             {judgement.reasoning && (
-              <Paragraph className="mb-0 rounded bg-gray-50 p-2 text-xs">
+              <Paragraph
+                className="!mb-0 rounded p-2 text-xs"
+                style={{ background: 'var(--ds-surface-subtle)' }}
+              >
                 {judgement.reasoning}
               </Paragraph>
             )}
             {judgement.failure_reason && (
-              <Alert type="error" title="失败原因" description={judgement.failure_reason} />
+              <Alert type="error" message="失败原因" description={judgement.failure_reason} />
             )}
           </div>
-        </div>
+        </Section>
       )}
 
-      {/* 访问的 URL */}
       {summary.visited_urls && summary.visited_urls.length > 0 && (
-        <div className="mt-3 border-t border-gray-100 pt-3">
-          <Text type="secondary" className="text-xs">
-            访问的 URL ({summary.visited_urls.length})
-          </Text>
+        <Section label={`访问的 URL (${summary.visited_urls.length})`}>
           <div className="mt-1 max-h-16 overflow-auto">
             {summary.visited_urls.map((url, i) => (
               <div key={i} className="truncate text-xs">
@@ -200,15 +182,11 @@ function ResultSummary({
               </div>
             ))}
           </div>
-        </div>
+        </Section>
       )}
 
-      {/* 动作序列 */}
       {summary.action_sequence && summary.action_sequence.length > 0 && (
-        <div className="mt-3 border-t border-gray-100 pt-3">
-          <Text type="secondary" className="text-xs">
-            动作序列 ({summary.action_sequence.length})
-          </Text>
+        <Section label={`动作序列 (${summary.action_sequence.length})`}>
           <div className="mt-1 flex max-h-16 flex-wrap gap-1 overflow-auto">
             {summary.action_sequence.map((action, i) => (
               <Tag key={i} className="text-xs">
@@ -216,60 +194,64 @@ function ResultSummary({
               </Tag>
             ))}
           </div>
-        </div>
+        </Section>
       )}
 
-      {/* 提取的内容 */}
       {summary.all_extracted_content && summary.all_extracted_content.length > 0 && (
-        <div className="mt-3 border-t border-gray-100 pt-3">
-          <Text type="secondary" className="text-xs">
-            提取的内容 ({summary.all_extracted_content.length})
-          </Text>
-          <div className="mt-1 max-h-16 overflow-auto rounded bg-gray-50 p-2">
+        <Section label={`提取的内容 (${summary.all_extracted_content.length})`}>
+          <div
+            className="mt-1 max-h-16 overflow-auto rounded p-2"
+            style={{ background: 'var(--ds-surface-subtle)' }}
+          >
             {summary.all_extracted_content.map((content, i) => (
-              <div key={i} className="border-b border-gray-100 py-1 text-xs last:border-b-0">
+              <div
+                key={i}
+                className="border-b py-1 text-xs last:border-b-0"
+                style={{ borderColor: 'var(--ds-border-soft)' }}
+              >
                 {content}
               </div>
             ))}
           </div>
-        </div>
+        </Section>
       )}
 
-      {/* 错误信息 */}
       {summary.errors && summary.errors.length > 0 && (
-        <div className="mt-3 border-t border-gray-100 pt-3">
-          <Text type="secondary" className="text-xs">
-            错误信息
-          </Text>
+        <Section label="错误信息">
           {summary.errors.map((err, i) => (
-            <Alert key={i} type="error" title={err} className="mt-1" />
+            <Alert key={i} type="error" message={err} className="mt-1" />
           ))}
-        </div>
+        </Section>
       )}
 
-      {/* 运行时信息 */}
       {runtime && <RuntimeInfo runtime={runtime} />}
     </Card>
   );
 }
 
-// 执行步骤列表组件
+function Section({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div
+      className="mt-3 border-t pt-3"
+      style={{ borderColor: 'var(--ds-border-soft)' }}
+    >
+      <Text type="secondary" className="text-xs">
+        {label}
+      </Text>
+      {children}
+    </div>
+  );
+}
+
 function StepsList({ steps }: { steps: StepInfo[] }) {
-  // 默认展开最后 3 个
   const [activeKeys, setActiveKeys] = useState<number[]>(() => {
     const total = steps.length;
     if (total <= 3) return steps.map((_, i) => i);
     return [total - 3, total - 2, total - 1];
   });
 
-  const handleExpandAll = () => {
-    setActiveKeys(steps.map((_, i) => i));
-  };
-
-  const handleCollapseAll = () => {
-    setActiveKeys([]);
-  };
-
+  const handleExpandAll = () => setActiveKeys(steps.map((_, i) => i));
+  const handleCollapseAll = () => setActiveKeys([]);
   const handleExpandDown10 = (fromIndex: number) => {
     const newKeys = Array.from(
       { length: Math.min(10, steps.length - fromIndex) },
@@ -278,7 +260,6 @@ function StepsList({ steps }: { steps: StepInfo[] }) {
     setActiveKeys((prev) => [...new Set([...prev, ...newKeys])]);
   };
 
-  // 预计算每个步骤的累积时间
   const cumulativeTimes = steps.reduce<number[]>((acc, step, index) => {
     const prevTime = index === 0 ? 0 : acc[index - 1];
     acc.push(prevTime + (step.duration_seconds ?? 0));
@@ -304,20 +285,19 @@ function StepsList({ steps }: { steps: StepInfo[] }) {
   return (
     <Card
       size="small"
-      title={`执行步骤 (${steps.length})`}
+      title={`执行步骤 · ${steps.length}`}
       className="bg-white [&_.ant-card-body]:max-h-[500px] [&_.ant-card-body]:overflow-auto [&_.ant-card-body]:p-0"
     >
       <Collapse
         activeKey={activeKeys}
         onChange={(keys) => setActiveKeys((Array.isArray(keys) ? keys : [keys]).map(Number))}
         items={collapseItems}
-        className="rounded-none border-0 [&_.ant-collapse-content-box]:p-0 [&_.ant-collapse-item]:border-b [&_.ant-collapse-item]:border-b-gray-100"
+        className="rounded-none border-0 [&_.ant-collapse-content-box]:p-0 [&_.ant-collapse-item:last-child]:border-b-0 [&_.ant-collapse-item]:border-b [&_.ant-collapse-item]:border-b-(--ds-border-soft)"
       />
     </Card>
   );
 }
 
-// Step 标题组件
 function StepLabel({
   step,
   index,
@@ -347,19 +327,28 @@ function StepLabel({
 
   return (
     <div className="flex w-full flex-wrap items-center gap-x-2 gap-y-1 sm:flex-nowrap">
-      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-100 font-mono text-xs text-blue-600">
+      <span
+        className="ds-text-mono flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold"
+        style={{
+          background: hasError ? 'rgba(220, 38, 38, 0.12)' : 'var(--ds-brand-100)',
+          color: hasError ? '#b91c1c' : 'var(--ds-brand-700)',
+        }}
+      >
         {step.step_number}
       </span>
       {hasError ? (
-        <ExclamationCircleOutlined className="text-red-500" />
+        <ExclamationCircleOutlined style={{ color: '#dc2626' }} />
       ) : (
-        <CheckCircleOutlined className="text-green-500" />
+        <CheckCircleOutlined style={{ color: '#16a34a' }} />
       )}
       <span className="min-w-0 flex-1 truncate text-xs" title={step.page_title}>
         {step.page_title || '未知页面'}
       </span>
-      <span className="shrink-0 text-xs text-gray-400">
-        {formatDurationSeconds(cumulativeTime)}/{formatDurationSeconds(step.duration_seconds)}
+      <span
+        className="ds-text-mono shrink-0 text-[11px]"
+        style={{ color: 'var(--ds-text-tertiary)' }}
+      >
+        {formatDurationSeconds(cumulativeTime)} / {formatDurationSeconds(step.duration_seconds)}
       </span>
       <div className="flex shrink-0 basis-full flex-wrap gap-x-1 sm:basis-auto">
         <Button
@@ -385,7 +374,7 @@ function StepLabel({
             className="!px-1 !text-xs"
             onClick={(e) => handleButtonClick(e, onExpandDown10)}
           >
-            ↓展开10
+            ↓ 展开10
           </Button>
         )}
       </div>
@@ -393,13 +382,14 @@ function StepLabel({
   );
 }
 
-// Step 详情组件
 function StepDetail({ step }: { step: StepInfo }) {
   const modelOutput = step.model_output;
 
   return (
-    <div className="space-y-3 bg-gray-50 p-3">
-      {/* 基本信息 */}
+    <div
+      className="space-y-3 p-3"
+      style={{ background: 'var(--ds-surface-subtle)' }}
+    >
       <Descriptions size="small" column={1} className="[&_.ant-descriptions-item]:pb-1">
         <Descriptions.Item label="URL">
           <a
@@ -417,99 +407,68 @@ function StepDetail({ step }: { step: StepInfo }) {
         </Descriptions.Item>
       </Descriptions>
 
-      {/* 思考图像 */}
       {step.thinking_image && step.thinking_image !== '<string>' && (
-        <div>
-          <Text type="secondary" className="text-xs">
-            页面截图
-          </Text>
-          <div className="mt-1">
-            <Image
-              src={
-                /^(data:|https?:\/\/|\/)/.test(step.thinking_image)
-                  ? step.thinking_image
-                  : `data:image/png;base64,${step.thinking_image}`
-              }
-              alt="页面截图"
-              className="max-h-64 max-w-full rounded border"
-              placeholder
-            />
-          </div>
-        </div>
+        <DetailBlock label="页面截图">
+          <Image
+            src={
+              /^(data:|https?:\/\/|\/)/.test(step.thinking_image)
+                ? step.thinking_image
+                : `data:image/png;base64,${step.thinking_image}`
+            }
+            alt="页面截图"
+            className="max-h-64 max-w-full rounded border"
+            placeholder
+          />
+        </DetailBlock>
       )}
 
-      {/* LLM 思考过程 */}
       {(step.thinking || modelOutput?.thinking) && (
-        <div>
-          <Text type="secondary" className="text-xs">
-            <ThunderboltOutlined className="mr-1" />
-            LLM 思考
-          </Text>
-          <Paragraph className="mt-1 mb-0 rounded bg-white p-2 text-xs whitespace-pre-wrap">
+        <DetailBlock label={<><ThunderboltOutlined className="mr-1" />LLM 思考</>}>
+          <Paragraph className="!mb-0 rounded bg-white p-2 text-xs whitespace-pre-wrap">
             {step.thinking || modelOutput?.thinking}
           </Paragraph>
-        </div>
+        </DetailBlock>
       )}
 
-      {/* 上一步评估 */}
       {(step.evaluation || modelOutput?.evaluation_previous_goal) && (
-        <div>
-          <Text type="secondary" className="text-xs">
-            上一步评估
-          </Text>
-          <Paragraph className="mt-1 mb-0 rounded bg-white p-2 text-xs whitespace-pre-wrap">
+        <DetailBlock label="上一步评估">
+          <Paragraph className="!mb-0 rounded bg-white p-2 text-xs whitespace-pre-wrap">
             {step.evaluation || modelOutput?.evaluation_previous_goal}
           </Paragraph>
-        </div>
+        </DetailBlock>
       )}
 
-      {/* 下一步目标 */}
       {(step.next_goal || modelOutput?.next_goal) && (
-        <div>
-          <Text type="secondary" className="text-xs">
-            下一步目标
-          </Text>
-          <Paragraph className="mt-1 mb-0 rounded bg-white p-2 text-xs whitespace-pre-wrap">
+        <DetailBlock label="下一步目标">
+          <Paragraph className="!mb-0 rounded bg-white p-2 text-xs whitespace-pre-wrap">
             {step.next_goal || modelOutput?.next_goal}
           </Paragraph>
-        </div>
+        </DetailBlock>
       )}
 
-      {/* 记忆 */}
       {(step.memory || modelOutput?.memory) && (
-        <div>
-          <Text type="secondary" className="text-xs">
-            记忆
-          </Text>
-          <Paragraph className="mt-1 mb-0 rounded bg-white p-2 text-xs whitespace-pre-wrap">
+        <DetailBlock label="记忆">
+          <Paragraph className="!mb-0 rounded bg-white p-2 text-xs whitespace-pre-wrap">
             {step.memory || modelOutput?.memory}
           </Paragraph>
-        </div>
+        </DetailBlock>
       )}
 
-      {/* 动作 */}
       {modelOutput?.action && modelOutput.action.length > 0 && (
-        <div>
-          <Text type="secondary" className="text-xs">
-            执行动作
-          </Text>
-          <div className="mt-1 rounded bg-white p-2">
+        <DetailBlock label="执行动作">
+          <div className="rounded bg-white p-2">
             {modelOutput.action.map((action: unknown, i: number) => (
               <pre key={i} className="mb-1 overflow-auto text-xs whitespace-pre-wrap last:mb-0">
                 {JSON.stringify(action, null, 2)}
               </pre>
             ))}
           </div>
-        </div>
+        </DetailBlock>
       )}
 
-      {/* 执行结果 */}
       {step.results && step.results.length > 0 && (
-        <div>
-          <Text type="secondary" className="text-xs">
-            执行结果
-          </Text>
-          <div className="mt-1 space-y-2">
+        <DetailBlock label="执行结果">
+          <div className="space-y-2">
             {step.results.map((result: unknown, i: number) => {
               const r = result as {
                 is_done?: boolean;
@@ -525,16 +484,16 @@ function StepDetail({ step }: { step: StepInfo }) {
                       完成
                     </Tag>
                   )}
-                  {r.error && <Alert type="error" title={r.error} className="mb-1" />}
+                  {r.error && <Alert type="error" message={r.error} className="mb-1" />}
                   {r.extracted_content && (
                     <div className="mb-1">
-                      <span className="text-gray-500">提取内容: </span>
+                      <span className="text-(--ds-text-tertiary)">提取内容: </span>
                       {r.extracted_content}
                     </div>
                   )}
                   {r.long_term_memory && (
                     <div>
-                      <span className="text-gray-500">长期记忆: </span>
+                      <span className="text-(--ds-text-tertiary)">长期记忆: </span>
                       {r.long_term_memory}
                     </div>
                   )}
@@ -542,32 +501,47 @@ function StepDetail({ step }: { step: StepInfo }) {
               );
             })}
           </div>
-        </div>
+        </DetailBlock>
       )}
 
-      {/* 标签页信息 */}
       {step.tabs && step.tabs.length > 0 && (
-        <div>
-          <Text type="secondary" className="text-xs">
-            浏览器标签页 ({step.tabs.length})
-          </Text>
-          <div className="mt-1 rounded bg-white p-2">
+        <DetailBlock label={`浏览器标签页 (${step.tabs.length})`}>
+          <div className="rounded bg-white p-2">
             {step.tabs.map((tab, i) => (
-              <div key={i} className="border-b border-gray-100 py-1 text-xs last:border-b-0">
+              <div
+                key={i}
+                className="border-b py-1 text-xs last:border-b-0"
+                style={{ borderColor: 'var(--ds-border-soft)' }}
+              >
                 <div className="font-medium">{tab.title || '无标题'}</div>
-                <div className="truncate text-gray-500">{tab.url}</div>
+                <div className="truncate text-(--ds-text-tertiary)">{tab.url}</div>
               </div>
             ))}
           </div>
-        </div>
+        </DetailBlock>
       )}
     </div>
   );
 }
 
-// 运行时信息组件 - 直接展示 runtime 所有字段
+function DetailBlock({
+  label,
+  children,
+}: {
+  label: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <Text type="secondary" className="!text-xs">
+        {label}
+      </Text>
+      <div className="mt-1">{children}</div>
+    </div>
+  );
+}
+
 function RuntimeInfo({ runtime }: { runtime: TaskActionResult['runtime'] }) {
-  // 格式化值为字符串
   const formatValue = (value: unknown): string => {
     if (value === null) return 'null';
     if (value === undefined) return '-';
@@ -576,20 +550,20 @@ function RuntimeInfo({ runtime }: { runtime: TaskActionResult['runtime'] }) {
   };
 
   return (
-    <div className="mt-3 border-t border-gray-100 pt-3">
-      <Text type="secondary" className="text-xs">
-        运行时环境
-      </Text>
-      <div className="mt-1 rounded bg-gray-100 p-2">
-        <pre className="m-0 overflow-auto text-xs whitespace-pre-wrap">
+    <Section label="运行时环境">
+      <div
+        className="mt-1 rounded p-2"
+        style={{ background: 'var(--ds-surface-muted)' }}
+      >
+        <pre className="ds-text-mono m-0 overflow-auto text-[11px] whitespace-pre-wrap">
           {Object.entries(runtime).map(([key, value]) => (
             <div key={key} className="py-0.5">
-              <span className="text-gray-500">{key}:</span>{' '}
-              <span className="text-gray-700">{formatValue(value)}</span>
+              <span style={{ color: 'var(--ds-text-tertiary)' }}>{key}:</span>{' '}
+              <span style={{ color: 'var(--ds-text-secondary)' }}>{formatValue(value)}</span>
             </div>
           ))}
         </pre>
       </div>
-    </div>
+    </Section>
   );
 }
