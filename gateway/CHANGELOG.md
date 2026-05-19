@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.8.0] - 2026-05-20
+
+### Changed
+
+- lockstep 同步, 与上游 ele-autotesting v1.8.0 一同发布; 本项目无业务改动. 上游 ele-autotesting AutoTest 前端工作台 UI 整体重塑, 对齐 v1.7.0 ele-autopilot 设计语言 (CSS variables design tokens / Inter 字体 / indigo 主色 / MainLayout header 重写 / ActionButton 加 SVG slot / App.vue 5 个 ActionButton emoji 全改 Lucide-style SVG / Modal 加 size prop / Toast token 化 4 种状态 / theme-color `#0969da → #4f46e5`). gateway landing 页 / 路径分发 / `/autotest/*` strip 转发 / SSR loader / service binding (AUTOPILOT, AUTOTEST) 行为不变.
+
 ## [1.7.0] - 2026-05-20
 
 ### Changed

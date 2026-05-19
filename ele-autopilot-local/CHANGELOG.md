@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.8.0] - 2026-05-20
+
+### Changed
+
+- lockstep 同步, 与上游 ele-autotesting v1.8.0 一同发布; 本项目无业务改动. 上游 ele-autotesting AutoTest 前端工作台 UI 整体重塑, 对齐 v1.7.0 ele-autopilot 设计语言 (theme.css token 化 / Inter 字体 / indigo 主色 / Lucide-style SVG icon 替代 emoji / Modal size prop / Toast 4 状态 token 化). FastAPI app / 路由 / `0.0.0.0:8000` 监听 / `--version` / `--help` / `upgrade` shim 链路 / R2 wheel 发布路径 / browser-use Agent 执行链路不变.
+
 ## [1.7.0] - 2026-05-20
 
 ### Changed

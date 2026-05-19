@@ -15,12 +15,51 @@
 
       <!-- Actions Slot -->
       <template #actions>
-        <ActionButtonUI icon="🏠" text="返回首页" @click="goHome" />
+        <ActionButtonUI text="返回首页" @click="goHome">
+          <template #icon>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+              <polyline points="9 22 9 12 15 12 15 22" />
+            </svg>
+          </template>
+        </ActionButtonUI>
         <ThemeToggleUI />
-        <ActionButtonUI icon="📝" text="功能提示词" @click="openTemplateManager" />
-        <ActionButtonUI icon="📜" text="上下文" @click="promptHistory.showHistory = true" />
-        <ActionButtonUI icon="⚙️" text="模型管理" @click="modelManager.showConfig = true" />
-        <ActionButtonUI icon="💾" text="数据管理" @click="showDataManager = true" />
+        <ActionButtonUI text="功能提示词" @click="openTemplateManager">
+          <template #icon>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="8" y1="13" x2="16" y2="13" />
+              <line x1="8" y1="17" x2="13" y2="17" />
+            </svg>
+          </template>
+        </ActionButtonUI>
+        <ActionButtonUI text="上下文" @click="promptHistory.showHistory = true">
+          <template #icon>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+              <path d="M3 3v5h5" />
+              <path d="M12 7v5l4 2" />
+            </svg>
+          </template>
+        </ActionButtonUI>
+        <ActionButtonUI text="模型管理" @click="modelManager.showConfig = true">
+          <template #icon>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+          </template>
+        </ActionButtonUI>
+        <ActionButtonUI text="数据管理" @click="showDataManager = true">
+          <template #icon>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <ellipse cx="12" cy="5" rx="9" ry="3" />
+              <path d="M3 5v14a9 3 0 0 0 18 0V5" />
+              <path d="M3 12a9 3 0 0 0 18 0" />
+            </svg>
+          </template>
+        </ActionButtonUI>
       </template>
 
       <!-- Main Content -->
@@ -323,30 +362,28 @@ const promptInputPlaceholder = computed(() => {
   justify-content: center;
   align-items: center;
   height: 100vh;
-  font-size: 1.2rem;
-  color: var(--text-color);
-  background-color: var(--background-color);
+  font-size: 14px;
+  color: var(--ds-text-secondary);
+  background: var(--ds-surface-canvas);
+  letter-spacing: 0.01em;
 }
 
 .loading-container.error {
-  color: #f56c6c;
+  color: var(--ds-danger);
 }
 
 .spinner {
-  border: 4px solid rgba(128, 128, 128, 0.2);
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  border-left-color: var(--primary-color);
-  animation: spin 1s ease infinite;
-  margin-bottom: 20px;
+  border: 3px solid color-mix(in srgb, var(--ds-brand-500) 20%, transparent);
+  border-top-color: var(--ds-brand-600);
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 16px;
 }
 
 @keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
+  to {
     transform: rotate(360deg);
   }
 }

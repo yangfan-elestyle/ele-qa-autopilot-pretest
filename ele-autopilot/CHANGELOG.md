@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.8.0] - 2026-05-20
+
+### Changed
+
+- lockstep 同步, 与上游 ele-autotesting v1.8.0 一同发布; 本项目无业务改动. 上游 ele-autotesting AutoTest 前端工作台 UI 整体重塑, 对齐 v1.7.0 本项目设计语言 (CSS variables design tokens / Inter 字体 / indigo 主色 / 卡片化 / SVG icon 替代 emoji / Modal 加 size prop / Toast token 化). 形成 AutoPilot + AutoTest 两个工作台统一品牌识别. D1 / R2 / API / Worker 绑定 / `install.sh` 渲染 / R2 wheel 拉取 / SHA256 校验 / 返回首页 button 行为不变.
+
 ## [1.7.0] - 2026-05-20
 
 ### Added

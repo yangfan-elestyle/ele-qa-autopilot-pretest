@@ -1,3 +1,33 @@
+# 2026.05.20 (lockstep v1.8.0)
+
+1. AutoTest 前端工作台 UI 整体重塑, 对齐 v1.7.0 上游 ele-autopilot 的设计语言, 形成统一品牌 ("成熟科技公司管理后台"风格).
+
+2. `packages/ui/src/styles/theme.css` 完整重写 (988 → ~640 行, 行数 -35%):
+   - 引入 CSS variables design tokens (`--ds-brand-50..800` indigo, `--ds-surface-canvas/elevated/subtle/muted`, `--ds-text-primary/secondary/tertiary/on-brand`, `--ds-success/warning/danger/info` + soft 变体, `--ds-border-soft/default/strong`, `--ds-radius-xs/sm/md/lg/xl`, `--ds-shadow-xs/sm/md/lg`, `--ds-focus-ring` 4px, `--ds-font-sans` Inter 优先 + 中文 fallback 链, `--ds-font-mono` JetBrains Mono); dark mode 用 `:root.dark` 覆盖 CSS variables 自动生效, 无需重复声明每个类.
+   - 全局字体切换到 Inter; `font-feature-settings: cv02/cv03/cv04/cv11/ss01` + antialiased.
+   - `body::before` 加 subtle radial gradient (indigo + sky 双源, light/dark 自动适配), 形成产品级 ambient 背景.
+   - 自定义滚动条 10px 圆角带 padding-box, hover 加深.
+   - 全部 `.theme-*` 类名保留 (~70 个), 25+ 个 Vue 组件零改动即继承新视觉. 主色从 stone (灰棕) → indigo, 焦点环统一 4px ring, 圆角 6→8/12px 三档, 阴影柔和分级.
+   - 按钮统一规范: `.theme-button` 基础 (36px height + 8px gap + 6px radius), `.theme-button-primary` indigo 实色, `.theme-button-secondary` 描边样式, `.theme-button-on/off` indigo soft / surface soft, `.theme-icon-button` (header 用) 36px + brand hover, 全部带 `:focus-visible` 4px focus ring.
+   - Dropdown / Modal / History / Manager / Markdown / TextDiff / Toolbar 全套主题块 token 化, 内边距 / 圆角 / 阴影 / 边框对齐 design system.
+   - Markdown 表格加 row hover indigo soft + 单元格 padding 8/12px; blockquote 改 indigo brand-50 + indigo-400 左边线.
+
+3. `packages/ui/src/components/MainLayout.vue` 重写 header: 60px 高 + sticky + `backdrop-filter: blur(12px) saturate(180%)` + 半透明白底; 左侧 brand mark 渐变 indigo 9x9 圆角容器 + logo + 产品名 `QA AutoPilot · AutoTest` + 副标题 `Prompt Engineering Studio`; main 容器收紧到 px-4 py-4, gap 2/4 响应式.
+
+4. `packages/ui/src/components/ActionButton.vue` 加 `<slot name="icon">` 支持 SVG icon, 优先 slot > emoji icon prop (向后兼容). 文字字号 13px font-medium.
+
+5. `packages/web/src/App.vue`: 五个 header ActionButton 全部从 emoji (🏠 📝 📜 ⚙️ 💾) 改 Lucide-style stroke SVG icon (Home / FileText / RotateCcw clockwise / Settings gear / Database 圆柱). 初始加载 spinner 改 indigo brand 描边 + 0.8s linear 单边旋转 (替代原 4px 灰色边 + 1s ease infinite + 紫色单边).
+
+6. `packages/ui/src/components/ThemeToggleUI.vue`: emoji 太阳/月亮 → Lucide-style SVG sun (amber-500) / moon (indigo brand); 文字精修 "日间模式" / "夜间模式" 智能切换.
+
+7. `packages/ui/src/components/Modal.vue`: 加 `size` prop (sm/md/lg/xl 对应 max-w-md/lg/2xl/4xl), 关闭按钮改 32x32 圆角 hover bg, 含 dark mode 适配; header padding 18/14, footer padding 14/18 + gap 10px.
+
+8. `packages/ui/src/components/Toast.vue`: 4 种 type (success/error/warning/info) 改 token 化软背景 + 1px 同色边框 + icon SVG; dark mode 通过 `:root.dark` 覆盖. 关闭按钮改 SVG x.
+
+9. `packages/web/index.html`: theme-color light `#0969da → #4f46e5` indigo; dark `#0d1117 → #0b1020` 对齐 dark token; mask-icon color 同步.
+
+10. 版本号 lockstep 同步 1.7.0 → 1.8.0. autotesting SPA `base=/autotest/` 经 gateway `/autotest/*` strip 转发的契约不变, D1 schema / containers / Hono Worker / `/stream-proxy` / `/http-proxy` 路径前缀 / V1 device:shared-owner-v1 身份模型不变.
+
 # 2026.05.20 (lockstep v1.7.0)
 
 1. lockstep 同步, 与上游 ele-autopilot v1.7.0 一同发布; 本项目无业务改动. 上游 ele-autopilot 后台工作台 UI 整体重塑: 新增 `app/admin/_components/app-header.tsx` (品牌栏 + Agent 状态徽章 + 设置 Popover) + `app/admin/_components/status-pill.tsx` (统一 JobStatus 徽章) + `app/admin/preview/_components/preview-workspace.tsx` (preview 页主工作区抽离); 重写 `app/globals.css` 引入 CSS variables design tokens (indigo 主色 / Inter 字体 / soft 阴影 / 8/12px 圆角 / 软滚动条) + `@layer antd` 精修; 重写 `app/admin/_theme/antd-theme.ts` 主色 `#1677ff → #4f46e5`, 圆角 6→8, 全组件 token 表精细化; 改造 admin-task-explorer / folder-sider (移除底部 Agent Popover, 迁到 header) / task-content (breadcrumb + h1 + 卡片化表格 + StatChip) / task-modal (宽度 + autoSize) / selected-tasks-drawer (卡片化拖拽项) / preview 页全套. `meta theme-color` `#0969da → #4f46e5`.
