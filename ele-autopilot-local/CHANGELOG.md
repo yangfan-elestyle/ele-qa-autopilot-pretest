@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.5.18] - 2026-05-19
+
+### Fixed
+
+- `autopilot/cli.py` 修复 v1.5.17 上线 `upgrade` (alias `update`) 子命令立即暴露的"缺省 base URL"缺陷, 同时放弃 v1.5.18 早期草案的 `~/.config/ele-autopilot/base` 持久化方案 (用户反馈 wheel 工具不应写 `$XDG_CONFIG_HOME`, 配置语义错位; 且 BASE 是 CF 账号私有子域, wheel 是 GitHub Actions 一次构建上传 R2 的公共构件, 编译期写入架构上不可能). 改走"装配期硬编码 shim": 上游 `ele-autopilot/install.sh` 在 `uv tool install --reinstall` 成功后用 unquoted heredoc 把当前 gateway BASE 字面展开到 `$HOME/.local/bin/ele-autopilot-upgrade` shim (`#!/usr/bin/env bash` + `set -euo pipefail` + `curl -fsSL "<BASE>/install.sh" \| bash`), 末尾 `chmod +x`. 本项目 cli 同步删 `_config_base_path` / `_read_config_base` / `_resolve_base` 三个解析辅助、删 `argparse --base` 参数与三级 fallback chain; 新增模块级常量 `UPGRADE_SHIM_PATH = ~/.local/bin/ele-autopilot-upgrade`. `upgrade` (alias `update`) 缩减为 `subprocess.run(["bash", UPGRADE_SHIM_PATH])` 并透传 returncode, shim 不存在时 stderr 提示重跑 `curl -fsSL <gateway>/install.sh | bash` 完成首装/补装并 `exit 2`. UX 不退步 (零参数生效), 但 wheel 内核去掉运行时 fallback、不再依赖 `ELE_AUTOPILOT_BASE` 环境变量、不再读写 `~/.config`. FastAPI app / 路由 / `0.0.0.0:8000` 监听 / `--version` / `--help` / R2 wheel 发布路径不变.
+
 ## [1.5.17] - 2026-05-19
 
 ### Added

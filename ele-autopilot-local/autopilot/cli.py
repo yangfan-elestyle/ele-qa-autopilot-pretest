@@ -54,6 +54,11 @@ async def root():
     return {"message": "Hello from ele-autopilot-local!"}
 
 
+UPGRADE_SHIM_PATH = os.path.join(
+    os.path.expanduser("~"), ".local", "bin", "ele-autopilot-upgrade"
+)
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="ele-autopilot",
@@ -67,32 +72,28 @@ def _build_parser() -> argparse.ArgumentParser:
     )
 
     sub = parser.add_subparsers(dest="command", metavar="{upgrade,update}")
-    upgrade = sub.add_parser(
+    sub.add_parser(
         "upgrade",
         aliases=["update"],
-        help="重新拉取并安装最新版本 (复用 install.sh).",
-        description="通过 gateway 的 install.sh 重新安装本 CLI 到最新版本.",
-    )
-    upgrade.add_argument(
-        "--base",
-        metavar="URL",
-        default=os.environ.get("ELE_AUTOPILOT_BASE"),
-        help="gateway base URL (默认读环境变量 ELE_AUTOPILOT_BASE), 例如 https://qa.<account-sub>.workers.dev",
+        help="重新拉取并安装最新版本 (执行 install.sh 安装时写入的 shim).",
+        description=(
+            "执行 ~/.local/bin/ele-autopilot-upgrade. 该 shim 在首装时由 install.sh 生成, "
+            "BASE 字面值已烧入. 切换 gateway 请重跑对应 install.sh."
+        ),
     )
     return parser
 
 
-def _run_upgrade(base: str | None) -> int:
-    if not base:
+def _run_upgrade() -> int:
+    if not os.path.isfile(UPGRADE_SHIM_PATH):
         print(
-            "error: 缺少 gateway base URL. 使用 `--base https://qa.<account-sub>.workers.dev` 或设置环境变量 ELE_AUTOPILOT_BASE.",
+            f"error: 未找到升级 shim {UPGRADE_SHIM_PATH}. "
+            "请重跑一次 `curl -fsSL <gateway>/install.sh | bash` 完成首装/补装.",
             file=sys.stderr,
         )
         return 2
-    base = base.rstrip("/")
-    cmd = f"curl -fsSL {base}/install.sh | bash"
-    print(f"==> Running: {cmd}", file=sys.stderr)
-    return subprocess.run(["bash", "-c", cmd]).returncode
+    print(f"==> Running: {UPGRADE_SHIM_PATH}", file=sys.stderr)
+    return subprocess.run(["bash", UPGRADE_SHIM_PATH]).returncode
 
 
 def cli():
@@ -100,7 +101,7 @@ def cli():
     args = _build_parser().parse_args()
 
     if args.command in ("upgrade", "update"):
-        sys.exit(_run_upgrade(args.base))
+        sys.exit(_run_upgrade())
 
     uvicorn.run("autopilot.cli:app", host="0.0.0.0", port=8000)
 

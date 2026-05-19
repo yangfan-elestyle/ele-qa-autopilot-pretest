@@ -1,3 +1,7 @@
+# 2026.05.19 (lockstep v1.5.18)
+
+1. 版本号 lockstep 同步 1.5.17 → 1.5.18, 与上游 gateway / ele-autopilot / ele-autopilot-local v1.5.18 一同发布; 本项目无业务改动. 上游修复 v1.5.17 引入的 `ele-autopilot upgrade` 缺省 base URL 报错, 同时回滚 v1.5.18 早期草案的 `~/.config/ele-autopilot/base` 持久化方案 (用户反馈 wheel 工具不应写 `$XDG_CONFIG_HOME`; 且 BASE 是 CF 账号私有子域无法在 wheel build 期写入) — ele-autopilot 渲染的 `install.sh` 在 `uv tool install --reinstall` 成功后改为 unquoted heredoc 把 BASE 字面值烧进 `$HOME/.local/bin/ele-autopilot-upgrade` shim 并 `chmod +x`; ele-autopilot-local `autopilot/cli.py` 删 base 解析链与 `--base` 参数, `upgrade` (alias `update`) 缩减为 `bash ~/.local/bin/ele-autopilot-upgrade`, shim 缺失则 stderr 提示重跑 install.sh. SPA `base=/autotest/` 经 gateway `/autotest/*` strip 转发的契约不变.
+
 # 2026.05.19 (lockstep v1.5.17)
 
 1. 版本号 lockstep 同步 1.5.16 → 1.5.17, 与上游 gateway / ele-autopilot / ele-autopilot-local v1.5.17 一同发布; 本项目无业务改动. 上游变化: (a) `ele-autopilot-local/autopilot/cli.py` 接入 `argparse` 修复 `ele-autopilot --help` 此前被 `uvicorn.run` 吞掉的失效问题, 新增 `--help` / `-h`, `--version` / `-V` (输出 `ele-autopilot 1.5.17`), `upgrade` (alias `update`) 子命令复用 gateway `install.sh` 重装最新 wheel (base URL 优先级 `--base` > 环境变量 `ELE_AUTOPILOT_BASE`, 缺失时 stderr 提示并 exit 2); 默认无参数仍 `uvicorn.run("autopilot.cli:app", host="0.0.0.0", port=8000)`, 完全向后兼容. (b) gateway landing 安装本地 agent 区块说明文案改为面向非开发用户 (去掉 `0.0.0.0:8000` 与外层 `<code>` 标签, 改为 `两步完成. 启动后 AutoPilot 工作台会自动连接本地 agent, 即可派单执行任务.`). SPA `base=/autotest/` 经 gateway `/autotest/*` strip 转发的契约不变.

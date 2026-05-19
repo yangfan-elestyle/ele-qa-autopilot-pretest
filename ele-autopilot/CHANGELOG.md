@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.5.18] - 2026-05-19
+
+### Fixed
+
+- `app/routes/install-script.tsx` 渲染的 `install.sh` 替换 v1.5.18 早期草案的 `~/.config/ele-autopilot/base` 写入: `uv tool install --reinstall "$tmp_wheel"` 成功后改为生成升级 shim — `shim="$HOME/.local/bin/$BIN_NAME-upgrade"; mkdir -p "$(dirname "$shim")"; cat > "$shim" <<UPGRADE_EOF` (unquoted heredoc, `$BASE` 字面展开为 `https://qa.<account-sub>.workers.dev`) 写入 `#!/usr/bin/env bash` + `set -euo pipefail` + `curl -fsSL "<BASE>/install.sh" \| bash`, 末尾 `chmod +x "$shim"`. 设计权衡: BASE 是 CF 账号私有子域, wheel 是 GitHub Actions 一次构建上传 R2 的公共构件, 编译期(wheel build)写入架构上不可能; `~/.config` 方案让一个本应无运行时副作用的 wheel 工具携带"安装期配置文件", 语义错位 (用户原话: 不符合预期); 改为"装配期硬编码 shim" — BASE 在 install.sh 用户机执行瞬间烧入 shim 字面常量, wheel 本身仍纯净, `~/.config` 不被写, shim 与 uv tool 装的 `ele-autopilot` 同目录 (`~/.local/bin/`) 用户可手 `cat` 验证 BASE. 上游 `ele-autopilot-local` 同版本同步删 cli base 解析链与 `--base` 参数, `ele-autopilot upgrade` (alias `update`) 缩减为 `bash ~/.local/bin/ele-autopilot-upgrade`, shim 缺失则 stderr 指引重跑 `curl -fsSL <gateway>/install.sh | bash`. SSR loader / `renderScript(base)` 模板结构、`Content-Type: text/x-shellscript`、`Cache-Control: public, max-age=60`、`ensure_runtime`、`/releases/local/latest.txt` 解析、R2 wheel 下载 + SHA256 校验 + `--retry 3` 行为不变. D1 / R2 / API / Worker 绑定无改动.
+
 ## [1.5.17] - 2026-05-19
 
 ### Changed

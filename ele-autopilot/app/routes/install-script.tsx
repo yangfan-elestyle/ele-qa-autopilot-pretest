@@ -81,6 +81,16 @@ fi
 info "==> Installing"
 uv tool install --reinstall "\$tmp_wheel"
 
+# Install upgrade shim with BASE baked in (used by \`\$BIN_NAME upgrade\`).
+shim="\$HOME/.local/bin/\$BIN_NAME-upgrade"
+mkdir -p "\$(dirname "\$shim")"
+cat > "\$shim" <<UPGRADE_EOF
+#!/usr/bin/env bash
+set -euo pipefail
+curl -fsSL "\$BASE/install.sh" | bash
+UPGRADE_EOF
+chmod +x "\$shim"
+
 info ""
 info "==> Done: \$BIN_NAME \$VERSION installed."
 info "    run \\\`\$BIN_NAME --help\\\` to verify."

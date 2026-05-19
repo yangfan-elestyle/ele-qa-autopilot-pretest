@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.5.18] - 2026-05-19
+
+### Changed
+
+- lockstep 同步, 与上游 ele-autopilot / ele-autopilot-local / ele-autotesting v1.5.18 一同发布; 本项目无业务改动. 上游修复 v1.5.17 引入的 `ele-autopilot upgrade` 缺省 base URL 报错, 同时回滚 v1.5.18 早期草案的 `~/.config/ele-autopilot/base` 持久化方案 (用户反馈 wheel 工具不应写 `$XDG_CONFIG_HOME`; 且 BASE 是 CF 账号私有子域无法在 wheel build 期写入): ele-autopilot 渲染的 `install.sh` 在 `uv tool install --reinstall` 成功后改为 unquoted heredoc 把 BASE 字面值烧进 `$HOME/.local/bin/ele-autopilot-upgrade` shim (内容 `#!/usr/bin/env bash` + `set -euo pipefail` + `curl -fsSL "<BASE>/install.sh" \| bash`) 并 `chmod +x`; ele-autopilot-local `autopilot/cli.py` 删 `_config_base_path` / `_read_config_base` / `_resolve_base` / `argparse --base`, `upgrade` (alias `update`) 缩减为 `bash ~/.local/bin/ele-autopilot-upgrade`, shim 缺失则 stderr 提示重跑 `curl -fsSL <gateway>/install.sh | bash` 并 exit 2. landing 双卡片 + 安装区 + 版本号 fetch / service binding `AUTOPILOT` & `AUTOTEST` 路径分发 / `/autotest/*` strip 转发契约不变.
+
 ## [1.5.17] - 2026-05-19
 
 ### Changed
@@ -132,6 +138,7 @@
 - Service bindings: `AUTOPILOT` → `ele-autopilot`, `AUTOTEST` → `ele-autotesting` (两业务 Worker 同步关闭 `workers_dev`).
 - 单文件 fetch handler, 无框架依赖, 内嵌 landing HTML.
 
+[1.5.18]: about:blank
 [1.5.17]: about:blank
 [1.5.16]: about:blank
 [1.5.15]: about:blank
