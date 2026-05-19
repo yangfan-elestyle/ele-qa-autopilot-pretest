@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.6.9] - 2026-05-19
+
+### Removed
+
+- lockstep 同步, 与上游 ele-autotesting v1.6.9 一同发布; 本项目无业务改动. 上游回滚 autotesting workflow 到 v1.5.2 状态, 撤销 buildx layer cache + main trigger + image URI cache 全部 cache 优化改动. D1 / R2 / API / Worker 绑定 / `install.sh` 渲染 / R2 wheel 拉取 / SHA256 校验 / 返回首页 button 行为不变.
+
 ## [1.6.8] - 2026-05-19
 
 ### Changed

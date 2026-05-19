@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.6.9] - 2026-05-19
+
+### Removed
+
+- lockstep 同步, 与上游 ele-autotesting v1.6.9 一同发布; 本项目无业务改动. 上游回滚 autotesting workflow 全部 cache 优化改动. FastAPI app / 路由 / `0.0.0.0:8000` 监听 / `--version` / `--help` / `upgrade` shim 链路 / R2 wheel 发布路径不变.
+
 ## [1.6.8] - 2026-05-19
 
 ### Changed

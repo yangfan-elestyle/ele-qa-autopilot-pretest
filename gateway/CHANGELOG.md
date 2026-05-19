@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.6.9] - 2026-05-19
+
+### Removed
+
+- lockstep 同步, 与上游 ele-autotesting v1.6.9 一同发布; 本项目无业务改动. 上游回滚 `.github/workflows/autotesting.yml` 到 v1.5.2 (commit b213aa8) 状态, 撤销 v1.6.3 / v1.6.6 / v1.6.8 三轮 cache 优化全部改动: 删 buildx layer cache 三步 (`Restore buildx layer cache` / `Warm buildkit cache` / `Persist buildx layer cache`) + 删 `docker/setup-buildx-action@v3` `install: true` 选项 + 删 `on.push.branches: [main]` trigger + 删 `actions/checkout@v5` `fetch-depth: 0` + 删 markitdown image URI cache 四步 (`Detect markitdown changes since last release tag` / `Cache last-deployed markitdown image URI` / `Patch wrangler.jsonc to reuse cached image` / `Capture deployed image URI`) + 删各步骤的 `if: startsWith(github.ref, 'refs/tags/')` / `if: steps.patch.outputs.patched != 'true'` 条件. 还原后 autotesting workflow 简化为 66 行原始版本: checkout → verify tag → setup pnpm/node → install → build:cf → setup-buildx → apply D1 migrations → wrangler deploy. 每次 release tag push 完整 cold build markitdown container + push image, 耗时回到 ~130-200 s 区间 (cache 优化前的 baseline). SSR landing / service binding / 路径分发 / `version` fetch / 友情链接卡片 / 安装区 / 返回首页 button 契约不变.
+
 ## [1.6.8] - 2026-05-19
 
 ### Changed

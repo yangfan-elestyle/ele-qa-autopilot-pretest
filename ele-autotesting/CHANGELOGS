@@ -1,3 +1,16 @@
+# 2026.05.19 (lockstep v1.6.9)
+
+1. 回滚 `.github/workflows/autotesting.yml` 全部 cache 优化改动, 还原到 v1.5.2 (commit b213aa8) 干净状态 (66 行). 删除范围:
+   - v1.6.3 引入: `docker/setup-buildx-action@v3` 的 `with: install: true` 选项; `Restore buildx layer cache` step (actions/cache@v4, key `buildx-markitdown-${hashFiles}`, restore-keys 兜底); `Warm buildkit cache` step (`docker buildx build --cache-from type=local --load`); `Persist buildx layer cache` step (`if: always()`, `docker buildx build --cache-to type=local,mode=max --output type=cacheonly`).
+   - v1.6.6 引入: `on.push.branches: [main]` trigger; 各 step 的 `if: startsWith(github.ref, 'refs/tags/')` condition; Persist step 加的 `--cache-from`.
+   - v1.6.8 引入: `actions/checkout@v5` 的 `fetch-depth: 0`; `Detect markitdown changes since last release tag` step (git diff prev_tag..HEAD); `Cache last-deployed markitdown image URI` step (actions/cache@v4 + URI file); `Patch wrangler.jsonc to reuse cached image` step (jq patch `containers[0].image` 为 registry URI); `Capture deployed image URI (rebuild path only)` step (从 deploy log grep tag + 拼 URI + 写 cache file); 各步骤的 `if: steps.patch.outputs.patched != 'true'` condition.
+
+2. 还原后 autotesting workflow 流程简化为: `actions/checkout@v5` → `Verify tag matches package.json version` → `pnpm/action-setup@v4` → `actions/setup-node@v4` → `Install` (pnpm install --frozen-lockfile) → `Build (core + ui + web)` (pnpm run build:cf) → `docker/setup-buildx-action@v3` (默认无 install) → `Apply D1 migrations (remote)` → `Deploy Worker + Container` (wrangler deploy). 每次 release tag push 完整 cold build markitdown container + push image, 不复用任何 layer cache, 不跳过任何步骤. autotesting tag run 耗时回到 cache 优化前的 baseline (~130-200 s 区间, 取决于 Cloudflare Containers registry layer push 时长波动).
+
+3. cache 方案被用户明确叫停的原因汇总 (供未来参考): (a) v1.6.6 buildx layer cache 加 main scope fallback 后, v1.6.6 vs 历史 cache miss baseline 节省仅 ~30-50 s, 在 130-200 s 自然波动区间内难以感知 — 我前期对比口径不公平 (拿 v1.6.5 的 180 s 慢路径对比 v1.6.6 的 133 s 快路径, 实际历史 v1.6.0 116 s / v1.6.3 第二次 125 s 都比 v1.6.6 还快). (b) v1.6.8 image URI cache 方案设计上有 GitHub Actions cache ref scope 隔离的根本缺陷: cache 写到 tag scope 后, 下一个 tag 的 workflow 看不到 (只能 fallback 读 default branch main scope, 但 main 上 workflow 不 deploy 也不 capture URI). 要绕过得引入 R2 / git auto commit 持久化, 复杂度跳级 + 还需要 1-2 次发版验证, ROI 已经倒挂. (c) v1.6.7 / v1.6.8 / v1.6.9 三次 lockstep 占位发版用于实验 cache 路径, 浪费版本号资源, 开发体验差.
+
+4. 版本号 lockstep 同步 1.6.8 → 1.6.9. SPA `base=/autotest/` 经 gateway `/autotest/*` strip 转发的契约不变.
+
 # 2026.05.19 (lockstep v1.6.8)
 
 1. 修复 v1.6.7 引入的 `Capture deployed image URI (rebuild path only)` step condition bug: 原版 `if: startsWith(github.ref, 'refs/tags/') && steps.markitdown.outputs.changed != 'false'`, markitdown/ 未改 (changed=false) 但 image URI cache 首次出现该 hash key (miss) 走 rebuild path 时, 此 step 被错误 skipped, `/tmp/markitdown-image-uri.txt` 从未写入, actions/cache@v4 post-step 报 `Path Validation Error: Path(s) specified in the action for caching do(es) not exist, hence no cache is being saved.` (warning, 不 fail workflow). 因此 v1.6.7 autotesting tag run 表面 success 但实际 URI cache 是空的, 下次发版照样 cache miss + rebuild path. 修正为 `if: steps.patch.outputs.patched != 'true'`, 与 setup-buildx / Restore / Warm / Persist 四步对齐: 凡是走 rebuild path (patch step 未跑成功 = 没走 reuse), 就 capture URI 给下次复用. 与 markitdown changed 状态解耦.

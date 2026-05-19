@@ -19,10 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      # fetch-depth: 0 拉全部 history + tags, 后面 git diff prev_tag..HEAD 需要.
       - uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
 
       - name: Verify tag matches package.json version
         run: |
@@ -31,28 +28,6 @@ jobs:
           if [ "v${pkg_version}" != "${tag}" ]; then
             echo "error: tag ${tag} does not match package.json version v${pkg_version}" >&2
             exit 1
-          fi
-
-      # 检测 markitdown 容器源码自上一个 v* tag 起是否有改动. changed=false 时配合 image URI
-      # cache hit 走 reuse path (跳过 docker build/push). changed=true 时正常 build/push.
-      - name: Detect markitdown changes since last release tag
-        id: markitdown
-        working-directory: ${{ github.workspace }}
-        run: |
-          prev=$(git tag -l 'v*' --sort=-v:refname | grep -v "^${{ github.ref_name }}$" | head -1)
-          if [ -z "$prev" ]; then
-            echo "no previous v* tag found, will rebuild container"
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          diff=$(git diff --name-only "$prev..HEAD" -- ele-autotesting/containers/markitdown/ || true)
-          if [ -z "$diff" ]; then
-            echo "markitdown/ unchanged since $prev → reuse cached image, skip build/push"
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "markitdown/ changed since $prev:"
-            echo "$diff"
-            echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
 
       - uses: pnpm/action-setup@v4
@@ -71,115 +46,21 @@ jobs:
       - name: Build (core + ui + web)
         run: pnpm run build:cf
 
-      # Cache 上次 push 的 markitdown image URI. key 含 markitdown/** 内容 hash:
-      # - markitdown 未改: key 同 → restore 主键 hit, /tmp/markitdown-image-uri.txt 有内容
-      # - markitdown 改了: key 变 → restore miss, deploy 后写新 URI, post-step save 到新 key
-      - name: Cache last-deployed markitdown image URI
-        id: image_uri_cache
-        uses: actions/cache@v4
-        with:
-          path: /tmp/markitdown-image-uri.txt
-          key: markitdown-image-uri-${{ hashFiles('ele-autotesting/containers/markitdown/**') }}
-
-      # reuse 模式: 把 wrangler.jsonc 的 containers[0].image 从 Dockerfile 路径换成上次 push
-      # 的 registry URI (wrangler config-schema 接受两种形式). wrangler 看到 URI 时不会
-      # build/push, 直接 reference 已有 image, container 那段整段跳过.
-      - name: Patch wrangler.jsonc to reuse cached image (markitdown unchanged)
-        id: patch
-        if: |
-          steps.markitdown.outputs.changed == 'false' &&
-          steps.image_uri_cache.outputs.cache-hit == 'true'
-        run: |
-          if [ ! -s /tmp/markitdown-image-uri.txt ]; then
-            echo "cache hit but URI file empty; falling back to rebuild"
-            echo "patched=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          uri=$(cat /tmp/markitdown-image-uri.txt)
-          jq --arg uri "$uri" '.containers[0].image = $uri' \
-            packages/server/wrangler.jsonc > packages/server/wrangler.jsonc.tmp
-          mv packages/server/wrangler.jsonc.tmp packages/server/wrangler.jsonc
-          echo "wrangler.jsonc patched: containers[0].image = $uri"
-          echo "wrangler 将跳过 markitdown docker build + image push (复用 registry 已有 image)"
-          echo "patched=true" >> "$GITHUB_OUTPUT"
-
-      # 下面 setup-buildx / Restore / Warm / Persist 仅在 rebuild path 跑 (reuse path
-      # 整段跳过, 不浪费 setup-buildx 7s + Restore 386 MB download 2s + Warm 26s + Persist 2s).
+      # wrangler 4 内置 Cloudflare Containers 推送链路, 本身依赖本机 docker daemon
+      # buildx 提供多架构 / amd64 跨平台构建能力 (Cloudflare Containers 要求 linux/amd64)
       - uses: docker/setup-buildx-action@v3
-        if: steps.patch.outputs.patched != 'true'
-        with:
-          install: true
 
-      - name: Restore buildx layer cache
-        if: steps.patch.outputs.patched != 'true'
-        uses: actions/cache@v4
-        with:
-          path: /tmp/.buildx-cache
-          key: buildx-markitdown-${{ hashFiles('ele-autotesting/containers/markitdown/**') }}
-          restore-keys: |
-            buildx-markitdown-
-
-      - name: Warm buildkit cache
-        if: steps.patch.outputs.patched != 'true'
-        run: |
-          if [ -d /tmp/.buildx-cache ] && [ -n "$(ls -A /tmp/.buildx-cache 2>/dev/null)" ]; then
-            docker buildx build \
-              --platform linux/amd64 \
-              --cache-from type=local,src=/tmp/.buildx-cache \
-              -f containers/markitdown/Dockerfile \
-              -t markitdown:warmup \
-              --load \
-              containers/markitdown
-          else
-            echo "No buildx cache present, skipping warm step."
-          fi
-
+      # D1 schema 由 packages/server/migrations/*.sql 维护, wrangler deploy 不会自动 apply.
+      # 这里在 deploy 之前对 remote DB 跑一次 migrations apply (幂等), 避免首次部署或
+      # 新增 migration 后 /api/sync/* 因为 storage 表缺失直接 500.
       - name: Apply D1 migrations (remote)
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: pnpm --filter @prompt-optimizer/server exec wrangler d1 migrations apply DB --remote
 
-      # reuse path 下 wrangler.jsonc 已 patched 为 URI, wrangler 不 build/push container.
-      # rebuild path 下保持 Dockerfile 路径, 正常 build + push.
-      # tee 到 /tmp/deploy.log 给下一步解析 image tag.
       - name: Deploy Worker + Container
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          set -o pipefail
-          pnpm --filter @prompt-optimizer/server exec wrangler deploy 2>&1 | tee /tmp/deploy.log
-
-      # rebuild path 跑 (patched != 'true'): 从 deploy log grep image tag, 用 secrets
-      # CLOUDFLARE_ACCOUNT_ID 拼完整 URI 写入 cache file 给下次 reuse path 用.
-      # 注: 旧版误用 steps.markitdown.outputs.changed != 'false' 当 condition, markitdown
-      # 未改但 cache 首次 miss 走 rebuild path 时此 step 错被 skipped, URI cache 永远写不上.
-      # 修正为对齐 buildx 几步的 patched != 'true' 判断: rebuild path 走过就 capture.
-      - name: Capture deployed image URI (rebuild path only)
-        if: steps.patch.outputs.patched != 'true'
-        env:
-          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          tag=$(grep -oE 'Building image [^[:space:]]+:[a-f0-9]+' /tmp/deploy.log \
-            | head -1 | awk -F: '{print $NF}')
-          if [ -z "$tag" ]; then
-            echo "WARN: could not parse image tag from deploy log; cache will not be updated"
-            exit 0
-          fi
-          uri="registry.cloudflare.com/${CF_ACCOUNT_ID}/ele-autotesting-markitdowncontainer:${tag}"
-          echo "$uri" > /tmp/markitdown-image-uri.txt
-          echo "captured image URI (account id masked in stdout)"
-
-      - name: Persist buildx layer cache
-        if: always() && steps.patch.outputs.patched != 'true'
-        run: |
-          docker buildx build \
-            --platform linux/amd64 \
-            --cache-from type=local,src=/tmp/.buildx-cache \
-            --cache-to type=local,dest=/tmp/.buildx-cache-new,mode=max \
-            -f containers/markitdown/Dockerfile \
-            --output type=cacheonly \
-            containers/markitdown
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+        run: pnpm --filter @prompt-optimizer/server exec wrangler deploy
