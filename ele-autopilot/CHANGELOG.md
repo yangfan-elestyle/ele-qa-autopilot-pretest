@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.6.6] - 2026-05-19
+
+### Changed
+
+- lockstep 同步, 与上游 ele-autotesting v1.6.6 一同发布; 本项目无业务改动. 本版主要触发用途: 验证上版 (v1.6.5 deploy 后) push 到 main 的 `d72763e` (`fix(ci/autotesting): share buildx cache via main branch scope`) 是否让本次 tag push 流程下 autotesting workflow 通过 `restore-keys: buildx-markitdown-` 兜底 fallback 命中已写入 `refs/heads/main` scope 的 386 MB buildx layer cache (run 26101456149, 2 min 完成), wrangler 跑 markitdown docker build 时跳过 apt-get install ffmpeg / pip install markitdown[all] (含 onnxruntime / pandas / lxml 等大依赖). 对照 v1.6.5 autotesting cold build ~4 min, v1.6.6 期望 ~1-2 min. D1 / R2 / API / Worker 绑定 / `install.sh` 渲染 / R2 wheel 拉取 / SHA256 校验 / `task-content.tsx` 返回首页按钮行为不变.
+
 ## [1.6.5] - 2026-05-19
 
 ### Added
