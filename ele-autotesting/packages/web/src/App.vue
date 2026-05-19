@@ -15,6 +15,7 @@
 
       <!-- Actions Slot -->
       <template #actions>
+        <ActionButtonUI icon="🏠" text="返回首页" @click="goHome" />
         <ThemeToggleUI />
         <ActionButtonUI icon="📝" text="功能提示词" @click="openTemplateManager" />
         <ActionButtonUI icon="📜" text="上下文" @click="promptHistory.showHistory = true" />
@@ -256,6 +257,11 @@ const handleSwitchVersion = (versionId: any) => {
 // 打开模板管理器
 const openTemplateManager = () => {
   templateManagerState.showTemplates = true
+}
+
+// 返回 gateway 首页 (跳出 /autotest/ SPA base 到根入口)
+const goHome = () => {
+  window.location.href = '/'
 }
 
 // 处理优化模式变更

@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.6.5] - 2026-05-19
+
+### Changed
+
+- 友情链接重做 (用户反馈"位置太小, 不显眼; 还要点进去看信息"). (a) host 前缀 `agentic-loop-ui` → `harness`: `app/routes/home.tsx` `deriveFriendLink(origin)` 替换的首段 label 改为 `harness`, 实际访问 `ele-qa-autopilot.<domain>` 时友链指向 `https://harness.<domain>`. (b) 入口位置从 v1.6.4 footer 末行小字 (`.footer-friend`, `font-size: 11px` + `flex-basis: 100%` 独占一行) 提升为与 AutoPilot / AutoTest 并列的第三张卡片入口: footer 移除条件渲染 `<p className="footer-friend">`, `<section className="cards">` 末追加第三张 `<a className="card">` (条件 `loaderData.friendLink` 渲染), `target="_blank"` + `rel="noopener noreferrer"`, 含 external-link svg icon (三段 path: `M15 3h6v6` / `m10 14 11-11` / `M18 13v6a2 2 0 0 1-2 2H5...`) + `<h2>Harness <span className="card-tag">友情链接</span></h2>` + 描述 "当前服务部分能力来自 harness, 点击跳转查看详情." + `<span className="card-arrow">前往 harness</span>`. (c) `app/app.css` `.cards` `grid-template-columns: 1fr 1fr` → `repeat(3, 1fr)`, 新增 `@media (max-width: 900px) { .cards { grid-template-columns: 1fr 1fr } }` 中屏 fallback (harness 落到第二行第一格, 与主卡同宽), `<= 640px` 仍 1 列; 新增 `.card-tag` (`font-size: 11px`, `padding: 2px 8px`, `background: var(--bg-subtle)`, `color: var(--fg-subtle)`, `border: 1px solid var(--border)`, `border-radius: var(--r-full)`, `letter-spacing: 0` — 嵌在 `.card h2` 内, 把 "Harness" 主标题与 "友情链接" 标签视觉区分, 不抢主标题层级); 删除 v1.6.4 引入的 `.footer-friend` 样式块. (d) `deriveFriendLink` 推导规则 / `null` 短路条件 (host 不含 `.` / IPv4 `/^\d+\.\d+\.\d+\.\d+(:\d+)?$/`) / SSR loader 注入路径不变. service binding `AUTOPILOT` & `AUTOTEST` 路径分发 / `/autotest/*` strip 转发 / `version` fetch 行为不变.
+
 ## [1.6.4] - 2026-05-19
 
 ### Added

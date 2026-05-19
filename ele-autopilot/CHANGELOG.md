@@ -2,6 +2,16 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.6.5] - 2026-05-19
+
+### Added
+
+- `app/admin/_components/task-content.tsx` 任务列表 topbar 加返回首页按钮 (用户反馈"两个子工程没有返回按钮, 返回不回来"): 现有 `<Space className="w-full justify-between" wrap>` 内左侧 `<Space wrap>` 最前面 (移动菜单 `MenuOutlined` / 新建任务 `PlusOutlined` 之前) 插入 `<Button icon={<HomeOutlined />} href="/" aria-label="返回首页">返回首页</Button>`, `href="/"` 直接走浏览器跳转 (不经 RR7 内部路由) 由 gateway 接管返回 landing. `@ant-design/icons` import 按字母序加 `HomeOutlined`. preview 页 (`autopilot.preview.$taskId.tsx` 已自带任务详情 Header) 暂不加 — 主迷失点是任务列表; 后续若需扩散到 preview 再独立加.
+
+### Changed
+
+- lockstep 同步, 与上游 gateway v1.6.5 一同发布. 上游 gateway landing 友情链接重做: host 前缀 `agentic-loop-ui` → `harness`, 入口位置从 v1.6.4 footer 末行小字 (`.footer-friend`) 提升为与 AutoPilot / AutoTest 并列的第三张卡片 (`.cards` `grid-template-columns: repeat(3, 1fr)` + `<= 900px` 2 列 fallback + `<= 640px` 1 列, 新增 `.card-tag` 11px subtle 圆角小标签嵌在 `<h2>`, 删 `.footer-friend`). D1 / R2 / API / Worker 绑定 / `install.sh` 渲染 / R2 wheel 拉取 / SHA256 校验行为不变.
+
 ## [1.6.4] - 2026-05-19
 
 ### Changed

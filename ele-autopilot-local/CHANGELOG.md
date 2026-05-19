@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.6.5] - 2026-05-19
+
+### Changed
+
+- lockstep 同步, 与上游 gateway / ele-autopilot / ele-autotesting v1.6.5 一同发布; 本项目无业务改动. 上游变化: (a) gateway landing 友情链接重做 — host 前缀 `agentic-loop-ui` → `harness` (`app/routes/home.tsx` `deriveFriendLink(origin)` 替换首段 label), 入口位置从 v1.6.4 footer 末行小字 (`.footer-friend` `font-size: 11px` + `flex-basis: 100%`) 提升为与 AutoPilot / AutoTest 并列的第三张卡片 (`section .cards` 改 `grid-template-columns: repeat(3, 1fr)` + `<= 900px` 2 列 + `<= 640px` 1 列 fallback, 新增 `.card-tag` 11px subtle 圆角小标签, 删 `.footer-friend` 样式), `<a target="_blank" rel="noopener noreferrer">`. (b) ele-autopilot `app/admin/_components/task-content.tsx` 任务列表 topbar 左侧 `<Space>` 最前面加 `<Button icon={<HomeOutlined />} href="/">返回首页</Button>`, `href="/"` 走浏览器跳转回 gateway landing. (c) ele-autotesting `packages/web/src/App.vue` header `#actions` slot 首位 (`<ThemeToggleUI />` 前) 加 `<ActionButtonUI icon="🏠" text="返回首页" @click="goHome" />`, `goHome = () => { window.location.href = '/' }` 跳出 `/autotest/` SPA base 回 gateway. FastAPI app / 路由 / `0.0.0.0:8000` 监听 / `--version` / `--help` / `upgrade` shim 链路 / R2 wheel 发布路径不变.
+
 ## [1.6.4] - 2026-05-19
 
 ### Changed

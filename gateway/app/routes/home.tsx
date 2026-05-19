@@ -21,7 +21,7 @@ function deriveFriendLink(origin: string): string | null {
     const host = url.host;
     const dotIdx = host.indexOf(".");
     if (dotIdx === -1 || IP_RE.test(host)) return null;
-    return `${url.protocol}//agentic-loop-ui${host.slice(dotIdx)}`;
+    return `${url.protocol}//harness${host.slice(dotIdx)}`;
   } catch {
     return null;
   }
@@ -162,6 +162,50 @@ export default function Home({ loaderData }: Route.ComponentProps) {
               </svg>
             </span>
           </a>
+
+          {loaderData.friendLink ? (
+            <a
+              className="card"
+              href={loaderData.friendLink}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <span className="card-icon" aria-hidden="true">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M15 3h6v6" />
+                  <path d="m10 14 11-11" />
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                </svg>
+              </span>
+              <h2>
+                Harness
+                <span className="card-tag">友情链接</span>
+              </h2>
+              <p>当前服务部分能力来自 harness, 点击跳转查看详情.</p>
+              <span className="card-arrow">
+                前往 harness
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M5 12h14" />
+                  <path d="m12 5 7 7-7 7" />
+                </svg>
+              </span>
+            </a>
+          ) : null}
         </section>
 
         <section className="install" aria-labelledby="install-title">
@@ -191,18 +235,6 @@ export default function Home({ loaderData }: Route.ComponentProps) {
             <a href="/autotest">AutoTest</a>
             <a href="/healthz">服务状态</a>
           </nav>
-          {loaderData.friendLink ? (
-            <p className="footer-friend" aria-label="友情链接">
-              <span>友情链接</span>
-              <a
-                href={loaderData.friendLink}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                agentic-loop-ui
-              </a>
-            </p>
-          ) : null}
         </footer>
       </div>
     </main>

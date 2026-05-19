@@ -3,6 +3,7 @@ import {
   DeleteOutlined,
   EditOutlined,
   EyeOutlined,
+  HomeOutlined,
   MenuOutlined,
   OrderedListOutlined,
   PlayCircleOutlined,
@@ -174,6 +175,9 @@ export default function TaskContent({
       <div className="mb-3 flex-shrink-0">
         <Space className="w-full justify-between" wrap>
           <Space wrap>
+            <Button icon={<HomeOutlined />} href="/" aria-label="返回首页">
+              返回首页
+            </Button>
             {showMobileMenu && (
               <Button icon={<MenuOutlined />} onClick={onOpenMobileMenu}>
                 路径
