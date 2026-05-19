@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.6.0] - 2026-05-19
+
+### Changed
+
+- lockstep 同步 (minor bump), 与上游 ele-autopilot / ele-autopilot-local / ele-autotesting v1.6.0 一同发布; 本项目无业务改动. 主版本号变更由 ele-autotesting 子项目整体重构驱动 — 从「Vue 3 SPA + pnpm monorepo (core/ui/web/server)」迁移到「React Router v7 framework mode (Cloudflare SSR) + 扁平化单包 + Bun」, 与本 gateway 同栈一致. service binding `AUTOPILOT` & `AUTOTEST` 路径分发、`/autotest/*` strip 转发契约、landing 双卡片 + 安装区 + 版本号 fetch 全部不变, 业务行为对客户端完全等价.
+
 ## [1.5.18] - 2026-05-19
 
 ### Changed
@@ -138,6 +144,7 @@
 - Service bindings: `AUTOPILOT` → `ele-autopilot`, `AUTOTEST` → `ele-autotesting` (两业务 Worker 同步关闭 `workers_dev`).
 - 单文件 fetch handler, 无框架依赖, 内嵌 landing HTML.
 
+[1.6.0]: about:blank
 [1.5.18]: about:blank
 [1.5.17]: about:blank
 [1.5.16]: about:blank

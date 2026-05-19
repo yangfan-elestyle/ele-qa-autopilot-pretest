@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.6.0] - 2026-05-19
+
+### Changed
+
+- lockstep 同步 (minor bump), 与上游 gateway / ele-autopilot / ele-autotesting v1.6.0 一同发布; 本项目无业务改动. 主版本号变更由 ele-autotesting 子项目整体重构驱动 — 从「Vue 3 SPA + pnpm monorepo」迁移到「React Router v7 framework mode + Bun」. 本项目 FastAPI / browser-use / Job/Task 执行链 / wheel 构建发布到 R2 / `upgrade` shim 行为完全不变.
+
 ## [1.5.18] - 2026-05-19
 
 ### Fixed

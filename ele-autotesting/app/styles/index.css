@@ -1,0 +1,11 @@
+@import "./theme.css";
+@import "./scrollbar.css";
+@import "./common.css";
+
+html,
+body,
+#root {
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

@@ -1,0 +1,55 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "ele-autotesting",
+  "main": "./workers/app.ts",
+  "compatibility_date": "2025-11-01",
+  "compatibility_flags": ["nodejs_compat_v2"],
+  "workers_dev": false,
+  "observability": {
+    "enabled": true
+  },
+  "limits": {
+    "cpu_ms": 300000
+  },
+  "rules": [
+    {
+      "type": "CompiledWasm",
+      "globs": ["**/*.wasm"],
+      "fallthrough": true
+    }
+  ],
+  "containers": [
+    {
+      "class_name": "MarkitdownContainer",
+      "image": "./containers/markitdown/Dockerfile",
+      "max_instances": 5,
+      "instance_type": "basic"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "class_name": "MarkitdownContainer",
+        "name": "MARKITDOWN"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["MarkitdownContainer"]
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "ele-autotesting",
+      "database_id": "66966c51-751c-4a03-8ad2-6f7347058a4a",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "vars": {
+    "QA_IMAGE_RESEARCH_OPENAI_VISION_MODEL": "gpt-4o",
+    "QA_IMAGE_RESEARCH_GEMINI_VISION_MODEL": "gemini-3-flash-preview"
+  }
+}
