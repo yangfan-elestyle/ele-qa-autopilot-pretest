@@ -1,11 +1,11 @@
 <template>
-  <div class="flex flex-col h-full">
+  <div class="ds-output-section flex flex-col h-full">
     <!-- 标题和按钮区域 -->
-    <div class="ds-panel-head flex-none">
+    <header class="ds-panel-head flex-none">
       <div class="ds-panel-head-left">
         <h3 class="ds-panel-title">
           <span class="ds-panel-title-dot" aria-hidden="true"></span>
-          优化后
+          优化结果
         </h3>
         <div
           v-if="versions && versions.length > 0"
@@ -39,6 +39,7 @@
           class="ds-iterate-btn"
           :class="{ 'ds-iterate-btn--loading': isIterating }"
           :disabled="isIterating"
+          title="基于当前结果迭代下一版"
         >
           <svg
             v-if="!isIterating"
@@ -58,10 +59,10 @@
           <span>{{ isIterating ? '优化中…' : '继续优化' }}</span>
         </button>
       </div>
-    </div>
+    </header>
 
     <!-- 内容区域：使用 OutputDisplay 组件 -->
-    <div class="flex-1 min-h-0">
+    <div class="ds-output-body flex-1 min-h-0">
       <OutputDisplay
         ref="outputDisplayRef"
         :content="optimizedPrompt"
@@ -73,7 +74,7 @@
         :enable-copy="true"
         :enable-fullscreen="true"
         :enable-edit="true"
-        placeholder="优化后的内容将显示在这里..."
+        placeholder="优化后的内容将显示在这里…"
         @update:content="$emit('update:optimizedPrompt', $event)"
       />
     </div>
@@ -294,47 +295,13 @@ defineExpose({
 </script>
 
 <style scoped>
-.ds-panel-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
+/* panel-head 类已提至全局 theme.css; 此处只放本组件私有 */
+.ds-output-section {
+  min-height: 0;
 }
 
-.ds-panel-head-left {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  flex-wrap: wrap;
-  min-width: 0;
-}
-
-.ds-panel-head-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.ds-panel-title {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: -0.005em;
-  color: var(--ds-text-primary);
-  margin: 0;
-}
-
-.ds-panel-title-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 999px;
-  background: var(--ds-brand-500);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ds-brand-500) 20%, transparent);
+.ds-output-body {
+  padding: 14px 16px 16px;
 }
 
 .ds-version-pills {

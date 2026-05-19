@@ -73,40 +73,46 @@ export default function PreviewWorkspace({
       {/* Task summary banner */}
       {task && (
         <div
-          className="flex flex-wrap items-start gap-3 border-b px-4 py-3 sm:px-6"
+          className="border-b px-4 py-3 sm:px-6"
           style={{
             background: 'var(--ds-surface-elevated)',
             borderColor: 'var(--ds-border-soft)',
           }}
         >
-          {isMobile && (
-            <Button
-              icon={<MenuOutlined />}
-              onClick={() => setMobileHistoryOpen(true)}
-              size="small"
-            >
-              历史
-            </Button>
-          )}
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 text-[11px] font-medium tracking-wide text-(--ds-text-tertiary) uppercase">
-              <span>当前任务</span>
-              <span className="ds-chip ds-chip-neutral ds-text-mono">
-                {task.id.slice(0, 8)}
-              </span>
-            </div>
-            <div className="mt-1 max-h-20 overflow-auto text-[13px] leading-relaxed whitespace-pre-wrap text-(--ds-text-primary)">
-              <TaskTitleTag title={task.title} />
-              {task.text}
-            </div>
-          </div>
-          <div className="flex shrink-0 flex-wrap items-center gap-1.5">
-            <StatBadge label="总" value={jobs.length} tone="neutral" />
-            <StatBadge label="成功" value={successCount} tone="success" />
-            <StatBadge label="失败" value={failedCount} tone="danger" />
-            {activeCount > 0 && (
-              <StatBadge label="进行中" value={activeCount} tone="info" />
+          <div className="flex flex-wrap items-start gap-3">
+            {isMobile && (
+              <Button
+                icon={<MenuOutlined />}
+                onClick={() => setMobileHistoryOpen(true)}
+                size="small"
+              >
+                历史
+              </Button>
             )}
+            <div className="min-w-0 flex-1">
+              <div className="ds-page-breadcrumb mb-1.5">
+                <span>任务工作台</span>
+                <span className="ds-page-breadcrumb-sep">›</span>
+                <span className="ds-page-breadcrumb-current">执行历史</span>
+                <span className="ds-page-breadcrumb-sep">›</span>
+                <span
+                  className="ds-text-mono ds-page-breadcrumb-current"
+                  style={{ fontSize: 11 }}
+                  title={task.id}
+                >
+                  #{task.id.slice(0, 8)}
+                </span>
+              </div>
+              <TaskSummaryText title={task.title} text={task.text} />
+            </div>
+            <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+              <StatBadge label="总" value={jobs.length} tone="neutral" />
+              <StatBadge label="成功" value={successCount} tone="success" />
+              <StatBadge label="失败" value={failedCount} tone="danger" />
+              {activeCount > 0 && (
+                <StatBadge label="进行中" value={activeCount} tone="info" />
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -207,5 +213,42 @@ function StatBadge({
       <span className="opacity-70">{label}</span>
       <span className="ds-text-mono text-[12px]">{value}</span>
     </span>
+  );
+}
+
+function TaskSummaryText({ title, text }: { title: string | null; text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const compact = text.length > 240;
+  return (
+    <div className="min-w-0">
+      <div
+        className={
+          expanded
+            ? 'max-h-72 overflow-auto text-[13px] leading-relaxed whitespace-pre-wrap text-(--ds-text-primary)'
+            : 'overflow-hidden text-[13px] leading-relaxed whitespace-pre-wrap text-(--ds-text-primary)'
+        }
+        style={
+          expanded
+            ? undefined
+            : ({
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+              } as React.CSSProperties)
+        }
+      >
+        <TaskTitleTag title={title} />
+        {text}
+      </div>
+      {compact && (
+        <button
+          type="button"
+          className="mt-1 inline-flex items-center text-[11.5px] font-medium text-(--ds-brand-700) hover:text-(--ds-brand-600)"
+          onClick={() => setExpanded((v) => !v)}
+        >
+          {expanded ? '收起' : '展开任务详情'}
+        </button>
+      )}
+    </div>
   );
 }

@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.9.0] - 2026-05-20
+
+### Changed
+
+- lockstep 同步, 与上游 gateway / ele-autopilot / ele-autotesting v1.9.0 一同发布; 本项目无业务改动. 上游本轮聚焦工作台 UX 整体提级: ele-autopilot 新增 8 组 工作台级 utility (`.ds-kbd` / `.ds-page-header*` / `.ds-section*` / `.ds-segmented*` / `.ds-task-row-text` / `.ds-task-row-meta`), 任务表格删 ID 列改用 meta 第二行 + 4 段状态筛选 segmented + 4 列 KPI; folder-sider head 重构; task-modal 批量语法抽成可折叠帮助卡; preview workspace 任务 summary 加 breadcrumb + 展开/收起. ele-autotesting 同步引入 `.ds-panel*` / `.ds-toolbar-divider` / `.ds-eyebrow` / `.ds-icon-btn-sm` / `.ds-workspace-row` / `.ds-kbd`, InputPanel / PromptPanel / TestPanel 三块统一引入 panel-head 视觉层级, App.vue 顶栏 action 按钮分两组. FastAPI app / 路由 / 监听 / R2 wheel 发布链路不变.
+
 ## [1.8.6] - 2026-05-20
 
 ### Changed

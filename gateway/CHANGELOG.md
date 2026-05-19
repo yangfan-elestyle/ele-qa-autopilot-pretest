@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.9.0] - 2026-05-20
+
+### Changed
+
+- lockstep 同步, 与上游 ele-autopilot / ele-autotesting v1.9.0 一同发布; 本项目无业务改动. 上游 v1.9.0 是一次工作台 UX 整体提级: ele-autopilot globals.css 新增 8 组工作台级 utility (`.ds-kbd` / `.ds-page-header*` / `.ds-section*` / `.ds-segmented*` / `.ds-task-row-text` / `.ds-task-row-meta`), task-content 主表格删除 ID 列改用任务行 meta 第二行 + 4 段状态筛选 segmented + 4 列 KPI; folder-sider head 重构为 icon-square + mono meta; preview workspace 任务 summary 加 breadcrumb + 展开/收起; task-modal 批量语法从 placeholder 改可折叠帮助卡; AppHeader 加 AutoPilot env-pill. ele-autotesting theme.css 同步引入 `.ds-panel*` / `.ds-toolbar-divider` / `.ds-eyebrow` / `.ds-icon-btn-sm` / `.ds-workspace-row` / `.ds-kbd`, InputPanel / PromptPanel / TestPanel 三块统一引入 `ds-panel-head` 视觉层级, MainLayout brand 改 `<a href="/">` link 形态 + 加 AutoTest env-pill, App.vue 顶栏 7 个 action 按钮重排为 "历史 / 模板 / 模型 | 数据 / 主题 / 首页" 两组. landing 页路由分发 / `/autotest/*` strip / SSR loader / service bindings 行为不变.
+
 ## [1.8.6] - 2026-05-20
 
 ### Changed

@@ -607,7 +607,7 @@ export default function AdminTaskExplorer() {
   return (
     <>
       <Layout className="ds-app-shell h-screen">
-        <AppHeader subtitle={selectedFolder ? selectedFolder.name : undefined} />
+        <AppHeader />
         <Layout className="min-h-0 flex-1 bg-transparent">
         <FolderSider
           treeSearch={treeSearch}

@@ -1,38 +1,44 @@
 <template>
   <ContentCardUI>
-    <div class="flex flex-col h-full">
-      <!-- Test Input Area -->
-      <div class="flex-none">
-        <!-- For user prompt optimization, show simplified test controls -->
-        <div class="space-y-4">
-          <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <h3 class="text-lg font-medium theme-text">
-              内容生成
-            </h3>
-            <div class="flex flex-wrap items-center gap-2">
-              <ModelSelectUI
-                ref="testModelSelect"
-                :modelValue="selectedTestModel"
-                @update:modelValue="updateSelectedModel"
-                :disabled="isTesting"
-                @config="$emit('showConfig')"
-              />
-              <button @click="handleTest" :disabled="isTesting || !selectedTestModel" class="h-10 px-4 text-sm font-medium theme-button-primary">
-                {{ isTesting ? '生成中...' : '开始生成 →' }}
-              </button>
-            </div>
-          </div>
+    <section class="ds-test-section flex flex-col h-full">
+      <!-- Test Input Area: panel head -->
+      <header class="ds-panel-head flex-none">
+        <div class="ds-panel-head-left">
+          <h3 class="ds-panel-title">
+            <span class="ds-panel-title-dot" aria-hidden="true"></span>
+            内容生成
+          </h3>
+          <span class="ds-panel-subtitle hidden sm:inline">
+            将左侧优化结果应用到具体提示, 检查输出
+          </span>
         </div>
-      </div>
+        <div class="ds-panel-head-right">
+          <ModelSelectUI
+            ref="testModelSelect"
+            :modelValue="selectedTestModel"
+            @update:modelValue="updateSelectedModel"
+            :disabled="isTesting"
+            @config="$emit('showConfig')"
+          />
+          <button @click="handleTest" :disabled="isTesting || !selectedTestModel" class="h-10 px-4 text-sm font-medium theme-button-primary inline-flex items-center gap-1">
+            <span>{{ isTesting ? '生成中...' : '开始生成' }}</span>
+            <svg v-if="!isTesting" class="h-3.5 w-3.5 opacity-90" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M5 12h14" />
+              <path d="m12 5 7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+      </header>
 
       <!-- Test Results Area -->
-      <div class="flex-1 min-h-0 md:overflow-hidden overflow-visible mt-5">
+      <div class="ds-test-body flex-1 min-h-0 md:overflow-hidden overflow-visible">
         <div class="relative h-full flex flex-col md:block">
           <!-- Optimized Prompt Test Result -->
           <div class="flex flex-col min-h-0 transition-all duration-300 min-h-[80px] md:absolute md:inset-0 md:h-full md:w-full md:left-0">
             <!-- Test Result Header with Add Action -->
             <div class="flex flex-col gap-2 mb-3 flex-none sm:flex-row sm:items-center sm:justify-between">
-              <h3 class="text-lg font-semibold theme-text truncate flex-shrink-0">
+              <h3 class="text-[13px] font-semibold theme-text truncate flex-shrink-0 inline-flex items-center gap-2">
+                <span class="inline-block h-1.5 w-1.5 rounded-full" style="background: var(--ds-text-tertiary)"></span>
                 生成结果
               </h3>
 
@@ -114,7 +120,7 @@
           </div>
         </div>
       </div>
-    </div>
+    </section>
   </ContentCardUI>
 </template>
 
@@ -479,6 +485,14 @@ const handleHistorySelected = (selectedRecords: PromptRecord[]) => {
   height: 1rem;
   border-radius: 0.25rem;
   cursor: pointer;
+}
+
+/* Test panel section padding */
+.ds-test-section {
+  min-height: 0;
+}
+.ds-test-body {
+  padding: 14px 16px 16px;
 }
 
 /* 自定义滚动条样式 */

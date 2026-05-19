@@ -533,6 +533,226 @@ body {
     transform: scale(0.99);
   }
 
+  /* —— Keyboard key (键盘按键提示) —— */
+  .ds-kbd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 5px;
+    border-radius: 5px;
+    background: var(--ds-surface-elevated);
+    color: var(--ds-text-secondary);
+    font-family: var(--ds-font-mono);
+    font-size: 10.5px;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0.02em;
+    box-shadow:
+      inset 0 -1px 0 rgba(15, 23, 42, 0.08),
+      inset 0 0 0 1px var(--ds-border-default);
+    font-feature-settings: 'tnum' 1;
+  }
+
+  /* —— Page header (统一页头区: 面包屑 + 标题 + 工具条) —— */
+  .ds-page-header {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .ds-page-header-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+    min-width: 0;
+  }
+  .ds-page-title {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--ds-text-primary);
+    line-height: 1.25;
+    margin: 0;
+  }
+  .ds-page-breadcrumb {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11.5px;
+    font-weight: 500;
+    color: var(--ds-text-tertiary);
+    letter-spacing: 0.01em;
+  }
+  .ds-page-breadcrumb-sep {
+    color: var(--ds-text-quaternary, var(--ds-text-tertiary));
+    opacity: 0.6;
+    font-size: 9px;
+  }
+  .ds-page-breadcrumb-current {
+    color: var(--ds-text-secondary);
+  }
+  .ds-page-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 9px;
+    border-radius: var(--ds-radius-pill);
+    background: var(--ds-brand-50);
+    color: var(--ds-brand-700);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.18);
+  }
+
+  /* —— Section: panel-head + body, autotesting 同款 —— */
+  .ds-section {
+    background: var(--ds-surface-elevated);
+    border: 1px solid var(--ds-border-soft);
+    border-radius: var(--ds-radius-lg);
+    box-shadow: var(--ds-shadow-sm);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .ds-section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--ds-border-soft);
+    background: linear-gradient(
+      180deg,
+      var(--ds-surface-elevated) 0%,
+      color-mix(in srgb, var(--ds-surface-subtle) 40%, transparent) 100%
+    );
+  }
+  .ds-section-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ds-text-primary);
+    letter-spacing: -0.005em;
+    margin: 0;
+  }
+  .ds-section-title-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--ds-brand-500);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
+  }
+  .ds-section-body {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+  }
+
+  /* —— Compact toolbar separator —— */
+  .ds-toolbar-divider {
+    width: 1px;
+    height: 18px;
+    background: var(--ds-border-default);
+    flex-shrink: 0;
+    margin: 0 2px;
+  }
+
+  /* —— Filter segmented (轻量段控件) —— */
+  .ds-segmented {
+    display: inline-flex;
+    align-items: stretch;
+    padding: 3px;
+    border-radius: 8px;
+    background: var(--ds-surface-subtle);
+    border: 1px solid var(--ds-border-soft);
+    gap: 0;
+  }
+  .ds-segmented-btn {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    color: var(--ds-text-secondary);
+    cursor: pointer;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.4;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition:
+      background-color var(--ds-motion-fast) var(--ds-ease-standard),
+      color var(--ds-motion-fast) var(--ds-ease-standard),
+      box-shadow var(--ds-motion-fast) var(--ds-ease-standard);
+  }
+  .ds-segmented-btn:hover {
+    color: var(--ds-text-primary);
+  }
+  .ds-segmented-btn--active {
+    background: var(--ds-surface-elevated);
+    color: var(--ds-brand-700);
+    box-shadow:
+      0 1px 2px rgba(15, 23, 42, 0.05),
+      0 0 0 1px rgba(99, 102, 241, 0.22);
+  }
+  .ds-segmented-btn:focus-visible {
+    outline: none;
+    box-shadow: var(--ds-shadow-focus);
+  }
+  .ds-segmented-btn-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    padding: 0 5px;
+    height: 16px;
+    border-radius: 999px;
+    background: var(--ds-surface-muted);
+    color: var(--ds-text-tertiary);
+    font-size: 10px;
+    font-weight: 600;
+    font-feature-settings: 'tnum' 1;
+  }
+  .ds-segmented-btn--active .ds-segmented-btn-count {
+    background: var(--ds-brand-100);
+    color: var(--ds-brand-700);
+  }
+
+  /* —— Task table row 视觉强化 —— */
+  .ds-task-row-text {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-break: break-word;
+    line-height: 1.55;
+    font-size: 13px;
+    color: var(--ds-text-primary);
+    transition: color var(--ds-motion-fast) var(--ds-ease-standard);
+  }
+  .ds-task-row-hover-target:hover .ds-task-row-text {
+    color: var(--ds-brand-700);
+  }
+  .ds-task-row-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--ds-text-tertiary);
+    font-feature-settings: 'tnum' 1;
+  }
+
   /* —— Job history card (preview workspace) —— */
   .ds-job-card {
     position: relative;

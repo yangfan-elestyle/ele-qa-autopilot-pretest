@@ -1,34 +1,23 @@
 <!-- 输入面板组件 -->
 <template>
-  <div class="space-y-3">
-    <!-- 标题 -->
-    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-      <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+  <section class="ds-input-section">
+    <!-- Panel head -->
+    <header class="ds-panel-head">
+      <div class="ds-panel-head-left">
+        <h3 class="ds-panel-title">
+          <span class="ds-panel-title-dot" aria-hidden="true"></span>
+          {{ label || '输入 Prompt' }}
+        </h3>
         <slot name="optimization-mode-selector"></slot>
-        <!-- <label class="block text-lg theme-label">{{ label }}</label> -->
-        <!-- 别名输入框 -->
-        <div v-if="optimizationMode === 'context'" class="flex-1 min-w-[120px]">
-          <input
-            :value="contextConfig.contentMark"
-            @input="$emit('update:contextConfig', { ...contextConfig, contentMark: ($event.target as HTMLInputElement).value })"
-            placeholder="上下文别名"
-            :class="['w-full px-2 py-1 text-sm theme-input', { 'border-red-400': !contextConfig.contentMark?.trim() }]"
-            required
-          />
-        </div>
-        <!-- 提示词类型选择器 -->
-        <PromptTypeSelector
-          v-if="optimizationMode === 'context'"
-          :contextConfig="contextConfig"
-          :contents="modelValue"
-          :optimized-prompt="optimizedPrompt"
-          @update:contextConfig="$emit('update:contextConfig', $event)"
-          @update:contents="$emit('update:modelValue', $event)"
-        />
       </div>
-      <div class="flex items-center space-x-3">
-        <button @click="openFullscreen" class="px-3 py-1.5 theme-button-secondary flex items-center space-x-2" title="展开">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <div class="ds-panel-head-right">
+        <button
+          @click="openFullscreen"
+          class="ds-icon-btn-sm"
+          title="全屏编辑"
+          aria-label="全屏编辑"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -37,49 +26,70 @@
           </svg>
         </button>
       </div>
-    </div>
+    </header>
 
-    <!-- 输入框 -->
-    <div class="relative">
-      <textarea
-        :value="modelValue"
-        @input="$emit('update:modelValue', ($event.target as HTMLTextAreaElement).value)"
-        class="w-full theme-input resize-none"
-        :placeholder="placeholder"
-        rows="4"
-      ></textarea>
-    </div>
-
-    <!-- 控制面板 -->
-    <div class="flex flex-wrap items-end gap-2">
-      <!-- 模型选择 -->
-      <div class="min-w-[120px] w-fit shrink-0">
-        <label class="block text-sm theme-label mb-1.5">{{ modelLabel }}</label>
-        <slot name="model-select"></slot>
+    <!-- Panel body -->
+    <div class="ds-input-body">
+      <!-- 上下文模式: 别名 + 类型选择器 -->
+      <div v-if="optimizationMode === 'context'" class="flex flex-wrap items-center gap-2">
+        <input
+          :value="contextConfig.contentMark"
+          @input="$emit('update:contextConfig', { ...contextConfig, contentMark: ($event.target as HTMLInputElement).value })"
+          placeholder="上下文别名 (必填)"
+          :class="['theme-input min-w-[150px] flex-1 sm:max-w-xs !py-2 !text-[13px]', { 'ds-input-error': !contextConfig.contentMark?.trim() }]"
+          required
+        />
+        <PromptTypeSelector
+          :contextConfig="contextConfig"
+          :contents="modelValue"
+          :optimized-prompt="optimizedPrompt"
+          @update:contextConfig="$emit('update:contextConfig', $event)"
+          @update:contents="$emit('update:modelValue', $event)"
+        />
       </div>
 
-      <!-- 提示词模板选择 -->
-      <div v-if="templateLabel" class="flex-1 basis-full sm:basis-0 min-w-0">
-        <label class="block text-sm theme-label mb-1.5 truncate">{{ templateLabel }}</label>
-        <slot name="template-select"></slot>
+      <!-- 主输入 textarea -->
+      <div class="relative">
+        <textarea
+          :value="modelValue"
+          @input="$emit('update:modelValue', ($event.target as HTMLTextAreaElement).value)"
+          class="w-full theme-input resize-none !font-mono !text-[13px] !leading-relaxed"
+          :placeholder="placeholder"
+          rows="4"
+        ></textarea>
       </div>
 
-      <!-- 控制按钮组插槽 -->
-      <slot name="control-buttons"></slot>
+      <!-- 控制行: 模型 + 模板 + 操作 + 提交 -->
+      <div class="ds-input-controls">
+        <div class="ds-input-controls-field min-w-[140px] w-fit shrink-0">
+          <label class="theme-label">{{ modelLabel }}</label>
+          <slot name="model-select"></slot>
+        </div>
 
-      <!-- 提交按钮 -->
-      <div class="min-w-[60px] flex-1 sm:flex-none">
-        <div class="hidden sm:block h-[20px] mb-1.5"><!-- 占位，与其他元素对齐 --></div>
-        <button
-          @click="$emit('submit')"
-          :disabled="loading || disabled || !modelValue.trim() || (optimizationMode === 'context' && !isValidPromptData)"
-          class="w-full h-10 theme-button-primary flex items-center truncate justify-center space-x-1"
-        >
-          <span>{{ loading ? loadingText : buttonText }}</span>
-        </button>
+        <div v-if="templateLabel" class="ds-input-controls-field flex-1 basis-full sm:basis-0 min-w-0">
+          <label class="theme-label truncate">{{ templateLabel }}</label>
+          <slot name="template-select"></slot>
+        </div>
+
+        <slot name="control-buttons"></slot>
+
+        <div class="ds-input-controls-submit min-w-[120px] flex-1 sm:flex-none">
+          <span class="theme-label opacity-0 select-none hidden sm:block" aria-hidden="true">submit</span>
+          <button
+            @click="$emit('submit')"
+            :disabled="loading || disabled || !modelValue.trim() || (optimizationMode === 'context' && !isValidPromptData)"
+            class="w-full h-10 theme-button-primary flex items-center truncate justify-center gap-1"
+          >
+            <span>{{ loading ? loadingText : buttonText }}</span>
+            <svg v-if="!loading" class="h-3.5 w-3.5 opacity-90" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M5 12h14" />
+              <path d="m12 5 7 7-7 7" />
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
-  </div>
+  </section>
 
   <!-- 全屏弹窗 -->
   <FullscreenDialog v-model="isFullscreen" :title="label">
@@ -94,7 +104,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed, type PropType } from 'vue'
+import { computed, type PropType } from 'vue'
 import { useFullscreen } from '../composables/useFullscreen'
 import FullscreenDialog from './FullscreenDialog.vue'
 import PromptTypeSelector from './PromptTypeSelector.vue'
@@ -178,3 +188,47 @@ const { isFullscreen, fullscreenValue, openFullscreen } = useFullscreen(
   (value) => emit('update:modelValue', value),
 )
 </script>
+
+<style scoped>
+.ds-input-section {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--ds-border-soft);
+}
+
+.ds-input-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px 16px;
+}
+
+.ds-input-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.ds-input-controls-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ds-input-controls-field .theme-label {
+  margin: 0;
+}
+
+.ds-input-controls-submit {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ds-input-error {
+  border-color: var(--ds-danger) !important;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12) !important;
+}
+</style>

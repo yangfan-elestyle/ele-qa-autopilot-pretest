@@ -2,7 +2,44 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
-## [1.8.6] - 2026-05-20
+## [1.9.0] - 2026-05-20
+
+整体目标: 把任务后台从"草稿感"拉到"成熟科技公司管理后台"层级, 集中升级页面层级 / 表格密度 / 视图状态机 / KPI 节奏 / 空状态文案 / 弹窗信息层级.
+
+### Added
+
+- `app/globals.css` 新增 8 组工作台级 design token utility class, 收敛此前散落在各 component 的 inline 视觉:
+  - `.ds-kbd` 键盘按键提示: 等宽字体 + inset 阴影双层(底边 + 1px 描边), 与 macOS 风格键盘按键一致.
+  - `.ds-page-header` + `.ds-page-header-row` + `.ds-page-title` + `.ds-page-breadcrumb` + `.ds-page-breadcrumb-sep` + `.ds-page-breadcrumb-current` + `.ds-page-eyebrow` 一组"页头"语义类: 面包屑(11.5px tertiary) → 标题(18px primary -0.01em letter-spacing) → 工具栏 三层垂直节奏, 替代 task-content 此前 inline 用 `text-[12px]` / `text-(--ds-text-tertiary)` / `RightOutlined fontSize:9` 散写的 breadcrumb.
+  - `.ds-section` + `.ds-section-head` + `.ds-section-title` + `.ds-section-title-dot` + `.ds-section-body`: 主区表面卡 head + body 双段结构, head 自带 gradient 底色与 1px soft 分隔, title 自带 brand-500 圆点 + 18% 软光晕, 与 autotesting 的 ds-panel-head 一一对齐.
+  - `.ds-toolbar-divider` 18px vertical 1px 分隔条, 用于 toolbar 视觉分组.
+  - `.ds-segmented` + `.ds-segmented-btn` + `.ds-segmented-btn--active` + `.ds-segmented-btn-count`: 轻量段控件(state filter), active 态 elevated 白底 + 1px brand-22% ring + 微 shadow, 内嵌计数 chip (active 时 brand-100 / brand-700, 否则 surface-muted / tertiary), 替代 task list 多用 ant-btn group + 手写 disabled.
+  - `.ds-task-row-text` 三行 line-clamp + line-height 1.55 + 13px primary, hover 整行切 brand-700, 替代原本任务行 `max-h-44 + overflow-auto` 内部滚动的反常体感.
+  - `.ds-task-row-meta` 任务行第二行 meta (id mono + 任务链 chain icon) 排版.
+
+### Changed
+
+- `app/admin/_components/task-content.tsx` 全面重写工作区:
+  - 页面头从"chip 串 + 单行标题"重排为 `ds-page-breadcrumb` → `ds-page-title` → `ds-segmented` 三层, breadcrumb 写 "任务工作台 › <folder>", title 后挂 1 个 count chip + 1 个 "进行中" pulse chip (loading 旋转 spin), 全局工具按钮 (刷新 / 已选 / 新建任务) 右对齐.
+  - 搜索行下方接 `ds-segmented`, 4 段状态筛选: 全部 / 未运行 / 进行中(info tint) / 有失败(danger tint), 每段带行数 chip, 切换走纯前端 filter, 不再 round-trip 后端.
+  - KPI strip 从 5 列改 4 列 (任务总数 / 成功率 / 进行中 / 失败累计), 中间被收敛的"累计执行"下沉到"任务总数 hint"; 各 tile 文案改 "X 已运行 · Y 待执行" / "跨 N 次执行" / "占 X% · N 任务" 等具体度量, 删除"-"占位.
+  - Task 表格列从 4 列 (ID / 任务内容 / 执行统计 / 操作) 改 3 列 (任务内容 / 执行统计 / 操作), id 下沉为任务行 meta 第二行 (mono 11px tertiary), 任务链数量也下沉到 meta. 主单元用 `.ds-task-row-text` 三行 line-clamp + 横向 ellipsis 替代原本 `max-h-44 overflow-auto` 单元内滚动.
+  - JobStatsDisplay 空态从 `"-"` 单字符改 "未运行" uppercase tracking, 与下方 Empty state 语义一致.
+- `app/admin/_components/folder-sider.tsx` 顶部 head 重构:
+  - 单 chip "X" 改为 brand-50 软底 icon-square + 标题 + mono `X 路径 · Y 任务` meta 三段堆叠, 强化"路径管理工作区" 而非"普通 sider".
+  - "展开 / 折叠" 按钮从主按钮组拆到 head 右侧 icon button group, 主按钮 "新建路径" 独占一行 + block, 提升主动作权重.
+- `app/admin/_components/admin-task-explorer.tsx` AppHeader 不再传 subtitle (避免与 task-content 内的 page header 重复).
+- `app/admin/_components/app-header.tsx` brand 旁追加 `AutoPilot` env-pill (uppercase + 0.08em letter-spacing + brand-500 1.5px 圆点), 与 autotesting 端的 `Studio 就绪` pill 对仗, 明确多工作台身份.
+- `app/admin/_components/task-modal.tsx` 批量分隔语法 (`+++` / `%%%`) 从灰色 placeholder 提到 head 右侧可折叠"批量创建语法"按钮, 展开后是 `ds-banner-info` 带语法演示代码块, 不再让新用户在 placeholder 里读语法.
+- `app/admin/preview/_components/preview-workspace.tsx` task summary 区:
+  - 顶部加 `ds-page-breadcrumb` "任务工作台 › 执行历史 › #xxxxxxxx", 与任务后台 breadcrumb 对仗.
+  - 任务文本从 `max-h-20 overflow-auto` 改 2 行 line-clamp + "展开任务详情 / 收起" 切换按钮, 阈值 240 字符, 超过才出按钮.
+
+### Removed
+
+- `app/admin/_components/task-content.tsx` ID 列 (96px width responsive md) 与单元内"max-h-44 内滚"行为, ID 改 meta 第二行 mono 8 字符前缀.
+
+
 
 ### Added
 

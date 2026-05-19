@@ -50,17 +50,17 @@
 
       <!-- Actions Slot -->
       <template #actions>
-        <ActionButtonUI text="返回首页" @click="goHome">
+        <!-- 工作流主操作组 -->
+        <ActionButtonUI text="历史" @click="promptHistory.showHistory = true">
           <template #icon>
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-              <polyline points="9 22 9 12 15 12 15 22" />
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+              <path d="M3 3v5h5" />
+              <path d="M12 7v5l4 2" />
             </svg>
           </template>
         </ActionButtonUI>
-        <ThemeToggleUI />
-        <span class="ds-vrule hidden sm:inline-block" aria-hidden="true"></span>
-        <ActionButtonUI text="功能提示词" @click="openTemplateManager">
+        <ActionButtonUI text="模板" @click="openTemplateManager">
           <template #icon>
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -70,16 +70,7 @@
             </svg>
           </template>
         </ActionButtonUI>
-        <ActionButtonUI text="上下文" @click="promptHistory.showHistory = true">
-          <template #icon>
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-              <path d="M3 3v5h5" />
-              <path d="M12 7v5l4 2" />
-            </svg>
-          </template>
-        </ActionButtonUI>
-        <ActionButtonUI text="模型管理" @click="modelManager.showConfig = true">
+        <ActionButtonUI text="模型" @click="modelManager.showConfig = true">
           <template #icon>
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
@@ -87,12 +78,25 @@
             </svg>
           </template>
         </ActionButtonUI>
-        <ActionButtonUI text="数据管理" @click="showDataManager = true">
+
+        <span class="ds-vrule hidden sm:inline-block" aria-hidden="true"></span>
+
+        <!-- 设置组: 数据 + 主题 + 返回首页 -->
+        <ActionButtonUI text="数据" @click="showDataManager = true">
           <template #icon>
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <ellipse cx="12" cy="5" rx="9" ry="3" />
               <path d="M3 5v14a9 3 0 0 0 18 0V5" />
               <path d="M3 12a9 3 0 0 0 18 0" />
+            </svg>
+          </template>
+        </ActionButtonUI>
+        <ThemeToggleUI />
+        <ActionButtonUI text="首页" @click="goHome">
+          <template #icon>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+              <polyline points="9 22 9 12 15 12 15 22" />
             </svg>
           </template>
         </ActionButtonUI>

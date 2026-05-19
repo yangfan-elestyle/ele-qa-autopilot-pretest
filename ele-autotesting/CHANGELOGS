@@ -1,3 +1,49 @@
+# 2026.05.20 (lockstep v1.9.0)
+
+1. lockstep 同步至 v1.9.0, 与 gateway / ele-autopilot / ele-autopilot-local 一同发布. 本端 AutoTest 工作台本轮**有实质 UX 升级**, 同步 ele-autopilot 的"工作台拔升"动作, 让两个工作台体感统一到"成熟科技公司管理后台" 层级.
+
+2. `packages/ui/src/styles/theme.css` 新增 7 组工作台级共享 utility class (与 ele-autopilot 同名 / 同语义):
+   - `.ds-kbd`: macOS 风格键盘按键徽 (mono + inset 双层阴影底边 + 1px 描边).
+   - `.ds-panel` + `.ds-panel-head` + `.ds-panel-head-left` + `.ds-panel-head-right` + `.ds-panel-title` + `.ds-panel-title-dot` + `.ds-panel-subtitle` + `.ds-panel-body` + `.ds-panel-body--flush`: 双段 section 结构, head 自带 gradient 底色 + 1px soft 分隔, title 自带 brand-500 圆点 + 18% 软光晕, 与 ele-autopilot `.ds-section*` 视觉契约一致.
+   - `.ds-toolbar-divider`: 18px vertical 1px 分隔条, 用于 toolbar 视觉分组.
+   - `.ds-eyebrow`: 标题上方 11px uppercase / 0.04em letter-spacing brand-50 软底 pill (用于强调 section 类别).
+   - `.ds-icon-btn-sm`: 32x32 头部辅助 icon button (区别于 toolbar `.theme-icon-button` 36x?), hover surface-subtle + active brand-50 + 1px ring.
+   - `.ds-workspace-row`: 工作区横向并排容器, lg 下 row + 16px gap, 默认 column + 12px gap (代替 MainLayout main `flex flex-col lg:flex-row` 手写).
+
+3. `packages/ui/src/components/MainLayout.vue` 顶栏重构:
+   - brand mark + 标题 + sub 改为 `<a href="/" class="ds-brand-link">` link 形态 (text-decoration: none + hover surface-subtle + focus-visible 4px brand ring), 与 ele-autopilot AppHeader brand link 行为一致.
+   - 旁追加 `AutoTest` env-pill (uppercase + 0.08em letter-spacing + brand-500 1.5px 圆点 + surface-subtle + 1px ring), 与 ele-autopilot AppHeader `AutoPilot` env-pill 对仗, 明确多工作台身份. `Studio 就绪` status-pill 显示阈值从 md (768px) 提到 lg (1024px), 避免中等屏挤压.
+   - main flex 改用 `.ds-workspace-row` token 类, padding 从 `px-2 py-2 sm:px-4 sm:py-4` 改 `px-3 py-3 sm:px-4 sm:py-4` (移动端不再过窄).
+
+4. `packages/web/src/App.vue` 顶栏 actions slot 重排, 7 个 button 从平铺改两组:
+   - 工作流主操作组: `历史` / `模板` / `模型` (按工作流序: 加载历史 → 选模板 → 选模型). 文案从"上下文 / 功能提示词 / 模型管理"统一缩短到 2 字, 减少视觉噪声.
+   - 设置组 (`ds-vrule` 分隔): `数据` / `主题切换` / `首页` (返回 gateway). 文案"数据管理 → 数据".
+   - 改前: `首页 / 主题 | 功能提示词 / 上下文 / 模型管理 / 数据管理` 6 个混排; 改后两组语义清晰, 主操作组在前 + 设置组在后.
+
+5. `packages/ui/src/components/ContentCard.vue` 移除内层 `p-3 sm:p-4 space-y-3 sm:space-y-4`, 让内嵌 InputPanel + PromptPanel 各自走 panel-head + body 自管 padding (替代原本"白卡 + 内边距 + 子组件无 head" 的扁平节奏).
+
+6. `packages/ui/src/components/InputPanel.vue` 完全重写:
+   - 顶部加 `.ds-panel-head`: 左侧 brand-dot 标题 + `OptimizationModeSelector` 段控件; 右侧全屏 icon-btn-sm (替代原本主按钮组里的全屏按钮).
+   - body 加 `.ds-input-body` (14/16 padding + 10px gap): context 模式专属"上下文别名 + PromptTypeSelector"独占一行 (`min-w-150 + flex-1`), 错误态加 `.ds-input-error` (danger border + 3px ring) 替代原本 inline `border-red-400`.
+   - 控制行重排为 `.ds-input-controls` (flex-end gap-10): 模型 select 字段 + 模板 select 字段 (basis 各占一份) + 控制按钮 slot + 提交按钮.
+   - 提交按钮加 right arrow icon (`m12 5 7 7-7 7` chevron), 与"开始优化"语义对齐, 与 hero CTA 同款视觉.
+
+7. `packages/ui/src/components/PromptPanel.vue`:
+   - 把组件级 scoped `.ds-panel-head` / `.ds-panel-head-left` / `.ds-panel-head-right` / `.ds-panel-title` / `.ds-panel-title-dot` 5 个类删除, 直接使用全局 theme.css 等价 class, 与 InputPanel / TestPanel 三组面板视觉契约一致.
+   - 主标题文案 "优化后" 改 "优化结果", 强化"结果区" 语义.
+   - "继续优化" 按钮加 title "基于当前结果迭代下一版".
+   - body 加 `.ds-output-body` (14/16 padding) 与 InputPanel `.ds-input-body` 节奏一致.
+   - 移动端 `.ds-panel-head` 改 flex-direction column 等响应式样式由全局类处理.
+
+8. `packages/ui/src/components/TestPanel.vue`:
+   - 顶部从 `<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><h3>内容生成</h3><模型+按钮></div>` 改 `.ds-panel-head` 段, 左侧 brand-dot 标题 + 13px subtitle "将左侧优化结果应用到具体提示, 检查输出", 右侧 ModelSelect + 开始生成按钮 (带右箭头 icon).
+   - body 加 `.ds-test-body` (14/16 padding) 与 InputPanel / PromptPanel 节奏一致.
+   - 子标题"生成结果" 从 lg 字号改 13px + 1.5px tertiary 圆点前缀, 区分主面板标题与子区域标题层级.
+
+9. 视觉一致性总目标达成: ele-autopilot AppHeader + page header + section + KPI strip + segmented filter 与 ele-autotesting MainLayout + panel-head + body 同一套节奏、同一套圆点 brand dot、同一套 env-pill, 两个工作台第一眼像一个产品的两面.
+
+
+
 # 2026.05.20 (lockstep v1.8.6)
 
 1. lockstep 同步至 v1.8.6, 与 gateway / ele-autopilot / ele-autopilot-local 一同发布. AutoTest 前端本轮跟随上游持续扩充 utility 类系统, 视觉契约本端 (`packages/ui/src/styles/theme.css`) 同步引入 3 组等价 class.

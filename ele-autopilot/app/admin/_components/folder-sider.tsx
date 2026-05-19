@@ -10,7 +10,7 @@ import {
 } from '@ant-design/icons';
 import { Button, Drawer, Input, Layout, Tooltip, Tree } from 'antd';
 import type { TreeDataNode, TreeProps } from 'antd';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useIsMobile } from '../_hooks/use-is-mobile';
 import type { Folder, Id } from '../_types';
@@ -95,22 +95,60 @@ export default function FolderSider({
   };
 
   const totalFolders = folderById.size;
+  const totalTasks = useMemo(() => {
+    let n = 0;
+    for (const f of folderById.values()) n += f.task_count ?? 0;
+    return n;
+  }, [folderById]);
 
   const body = (
     <div className="flex h-full flex-col gap-3">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <FolderOpenOutlined
+        <div className="flex min-w-0 items-center gap-2">
+          <span
+            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md"
             style={{
+              background: 'var(--ds-brand-50)',
               color: 'var(--ds-brand-600)',
-              fontSize: 16,
+              boxShadow: 'inset 0 0 0 1px rgba(99, 102, 241, 0.18)',
             }}
-          />
-          <span className="text-[13px] font-semibold tracking-tight text-(--ds-text-primary)">
-            任务目录
+          >
+            <FolderOpenOutlined style={{ fontSize: 14 }} />
+          </span>
+          <span className="flex min-w-0 flex-col leading-tight">
+            <span className="text-[13px] font-semibold tracking-tight text-(--ds-text-primary)">
+              任务目录
+            </span>
+            <span
+              className="ds-text-mono text-[10.5px]"
+              style={{ color: 'var(--ds-text-tertiary)' }}
+            >
+              {totalFolders} 路径 · {totalTasks} 任务
+            </span>
           </span>
         </div>
-        <span className="ds-chip ds-chip-neutral ds-text-mono">{totalFolders}</span>
+        <div className="inline-flex items-center gap-0.5">
+          <Tooltip title="展开全部">
+            <Button
+              size="small"
+              type="text"
+              icon={<ExpandOutlined />}
+              onClick={() => onExpand(Array.from(folderById.keys()))}
+              aria-label="展开全部"
+              className="!h-7 !w-7"
+            />
+          </Tooltip>
+          <Tooltip title="折叠全部">
+            <Button
+              size="small"
+              type="text"
+              icon={<CompressOutlined />}
+              onClick={() => onExpand([])}
+              aria-label="折叠全部"
+              className="!h-7 !w-7"
+            />
+          </Tooltip>
+        </div>
       </div>
 
       <Input
@@ -122,30 +160,14 @@ export default function FolderSider({
         className="shrink-0"
       />
 
-      <div className="flex shrink-0 gap-2">
-        <Button
-          type="primary"
-          icon={<FolderAddOutlined />}
-          onClick={onCreateRoot}
-          className="flex-1"
-        >
-          新建路径
-        </Button>
-        <Tooltip title="展开全部">
-          <Button
-            icon={<ExpandOutlined />}
-            onClick={() => onExpand(Array.from(folderById.keys()))}
-            aria-label="展开全部"
-          />
-        </Tooltip>
-        <Tooltip title="折叠全部">
-          <Button
-            icon={<CompressOutlined />}
-            onClick={() => onExpand([])}
-            aria-label="折叠全部"
-          />
-        </Tooltip>
-      </div>
+      <Button
+        type="primary"
+        icon={<FolderAddOutlined />}
+        onClick={onCreateRoot}
+        block
+      >
+        新建路径
+      </Button>
 
       <div
         className="min-h-0 flex-1 overflow-auto rounded-lg pr-1 pt-1"
