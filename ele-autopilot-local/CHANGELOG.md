@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.6.4] - 2026-05-19
+
+### Changed
+
+- lockstep 同步, 与上游 gateway v1.6.4 一同发布; 本项目无业务改动. 上游 gateway landing footer 新增动态后缀友情链接 `agentic-loop-ui`: `app/routes/home.tsx` loader 加 `deriveFriendLink(origin)` 用 `new URL(request.url).origin` 取当前 host, 把首个 `.` 之前的 label 替换为 `agentic-loop-ui` 保留剩余 host (含端口与后续 label); host 不含 `.` 或匹配 IPv4 `/^\d+\.\d+\.\d+\.\d+(:\d+)?$/` 时返回 `null` 短路不渲染, 避免开发态错链; 配 `app/app.css` `.footer-friend` (`flex-basis: 100%` + 11px subtle 字号 + `<a>` underline `text-decoration-color: var(--border)`) 渲染在 footer 末行, `target="_blank"` + `rel="noopener noreferrer"`. 实际访问 host 为 `ele-qa-autopilot.<domain>` 时友链指向 `https://agentic-loop-ui.<domain>` (后缀实时跟随当前域名, 不写死). FastAPI app / 路由 / `0.0.0.0:8000` 监听 / `--version` / `--help` / `upgrade` shim 链路 / R2 wheel 发布路径不变.
+
 ## [1.6.3] - 2026-05-19
 
 ### Changed

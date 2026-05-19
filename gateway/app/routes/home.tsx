@@ -13,10 +13,24 @@ export function meta(_args: Route.MetaArgs) {
 }
 
 const VERSION_RE = /^[0-9][0-9a-zA-Z.\-+]{0,31}$/;
+const IP_RE = /^\d+\.\d+\.\d+\.\d+(:\d+)?$/;
+
+function deriveFriendLink(origin: string): string | null {
+  try {
+    const url = new URL(origin);
+    const host = url.host;
+    const dotIdx = host.indexOf(".");
+    if (dotIdx === -1 || IP_RE.test(host)) return null;
+    return `${url.protocol}//agentic-loop-ui${host.slice(dotIdx)}`;
+  } catch {
+    return null;
+  }
+}
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const { env } = context.cloudflare;
   const origin = new URL(request.url).origin;
+  const friendLink = deriveFriendLink(origin);
   let version: string | null = null;
   try {
     const res = await env.AUTOPILOT.fetch(
@@ -29,7 +43,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   } catch {
     /* fall back to client fetch */
   }
-  return { version, origin };
+  return { version, origin, friendLink };
 }
 
 export default function Home({ loaderData }: Route.ComponentProps) {
@@ -177,6 +191,18 @@ export default function Home({ loaderData }: Route.ComponentProps) {
             <a href="/autotest">AutoTest</a>
             <a href="/healthz">服务状态</a>
           </nav>
+          {loaderData.friendLink ? (
+            <p className="footer-friend" aria-label="友情链接">
+              <span>友情链接</span>
+              <a
+                href={loaderData.friendLink}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                agentic-loop-ui
+              </a>
+            </p>
+          ) : null}
         </footer>
       </div>
     </main>

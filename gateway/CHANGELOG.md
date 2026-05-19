@@ -2,6 +2,13 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.6.4] - 2026-05-19
+
+### Added
+
+- `app/routes/home.tsx` landing footer 加 `agentic-loop-ui` 友情链接 (上游站点, 当前服务部分能力来自该站). loader 新增 `deriveFriendLink(origin)`: 用 `new URL(request.url).origin` 取当前 host, 把首个 `.` 之前的 label 替换为 `agentic-loop-ui`, 保留协议 + 剩余 host (含端口与后续 label); host 不含 `.` (e.g. `localhost:5173`) 或匹配 IPv4 `/^\d+\.\d+\.\d+\.\d+(:\d+)?$/` 时返回 `null`, 渲染时短路不出友链, 避免开发态生成 `agentic-loop-ui.0.0.1:5173` 这种错链. 推导结果与 `version` / `origin` 一起经 SSR loader 注入, 不依赖 hydration; 实际访问 host 为 `ele-qa-autopilot.<domain>` 时, 渲染指向 `https://agentic-loop-ui.<domain>` (后缀实时跟随当前域名, 不写死). footer 在原 `.footer-version` + `.footer-links` 后插入条件渲染 `<p className="footer-friend">`, 文案 `友情链接 · agentic-loop-ui`, `<a>` 带 `target="_blank"` + `rel="noopener noreferrer"`.
+- `app/app.css` 新增 `.footer-friend` 样式: `flex-basis: 100%` 配合既有 `.footer` `flex-wrap: wrap` 让友链独占第二行 (顶行 `.footer-version` / `.footer-links` 仍 `space-between` 不受影响), 字号 `11px` (比 footer 主行 `12px` 再低一级), 颜色 `var(--fg-subtle)`, `gap: 8px` + `margin-top: 4px`; `<a>` underline + `text-decoration-color: var(--border)` + `text-underline-offset: 2px`, hover 切到 `var(--accent)`. 整体压低视觉权重, 不与 `.cards` 双卡片入口或 `.install` 安装区竞争. service binding `AUTOPILOT` & `AUTOTEST` 路径分发 / `/autotest/*` strip 转发 / `version` fetch 行为不变.
+
 ## [1.6.3] - 2026-05-19
 
 ### Changed
