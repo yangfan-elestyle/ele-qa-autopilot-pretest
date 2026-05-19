@@ -4,6 +4,13 @@ on:
   push:
     tags:
       - 'v*'
+    # main push 触发 cache warm-up: GitHub Actions cache 按 ref scope 隔离, tag push 写入的 cache
+    # 只在该 tag scope 可见, 新 tag (e.g. v1.6.5) 看不到旧 tag (v1.6.4) 的 cache → 每次 release
+    # 都 miss + 重跑 apt-get / pip install. 唯一例外: default branch (main) scope 的 cache 对
+    # 其他 ref fallback restore 可见. 这里加 main trigger 让 main push 跑一次 build & save
+    # 到 main scope, 后续 tag push 通过 restore-keys 兜底命中 main scope.
+    branches:
+      - main
 
 concurrency:
   group: autotesting-${{ github.ref }}
@@ -22,6 +29,7 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Verify tag matches package.json version
+        if: startsWith(github.ref, 'refs/tags/')
         run: |
           pkg_version="$(jq -r .version package.json)"
           tag="${{ github.ref_name }}"
@@ -88,26 +96,33 @@ jobs:
       # D1 schema 由 packages/server/migrations/*.sql 维护, wrangler deploy 不会自动 apply.
       # 这里在 deploy 之前对 remote DB 跑一次 migrations apply (幂等), 避免首次部署或
       # 新增 migration 后 /api/sync/* 因为 storage 表缺失直接 500.
+      # 仅 tag push 跑 (main push 仅 cache warm-up, 不动 prod DB).
       - name: Apply D1 migrations (remote)
+        if: startsWith(github.ref, 'refs/tags/')
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: pnpm --filter @prompt-optimizer/server exec wrangler d1 migrations apply DB --remote
 
+      # 仅 tag push 跑 (main push 仅 cache warm-up, 不部署 worker).
       - name: Deploy Worker + Container
+        if: startsWith(github.ref, 'refs/tags/')
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: pnpm --filter @prompt-optimizer/server exec wrangler deploy
 
-      # wrangler 的 docker build 不会 --cache-to, 新 layer 仅停留在 buildkitd 内.
-      # 显式跑一次 export-only build, 把当前 daemon 内 cache 落盘以喂下次 run.
-      # output type=cacheonly: 不产 image artifact, 只导出 BuildKit cache, 几秒.
+      # 显式跑一次 export-only build 落盘 layer cache, 让 actions/cache@v4 post-step 上传到当前 ref scope.
+      # - tag push: wrangler deploy 阶段已喂 layer 进 buildkitd, 这里 --cache-from 命中, 几秒 export.
+      # - main push: 上面没跑过 deploy, buildkitd 内为空, --cache-from 找到本 step Warm 加载的 cache
+      #   (若 restore 命中) 或从零跑 (首次), export 后 post-step 上传到 main scope, 喂给下次 run.
+      # output type=cacheonly: 不产 image artifact, 只导出 BuildKit cache.
       - name: Persist buildx layer cache
         if: always()
         run: |
           docker buildx build \
             --platform linux/amd64 \
+            --cache-from type=local,src=/tmp/.buildx-cache \
             --cache-to type=local,dest=/tmp/.buildx-cache-new,mode=max \
             -f containers/markitdown/Dockerfile \
             --output type=cacheonly \
