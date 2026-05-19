@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.6.8] - 2026-05-19
+
+### Changed
+
+- lockstep 同步, 与上游 ele-autotesting v1.6.8 一同发布; 本项目无业务改动. 上游修 v1.6.7 引入的 autotesting Capture step condition bug (改 `patched != 'true'`, 让 markitdown 未改但 cache 首次 miss 走 rebuild path 时也 capture URI) + 去掉过度设计的 main trigger. 期望 v1.6.9 起 lockstep 占位发版的 autotesting tag run 自动走 reuse path. D1 / R2 / API / Worker 绑定 / `install.sh` 渲染 / R2 wheel 拉取 / SHA256 校验 / 返回首页 button 行为不变.
+
 ## [1.6.7] - 2026-05-19
 
 ### Changed

@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.6.8] - 2026-05-19
+
+### Changed
+
+- lockstep 同步, 与上游 ele-autotesting v1.6.8 一同发布; 本项目无业务改动. 本版用途: 修 v1.6.7 引入的 autotesting Capture step condition bug + 去掉过度设计的 main trigger, 重新 seed image URI cache. v1.6.7 把 Capture step 的 condition 写成 `steps.markitdown.outputs.changed != 'false'`, markitdown 未改但 image URI cache 首次 miss 走 rebuild path 时此 step 被错误 skipped, URI 没写入 `/tmp/markitdown-image-uri.txt`, actions/cache post-step 找不到 path 报 `Path Validation Error` 警告但不报错 (workflow 仍 success), 实际 cache 是空的, 下次发版照样 cache miss. 本版改为对齐 buildx 几步的 `steps.patch.outputs.patched != 'true'` 判断 (rebuild path 走过就 capture, 与 changed 状态解耦). 同时去掉 v1.6.6 引入的 `on.push.branches: [main]` (image URI cache 是主线后, buildx layer cache 仅在 markitdown 真改 + rebuild 时有边际价值, main trigger 每次 push main 后台跑 ~80s 收益过低, 过度设计). 期望 v1.6.8 仍 rebuild path (~130-160 s) 但 Capture 正常写 URI 到 cache, v1.6.9 起未改 markitdown 的 lockstep 占位发版自动走 reuse path (~30-50 s). SSR landing / service binding / 路径分发 / `version` fetch / 友情链接卡片 / 安装区 / 返回首页 button 契约不变.
+
 ## [1.6.7] - 2026-05-19
 
 ### Changed
