@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.5.15] - 2026-05-19
+
+### Changed
+
+- lockstep 同步, 与上游 gateway / ele-autopilot / ele-autotesting v1.5.15 一同发布; 本项目无业务改动. 上游变化: ele-autopilot 渲染的 `install.sh` 加 `ensure_runtime` 前置, 自动 bootstrap 缺失的运行时, 同时把用户可见 `info` 文案中性化; gateway landing 安装区由三步改两步 (用户不再需要单独装运行时). 本项目 CLI / 本机 `0.0.0.0:8000` HTTP 接口与回调契约不变, wheel / sdist 产物经 `uv build` 生成后仍按既有路径推到 R2 `ele-autopilot-releases/local/<ver>/`.
+
 ## [1.5.14] - 2026-05-19
 
 ### Changed

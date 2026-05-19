@@ -1,3 +1,7 @@
+# 2026.05.19 (lockstep v1.5.15)
+
+1. 版本号 lockstep 同步 1.5.14 → 1.5.15, 与上游 gateway / ele-autopilot / ele-autopilot-local v1.5.15 一同发布; 本项目无业务改动. 上游变化: ele-autopilot `install.sh` 加 `ensure_runtime` 前置, 缺失运行时时静默 bootstrap 并把日志捕获到 `mktemp`, 仅失败时回吐, 用户终端 `info` 文案统一中性话术; gateway landing 安装本地 agent 区块由三步改两步 (Step 1 安装命令、Step 2 启动命令), 删去原独立的运行时安装命令. SPA `base=/autotest/` 经 gateway `/autotest/*` strip 转发的契约不变.
+
 # 2026.05.19 (lockstep v1.5.14)
 
 1. mobile 小屏阅读阻塞收尾, 上接 v1.5.13 已做的 InputPanel 控制面板 `flex-wrap` 与提交按钮 `flex-1 sm:flex-none`. 收尾覆盖以下 2 处:

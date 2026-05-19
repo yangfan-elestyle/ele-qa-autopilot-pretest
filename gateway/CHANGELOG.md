@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.5.15] - 2026-05-19
+
+### Changed
+
+- `app/routes/home.tsx` landing 安装本地 agent 区块由三步收敛到两步: 删除原 Step 1 `安装 uv (已装可跳过)` (命令 `curl -LsSf https://astral.sh/uv/install.sh | sh`), Step 2 / 3 顺位上移为 Step 1 (安装 ele-autopilot) / Step 2 (启动); 顶部说明 `三步完成. 启动后 agent 监听 0.0.0.0:8000, 等待任务派单.` 同步改 `两步完成. ...`. 上游 ele-autopilot `install.sh` 已内嵌运行时探测与静默 bootstrap, 用户复制两条命令即可拉起本机 agent. `/autotest/*` strip 转发与 service binding 契约不变.
+
 ## [1.5.14] - 2026-05-19
 
 ### Changed
@@ -114,6 +120,9 @@
 - Service bindings: `AUTOPILOT` → `ele-autopilot`, `AUTOTEST` → `ele-autotesting` (两业务 Worker 同步关闭 `workers_dev`).
 - 单文件 fetch handler, 无框架依赖, 内嵌 landing HTML.
 
+[1.5.15]: about:blank
+[1.5.14]: about:blank
+[1.5.13]: about:blank
 [1.5.12]: about:blank
 [1.5.11]: about:blank
 [1.5.10]: about:blank

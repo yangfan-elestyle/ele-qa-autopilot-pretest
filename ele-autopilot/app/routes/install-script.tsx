@@ -21,7 +21,26 @@ err()  { printf 'error: %s\\n' "\$*" >&2; exit 1; }
 info() { printf '%s\\n' "\$*"; }
 
 command -v curl >/dev/null 2>&1 || err "curl is required"
-command -v uv   >/dev/null 2>&1 || err "uv not found. install: curl -LsSf https://astral.sh/uv/install.sh | sh"
+
+ensure_runtime() {
+  if command -v uv >/dev/null 2>&1; then
+    return 0
+  fi
+  info "==> Preparing runtime"
+  log="\$(mktemp)"
+  if ! curl -LsSf https://astral.sh/uv/install.sh | sh >"\$log" 2>&1; then
+    cat "\$log" >&2
+    rm -f "\$log"
+    err "runtime bootstrap failed"
+  fi
+  rm -f "\$log"
+  for cand in "\$HOME/.local/bin" "\$HOME/.cargo/bin"; do
+    [ -x "\$cand/uv" ] && PATH="\$cand:\$PATH"
+  done
+  export PATH
+  command -v uv >/dev/null 2>&1 || err "runtime bootstrap failed"
+}
+ensure_runtime
 
 VERSION="\${VERSION:-latest}"
 if [ "\$VERSION" = "latest" ]; then
@@ -59,7 +78,7 @@ if hash_line="\$(curl -fsSL --retry 3 "\$checksums_url" 2>/dev/null | grep " \$w
   fi
 fi
 
-info "==> Installing via uv tool"
+info "==> Installing"
 uv tool install --reinstall "\$tmp_wheel"
 
 info ""

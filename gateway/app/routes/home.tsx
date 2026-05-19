@@ -156,18 +156,13 @@ export default function Home({ loaderData }: Route.ComponentProps) {
             <span className="meta">macOS · AutoPilot 派单时由本机执行任务</span>
           </div>
           <p className="install-desc">
-            三步完成. 启动后 agent 监听 <code>0.0.0.0:8000</code>,
+            两步完成. 启动后 agent 监听 <code>0.0.0.0:8000</code>,
             等待任务派单.
           </p>
           <ol className="steps">
+            <Step num={1} title="安装 ele-autopilot" cmd={installCmd} />
             <Step
-              num={1}
-              title="安装 uv (已装可跳过)"
-              cmd="curl -LsSf https://astral.sh/uv/install.sh | sh"
-            />
-            <Step num={2} title="安装 ele-autopilot" cmd={installCmd} />
-            <Step
-              num={3}
+              num={2}
               title="启动 (需 Gemini API Key)"
               cmd="ELE_LLM_API_KEY=<your-gemini-api-key> ele-autopilot"
             />

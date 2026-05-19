@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.5.15] - 2026-05-19
+
+### Changed
+
+- `app/routes/install-script.tsx` 渲染的 `install.sh` 加 `ensure_runtime` 前置: 检测无 `uv` 时静默拉 `https://astral.sh/uv/install.sh | sh` 完成 bootstrap (输出全部捕获到 `mktemp` 日志, 仅失败时回吐 stderr), 安装后把 `$HOME/.local/bin` 与 `$HOME/.cargo/bin` 追加进本次脚本 PATH 再校验 `command -v uv`, 失败统一报 `runtime bootstrap failed`. 用户终端可见的 `info` 文案统一为中性话术 `==> Preparing runtime` / `==> Installing`, 不再出现 `uv` 字样 (原 `==> Installing via uv tool` 改 `==> Installing`); 实际仍走 `uv tool install --reinstall <wheel>` 安装. 配合 gateway landing 同步把安装区块从三步改两步, 终端 UX 一条 curl 命令直接拉起本机 agent. `latest.txt` 解析 / R2 wheel 下载 / SHA256 校验 / `--retry 3` 行为不变. D1 / R2 / API / Worker 绑定无改动.
+
 ## [1.5.14] - 2026-05-19
 
 ### Fixed
