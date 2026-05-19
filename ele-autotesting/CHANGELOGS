@@ -1,4 +1,24 @@
-# 2026.05.20 (lockstep v1.8.3)
+# 2026.05.20 (lockstep v1.8.4)
+
+1. lockstep 同步至 v1.8.4, 与 gateway / ele-autopilot / ele-autopilot-local 一同发布. AutoTest 工作台首次引入与 ele-autopilot 等价的共享 utility 类系统.
+
+2. `packages/ui/src/styles/theme.css` 新增 4 组复用 utility class (与 ele-autopilot `globals.css` 同名 / 同语义, 跨产品视觉契约):
+   - `.ds-status-pill` + 5 variant (`success` / `info` / `danger` / `warning` / `neutral`): 12px 字号胶囊式状态徽章, `4px 10px` padding + 9999px 圆角 + inset 1px ring 边框, 动效 token 化.
+   - `.ds-chip` + 6 variant (`neutral` / `brand` / `success` / `danger` / `info` / `warning`): 11px 数字 / 标签胶囊, 启用 `tnum` 等宽数字.
+   - `.ds-vrule` (20px 垂直 1px 分隔条) + `.ds-divider-h` (横向 1px).
+   - `.ds-brand-mark`: 通用品牌方块 (indigo 渐变 + 0.35 透明品牌阴影 + 1px inner white ring).
+   - `.ds-status-dot-pulse`: 8px 状态点 + 2.4s 脉冲扩散 (`::after` scale + opacity), 替代静态 `.ds-status-dot`.
+
+3. `packages/ui/src/components/MainLayout.vue` 顶栏内联样式全部抽出:
+   - brand 方块从 inline `linear-gradient(135deg, ...) + 0.32 透明品牌阴影` 收敛到 `.ds-brand-mark` class.
+   - "Studio 就绪" 徽章从 inline `rgba(22, 163, 74, 0.12) bg + inset 1px ring` + 静态 `.ds-status-dot` 收敛到 `.ds-status-pill ds-status-pill-success` + `.ds-status-dot-pulse` (2.4s 脉冲扩散), 与 ele-autopilot AppHeader "本地 Agent · 已连接" 徽章视觉完全对称.
+
+4. `packages/web/src/App.vue` 顶栏 actions slot 6 个 button 之间加 `.ds-vrule` 分组隔断:
+   - 组 1 (导航 / 外观): 返回首页, 主题切换.
+   - 组 2 (工作流): 功能提示词, 上下文, 模型管理, 数据管理.
+   - 替代原本 6 个 ActionButton 一字排开缺视觉层级的草稿感.
+
+
 
 1. lockstep 同步至 v1.8.3, 与 gateway / ele-autopilot / ele-autopilot-local 一同发布.
 

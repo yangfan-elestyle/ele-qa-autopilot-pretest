@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.8.4] - 2026-05-20
+
+### Changed
+
+- lockstep 同步, 与上游 ele-autopilot / ele-autotesting v1.8.4 一同发布; 本项目无业务改动. 上游 ele-autopilot preview workspace 抽出 inline `tonemap` 改用 `ds-chip` token 类; ele-autotesting 同步引入与 ele-autopilot 等价的 `.ds-status-pill` / `.ds-chip` / `.ds-vrule` / `.ds-brand-mark` / `.ds-status-dot-pulse` utility 类, MainLayout 顶栏 brand mark / Studio 就绪徽章抽出 inline 样式, AutoTest 工作台顶栏 6 个 actions 加 `.ds-vrule` 分组. landing 页路由分发 / `/autotest/*` strip / SSR loader / service bindings 行为不变.
+
 ## [1.8.3] - 2026-05-20
 
 ### Changed

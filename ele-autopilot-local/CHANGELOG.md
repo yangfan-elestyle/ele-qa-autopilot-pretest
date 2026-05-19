@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.8.4] - 2026-05-20
+
+### Changed
+
+- lockstep 同步, 与上游 gateway / ele-autopilot / ele-autotesting v1.8.4 一同发布; 本项目无业务改动. 上游主要内容: ele-autopilot preview workspace `StatBadge` 与 banner / sider 数字 chip 抽出 inline tonemap 改用 `.ds-chip` token 类; ele-autotesting 引入与 autopilot 等价的 `.ds-status-pill` / `.ds-chip` / `.ds-vrule` / `.ds-brand-mark` / `.ds-status-dot-pulse` 共享 utility 类, MainLayout brand 块与 Studio 就绪徽章抽出 inline 样式, 顶栏 6 个 actions 加 `.ds-vrule` 分组. FastAPI app / 路由 / 监听 / R2 wheel 发布链路不变.
+
 ## [1.8.3] - 2026-05-20
 
 ### Changed

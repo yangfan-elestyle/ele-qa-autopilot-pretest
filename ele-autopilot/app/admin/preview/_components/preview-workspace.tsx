@@ -91,13 +91,7 @@ export default function PreviewWorkspace({
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 text-[11px] font-medium tracking-wide text-(--ds-text-tertiary) uppercase">
               <span>当前任务</span>
-              <span
-                className="ds-text-mono rounded-full px-1.5 py-px text-[10px]"
-                style={{
-                  background: 'var(--ds-surface-subtle)',
-                  color: 'var(--ds-text-secondary)',
-                }}
-              >
+              <span className="ds-chip ds-chip-neutral ds-text-mono">
                 {task.id.slice(0, 8)}
               </span>
             </div>
@@ -156,15 +150,7 @@ export default function PreviewWorkspace({
                     执行历史
                   </span>
                 </div>
-                <span
-                  className="ds-text-mono rounded-full px-2 py-0.5 text-[11px] font-medium"
-                  style={{
-                    background: 'var(--ds-surface-subtle)',
-                    color: 'var(--ds-text-tertiary)',
-                  }}
-                >
-                  {jobs.length}
-                </span>
+                <span className="ds-chip ds-chip-neutral ds-text-mono">{jobs.length}</span>
               </div>
               <div className="min-h-0 flex-1 overflow-hidden">
                 <JobHistoryList
@@ -216,22 +202,10 @@ function StatBadge({
   value: number;
   tone: 'neutral' | 'success' | 'danger' | 'info';
 }) {
-  const toneMap = {
-    neutral: { fg: 'var(--ds-text-secondary)', bg: 'var(--ds-surface-subtle)' },
-    success: { fg: '#15803d', bg: 'rgba(22, 163, 74, 0.1)' },
-    danger: { fg: '#b91c1c', bg: 'rgba(220, 38, 38, 0.08)' },
-    info: { fg: '#2563eb', bg: 'rgba(37, 99, 235, 0.1)' },
-  } as const;
-  const t = toneMap[tone];
   return (
-    <span
-      className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium"
-      style={{ color: t.fg, background: t.bg }}
-    >
+    <span className={`ds-chip ds-chip-${tone}`} style={{ gap: '6px' }}>
       <span className="opacity-70">{label}</span>
-      <span className="ds-text-mono text-[12px]" style={{ fontFeatureSettings: '"tnum" 1' }}>
-        {value}
-      </span>
+      <span className="ds-text-mono text-[12px]">{value}</span>
     </span>
   );
 }

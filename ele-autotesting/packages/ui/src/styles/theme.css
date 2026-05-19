@@ -893,6 +893,151 @@ html * {
     border: 1px solid rgba(220, 38, 38, 0.32);
   }
 
+  /* ============================== Shared Utility (与 ele-autopilot 等价) ============================== */
+  .ds-text-mono {
+    font-family: var(--ds-font-mono);
+    font-feature-settings: 'tnum' 1;
+  }
+  .ds-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    display: inline-block;
+  }
+  .ds-status-dot-pulse {
+    position: relative;
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    display: inline-block;
+    background: currentColor;
+  }
+  .ds-status-dot-pulse::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: currentColor;
+    animation: ds-status-pulse 2.4s ease-out infinite;
+    opacity: 0.6;
+  }
+  @keyframes ds-status-pulse {
+    0% {
+      transform: scale(1);
+      opacity: 0.6;
+    }
+    70% {
+      transform: scale(2.4);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(2.4);
+      opacity: 0;
+    }
+  }
+
+  .ds-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.4;
+    white-space: nowrap;
+    transition:
+      background-color var(--ds-motion-fast) var(--ds-ease-standard),
+      color var(--ds-motion-fast) var(--ds-ease-standard),
+      box-shadow var(--ds-motion-fast) var(--ds-ease-standard);
+  }
+  .ds-status-pill-success {
+    background: rgba(22, 163, 74, 0.12);
+    color: #15803d;
+    box-shadow: inset 0 0 0 1px rgba(22, 163, 74, 0.28);
+  }
+  .ds-status-pill-info {
+    background: rgba(37, 99, 235, 0.12);
+    color: #2563eb;
+    box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.28);
+  }
+  .ds-status-pill-danger {
+    background: rgba(220, 38, 38, 0.1);
+    color: #b91c1c;
+    box-shadow: inset 0 0 0 1px rgba(220, 38, 38, 0.28);
+  }
+  .ds-status-pill-warning {
+    background: rgba(217, 119, 6, 0.12);
+    color: #b45309;
+    box-shadow: inset 0 0 0 1px rgba(217, 119, 6, 0.28);
+  }
+  .ds-status-pill-neutral {
+    background: var(--ds-surface-subtle);
+    color: var(--ds-text-secondary);
+    box-shadow: inset 0 0 0 1px var(--ds-border-soft);
+  }
+
+  .ds-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.5;
+    font-feature-settings: 'tnum' 1;
+    white-space: nowrap;
+  }
+  .ds-chip-neutral {
+    background: var(--ds-surface-subtle);
+    color: var(--ds-text-tertiary);
+  }
+  .ds-chip-brand {
+    background: var(--ds-brand-50);
+    color: var(--ds-brand-700);
+  }
+  .ds-chip-success {
+    background: rgba(22, 163, 74, 0.12);
+    color: #15803d;
+  }
+  .ds-chip-danger {
+    background: rgba(220, 38, 38, 0.1);
+    color: #b91c1c;
+  }
+  .ds-chip-info {
+    background: rgba(37, 99, 235, 0.12);
+    color: #2563eb;
+  }
+  .ds-chip-warning {
+    background: rgba(217, 119, 6, 0.12);
+    color: #b45309;
+  }
+
+  .ds-vrule {
+    display: inline-block;
+    width: 1px;
+    height: 20px;
+    background: var(--ds-border-default);
+    flex-shrink: 0;
+  }
+  .ds-divider-h {
+    height: 1px;
+    background: var(--ds-border-soft);
+    width: 100%;
+  }
+
+  .ds-brand-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    background: linear-gradient(135deg, var(--ds-brand-500) 0%, var(--ds-brand-700) 100%);
+    box-shadow:
+      0 2px 6px rgba(99, 102, 241, 0.35),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  }
+
   /* ============================== Manager warnings / borders / bgs ============================== */
   .theme-manager-warning-container {
     background: var(--ds-warning-soft);

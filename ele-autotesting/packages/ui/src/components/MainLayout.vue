@@ -4,10 +4,7 @@
     <header class="theme-header flex-none">
       <div class="w-full mx-auto px-3 sm:px-5 h-[60px] flex justify-between items-center gap-3">
         <div class="flex items-center gap-2.5 min-w-0">
-          <div
-            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white shadow-sm"
-            style="background: linear-gradient(135deg, var(--ds-brand-500) 0%, var(--ds-brand-700) 100%); box-shadow: 0 2px 6px rgba(99, 102, 241, 0.32);"
-          >
+          <div class="ds-brand-mark flex h-9 w-9 shrink-0 items-center justify-center rounded-lg">
             <img src="../assets/logo.png" alt="" class="h-5 w-5" />
           </div>
           <div class="hidden sm:flex flex-col leading-tight min-w-0">
@@ -22,12 +19,11 @@
             <slot name="title">AutoTest</slot>
           </h1>
           <span
-            class="hidden md:inline-flex items-center gap-1.5 ml-2 rounded-full px-2.5 py-1 text-[11px] font-medium"
-            style="background: rgba(22, 163, 74, 0.12); color: #15803d; box-shadow: inset 0 0 0 1px rgba(22, 163, 74, 0.28);"
+            class="hidden md:inline-flex ds-status-pill ds-status-pill-success ml-2"
             title="Studio 已就绪"
             aria-label="Studio 已就绪"
           >
-            <span class="ds-status-dot" aria-hidden="true"></span>
+            <span class="ds-status-dot-pulse" aria-hidden="true"></span>
             Studio 就绪
           </span>
         </div>

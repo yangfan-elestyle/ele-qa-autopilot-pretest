@@ -2,6 +2,15 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.8.4] - 2026-05-20
+
+### Changed
+
+- `app/admin/preview/_components/preview-workspace.tsx` 抽出全部内联 tonemap, 与任务列表页风格统一:
+  - `StatBadge` (preview banner 右侧"总 / 成功 / 失败 / 进行中") 从 4 色 inline `fg/bg` map (`#15803d` / `#b91c1c` / `#2563eb` + 3 色 rgba bg) 收敛到 `ds-chip ds-chip-{tone}` 一行声明, mono 数字仍走 `ds-text-mono` token, 风格与 task-content StatChip 完全对称.
+  - Task summary banner 的 task id 短码 chip 从 inline `rounded-full + bg/color` 收敛到 `ds-chip ds-chip-neutral ds-text-mono`.
+  - 左侧执行历史 sider 顶部 jobs 数量 chip 同样收敛到 `ds-chip ds-chip-neutral ds-text-mono`, 与 task-content / folder-sider header 三处数字胶囊视觉完全一致.
+
 ## [1.8.3] - 2026-05-20
 
 ### Added
