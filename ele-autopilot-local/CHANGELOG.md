@@ -2,6 +2,12 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.8.3] - 2026-05-20
+
+### Changed
+
+- lockstep 同步, 与上游 gateway / ele-autopilot / ele-autotesting v1.8.3 一同发布; 本项目无业务改动. 上游主要内容: gateway landing 完成品牌色从 `#0969da` 到 indigo `#4f46e5` 的迁移 + hero/cards/install 视觉提级; ele-autopilot AppHeader 抽出全部内联样式改用 `.ds-status-pill` / `.ds-chip` / `.ds-vrule` / `.ds-brand-mark` 通用 token 类, 三产品 motion / spacing token 完全对齐. FastAPI app / 路由 / `0.0.0.0:8000` 监听 / `--version` / `--help` / `upgrade` shim 链路 / R2 wheel 发布路径 / browser-use Agent 执行链路不变.
+
 ## [1.8.2] - 2026-05-20
 
 ### Changed

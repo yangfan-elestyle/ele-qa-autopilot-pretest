@@ -3,11 +3,13 @@ import type { Route } from "./+types/home";
 
 export function meta(_args: Route.MetaArgs) {
   return [
-    { title: "QA AutoPilot" },
+    { title: "QA AutoPilot · 任务编排与 AI 测试用例工作台" },
     {
       name: "description",
-      content: "QA AutoPilot — 任务编排与 AI 测试用例工作台.",
+      content:
+        "QA AutoPilot — 一体化的测试编排与 AI 用例生成平台. 派单本地浏览器 agent, 把需求与 Figma 翻成可执行用例.",
     },
+    { name: "theme-color", content: "#4f46e5" },
     { name: "robots", content: "index,follow" },
   ];
 }
@@ -71,23 +73,28 @@ export default function Home({ loaderData }: Route.ComponentProps) {
               className="brand-mark"
               src="/favicon.svg"
               alt=""
-              width={28}
-              height={28}
+              width={32}
+              height={32}
             />
-            <span>QA AutoPilot</span>
+            <span className="brand-text">
+              QA AutoPilot
+              <span className="sub">Console</span>
+            </span>
           </div>
           <span className="status" aria-label="服务运行中">
             <span className="status-dot" aria-hidden="true" />
-            运行中
+            服务运行中
           </span>
         </header>
 
         <section className="hero">
+          <span className="hero-eyebrow">Test Orchestration · AI 用例生成</span>
           <h1>
             QA 工作流, <em>一站做完.</em>
           </h1>
           <p>
-            编排测试任务、派单到本地浏览器 agent, 同时用 AI 把需求与设计稿翻成可执行测试用例.
+            编排测试任务并派单到本地浏览器 agent 自动执行, 同时用 AI 把需求文档与
+            Figma 设计稿翻成结构化、可复用的测试用例.
           </p>
         </section>
 

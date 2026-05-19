@@ -61,6 +61,15 @@
     'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
   --ds-font-mono:
     'JetBrains Mono', 'SF Mono', 'Roboto Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+
+  /* Motion */
+  --ds-motion-fast: 0.14s;
+  --ds-motion-base: 0.18s;
+  --ds-motion-slow: 0.28s;
+  --ds-ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ds-ease-decelerate: cubic-bezier(0, 0, 0.2, 1);
+  --ds-ease-accelerate: cubic-bezier(0.4, 0, 1, 1);
+  --ds-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 :root.dark {

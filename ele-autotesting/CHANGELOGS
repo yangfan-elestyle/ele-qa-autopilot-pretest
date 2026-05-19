@@ -1,4 +1,16 @@
-# 2026.05.20 (lockstep v1.8.2)
+# 2026.05.20 (lockstep v1.8.3)
+
+1. lockstep 同步至 v1.8.3, 与 gateway / ele-autopilot / ele-autopilot-local 一同发布.
+
+2. `packages/ui/src/styles/theme.css` 引入 motion token 子系统:
+   - `--ds-motion-fast` (0.14s) / `--ds-motion-base` (0.18s) / `--ds-motion-slow` (0.28s).
+   - `--ds-ease-standard` (0.4, 0, 0.2, 1) / `--ds-ease-decelerate` / `--ds-ease-accelerate` / `--ds-ease-spring` (0.34, 1.56, 0.64, 1).
+   - 与 gateway `app.css` / ele-autopilot `globals.css` 同名 token 完全对齐, 三产品 transition 时长 / 缓动统一.
+   - 后续 AutoTest 工作台所有自定义 transition 应消费这些 token, 不再硬编码 0.15s / 0.18s / 0.22s / 0.25s 等散值.
+
+3. AutoTest 前端无业务改动; gateway 完成品牌色从 `#0969da` 到 indigo `#4f46e5` 的迁移后, 用户首屏 landing 与本工作台视觉语言完整闭环.
+
+
 
 1. AutoTest 前端工作台 UX 提级, 与 v1.8.1 autopilot 的提级形成对称.
 

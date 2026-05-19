@@ -2,6 +2,27 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.8.3] - 2026-05-20
+
+### Added
+
+- `app/globals.css` 引入 motion token 子系统 (`--ds-motion-fast/base/slow` + `--ds-ease-standard/decelerate/accelerate/spring`), 与 gateway / ele-autotesting 同名 token 对齐, 全工程 transition 时长 / 缓动从散落硬编码统一到 3 档.
+- `app/globals.css` 新增 4 组复用 utility class, 直接消除任务后台内联样式:
+  - `.ds-status-pill` + 5 variant (`success` / `info` / `danger` / `warning` / `neutral`): 12px 字号胶囊式状态徽章, inset ring 边框, 动效 token 化.
+  - `.ds-chip` + 6 variant (`neutral` / `brand` / `success` / `danger` / `info` / `warning`): 11px 数字 / 标签胶囊, 启用 `tnum` 等宽数字, 替代任务列表 / 目录树到处出现的 inline `padding + rounded-full + bg/color`.
+  - `.ds-vrule` (20px 垂直 1px 分隔条) + `.ds-divider-h` (横向 1px), 给顶栏与工具栏的 actions 分组提供统一隔断.
+  - `.ds-brand-mark`: 36 / 32 / 28px 通用品牌方块 (indigo 渐变 + 0.35 透明品牌阴影 + 1px inner white ring), 替代各 brand 入口的 inline gradient.
+  - `.ds-status-dot-pulse`: 8px 状态点 + 2.4s 脉冲扩散 (`::after` scale + opacity), 替代原 ds-status-dot 静态点.
+
+### Changed
+
+- `app/admin/_components/app-header.tsx` 抽出全部内联样式:
+  - `StatusBadge` 三态 (connected / checking / disconnected) 从各自 21 行 inline `background / color / boxShadow` 收敛到一行 `ds-status-pill ds-status-pill-{success/info/danger}`, connected 态用 `ds-status-dot-pulse` 替代静态 dot.
+  - 顶栏 brand 容器从 inline `linear-gradient(135deg, ...) + boxShadow + 1px white inner ring` 收敛到 `ds-brand-mark` class.
+  - 顶栏 actions 区 (rightExtra / 返回首页按钮 / Agent Settings) 之间加 `ds-vrule` 垂直 1px 分隔, 替代原本 actions 全挤在一起没有视觉分组的草稿感; subtitle 与 brand 之间的 inline `1px h-5 width-px background` 也改用 `ds-vrule`.
+- `app/admin/_components/task-content.tsx` 表格 `StatChip` (任务执行统计的数字 chip) 从 inline tonemap 4 色 (`#475569` / `#15803d` / `#b91c1c` / `#2563eb` 配 4 色 rgba) 直接收敛到 `ds-chip ds-chip-{tone}`, 列表行的 hover / selected 与 chip 颜色完全 token 同步.
+- `app/admin/_components/task-content.tsx` 与 `app/admin/_components/folder-sider.tsx`: page header 任务条数 (`{taskCount} 条`) 与目录树总数 chip 改用 `ds-chip ds-chip-neutral ds-text-mono`, 替代原本两处重复的 `rounded-full px-2 py-0.5 text-[11px] + inline background / color`.
+
 ## [1.8.2] - 2026-05-20
 
 ### Changed

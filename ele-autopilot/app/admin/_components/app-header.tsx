@@ -30,44 +30,25 @@ function StatusBadge({
   if (status === 'connected') {
     return (
       <span
-        className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
-        style={{
-          background: 'rgba(22, 163, 74, 0.12)',
-          color: '#15803d',
-          boxShadow: 'inset 0 0 0 1px rgba(22, 163, 74, 0.28)',
-        }}
+        className="ds-status-pill ds-status-pill-success"
         title={uptime ? `已运行 ${Math.floor(uptime / 60)} 分钟` : undefined}
       >
-        <span className="ds-status-dot" style={{ background: '#16a34a' }} />
+        <span className="ds-status-dot-pulse" aria-hidden="true" />
         本地 Agent · 已连接
       </span>
     );
   }
   if (status === 'checking') {
     return (
-      <span
-        className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
-        style={{
-          background: 'rgba(37, 99, 235, 0.12)',
-          color: '#2563eb',
-          boxShadow: 'inset 0 0 0 1px rgba(37, 99, 235, 0.28)',
-        }}
-      >
+      <span className="ds-status-pill ds-status-pill-info">
         <LoadingOutlined />
         本地 Agent · 检测中
       </span>
     );
   }
   return (
-    <span
-      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
-      style={{
-        background: 'rgba(220, 38, 38, 0.1)',
-        color: '#b91c1c',
-        boxShadow: 'inset 0 0 0 1px rgba(220, 38, 38, 0.28)',
-      }}
-    >
-      <span className="ds-status-dot" style={{ background: '#dc2626' }} />
+    <span className="ds-status-pill ds-status-pill-danger">
+      <span className="ds-status-dot" style={{ background: 'currentColor' }} />
       本地 Agent · 未连接
     </span>
   );
@@ -242,14 +223,7 @@ export default function AppHeader({
         className="flex shrink-0 items-center gap-2.5 rounded-md px-1.5 py-1 transition-colors hover:bg-(--ant-color-fill-tertiary)"
         aria-label="返回首页"
       >
-        <span
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-white shadow-sm"
-          style={{
-            background:
-              'linear-gradient(135deg, var(--ds-brand-500) 0%, var(--ds-brand-700) 100%)',
-            boxShadow: '0 2px 6px rgba(99, 102, 241, 0.35)',
-          }}
-        >
+        <span className="ds-brand-mark flex h-8 w-8 items-center justify-center rounded-lg">
           <BrandMark />
         </span>
         <span className="hidden flex-col leading-tight sm:flex">
@@ -267,10 +241,7 @@ export default function AppHeader({
 
       {subtitle && (
         <>
-          <span
-            className="hidden h-5 w-px shrink-0 sm:block"
-            style={{ background: 'var(--ds-border-default)' }}
-          />
+          <span className="ds-vrule hidden sm:inline-block" aria-hidden="true" />
           <span className="hidden truncate text-sm font-medium text-(--ds-text-secondary) sm:inline">
             {subtitle}
           </span>
@@ -281,6 +252,8 @@ export default function AppHeader({
 
       {rightExtra}
 
+      {rightExtra && <span className="ds-vrule hidden sm:inline-block" aria-hidden="true" />}
+
       <Tooltip title="返回首页">
         <Button
           type="text"
@@ -290,6 +263,8 @@ export default function AppHeader({
           href={homeHref}
         />
       </Tooltip>
+
+      <span className="ds-vrule hidden sm:inline-block" aria-hidden="true" />
 
       <AgentSettingsPopover />
     </header>

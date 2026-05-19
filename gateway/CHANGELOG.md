@@ -2,6 +2,19 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.8.3] - 2026-05-20
+
+### Changed
+
+- `app/app.css` 重写: 品牌色从 GitHub 蓝 (`#0969da`) 迁移至 indigo (`--ds-brand-600 #4f46e5`), 与下游 ele-autopilot / ele-autotesting 视觉语言完全对齐, 消除三产品之间的颜色断层. 引入 `--ds-brand-{50..800}` 完整色阶 + `--motion-{fast/base/slow}` + 4 个 ease 缓动函数 + `--shadow-brand` 品牌阴影 + `--focus-ring` 统一焦点环, 全局 transition 时长与曲线从 4 套零散 (0.15s / 0.18s / 0.22s / 0.25s) 收敛到 3 档 token. dark 模式 token 与下游同步.
+- `app/routes/home.tsx` landing 视觉提级:
+  - `meta` 加 `theme-color #4f46e5`; title / description 扩写为「QA AutoPilot · 任务编排与 AI 测试用例工作台」.
+  - brand 区从单 32px logo + "QA AutoPilot" 升级到 mark + 主名 + uppercase `Console` 副标识.
+  - hero 加 `.hero-eyebrow` 胶囊「Test Orchestration · AI 用例生成」, accent-soft 软底 + accent-ring inset + dot indicator, 替代裸 h1 直接落下的草稿感.
+  - hero `<em>` 渐变从纯 indigo→紫 改为 indigo→violet→cyan 三色渐变, 与下游品牌副色呼应.
+  - 顶栏 status pill 从 `运行中` 改为 `服务运行中`, dot pulse 动画时长延长到 2.4s, 与 ele-autopilot AppHeader 一致.
+- `app/app.css` 视觉细节: 整页加 subtle grid 纹理 (`linear-gradient` 56px 网格 + radial mask), hero ambient gradient 双色 (indigo + sky) 替代单色, cards 加 `::before` 顶部 1px brand-soft 渐变 highlight (hover 时显现), card-icon 加 `linear-gradient(soft→soft-strong)` + accent-ring inset 替代单色软底, install 区顶部加 1px brand-soft 渐变 accent line, step-num 用 accent-soft 软底 + accent-ring 替代灰底, copy 按钮 hover 时切 accent-soft 软底 + accent 文字.
+
 ## [1.8.2] - 2026-05-20
 
 ### Changed

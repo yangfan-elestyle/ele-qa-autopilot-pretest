@@ -55,21 +55,9 @@ function StatChip({
   label: string;
   tone: 'neutral' | 'success' | 'danger' | 'info';
 }) {
-  const toneMap: Record<typeof tone, { color: string; bg: string }> = {
-    neutral: { color: '#475569', bg: 'rgba(148, 163, 184, 0.14)' },
-    success: { color: '#15803d', bg: 'rgba(22, 163, 74, 0.12)' },
-    danger: { color: '#b91c1c', bg: 'rgba(220, 38, 38, 0.1)' },
-    info: { color: '#2563eb', bg: 'rgba(37, 99, 235, 0.12)' },
-  };
-  const t = toneMap[tone];
   return (
     <Tooltip title={label}>
-      <span
-        className="ds-text-mono inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium"
-        style={{ color: t.color, background: t.bg }}
-      >
-        {value}
-      </span>
+      <span className={`ds-chip ds-chip-${tone} ds-text-mono`}>{value}</span>
     </Tooltip>
   );
 }
@@ -251,15 +239,7 @@ export default function TaskContent({
               <h1 className="m-0 truncate text-[18px] font-semibold tracking-tight text-(--ds-text-primary)">
                 {selectedFolder ? selectedFolder.name : '任务列表'}
               </h1>
-              <span
-                className="ds-text-mono rounded-full px-2 py-0.5 text-[11px] font-medium"
-                style={{
-                  background: 'var(--ds-surface-subtle)',
-                  color: 'var(--ds-text-tertiary)',
-                }}
-              >
-                {taskCount} 条
-              </span>
+              <span className="ds-chip ds-chip-neutral ds-text-mono">{taskCount} 条</span>
             </div>
           </div>
 

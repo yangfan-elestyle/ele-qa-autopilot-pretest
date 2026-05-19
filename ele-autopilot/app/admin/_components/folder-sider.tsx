@@ -110,15 +110,7 @@ export default function FolderSider({
             任务目录
           </span>
         </div>
-        <span
-          className="ds-text-mono rounded-full px-2 py-0.5 text-[11px] font-medium"
-          style={{
-            background: 'var(--ds-surface-subtle)',
-            color: 'var(--ds-text-tertiary)',
-          }}
-        >
-          {totalFolders}
-        </span>
+        <span className="ds-chip ds-chip-neutral ds-text-mono">{totalFolders}</span>
       </div>
 
       <Input
