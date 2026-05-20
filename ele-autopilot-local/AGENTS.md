@@ -2,7 +2,7 @@
 
 macOS 本地浏览器自动化 HTTP 服务。FastAPI + `browser-use` + Gemini (`ChatGoogle`), uv 管理, LLM Agent 驱动本机 Chrome 执行任务.
 
-版本与发布遵从根 `AGENTS.md` / `deploy.md`: `pyproject.toml#version` 必须等于 git tag 去 `v`; 改代码需更新 `CHANGELOG.md`.
+版本 / 发布等通用规则见根 [AGENTS.md](../AGENTS.md) 与 [deploy.md](../deploy.md).
 
 ## Runtime
 
@@ -16,7 +16,7 @@ macOS 本地浏览器自动化 HTTP 服务。FastAPI + `browser-use` + Gemini (`
 
 - `routers/autopilot.py`: `/autopilot/*` Job 创建、查询、停止、删除.
 - `autopilot/job_service.py`: 创建 Job、内存存储、异步调度.
-- `autopilot/job.py`: 串行执行 Task, 聚合 `PENDING -> RUNNING -> COMPLETED/FAILED`.
+- `autopilot/job.py`: 串行执行 Task, 聚合 `PENDING -> RUNNING -> COMPLETED/FAILED`. 状态机与 server `ele-autopilot/lib/db/jobs.ts#syncJobStatusFromTasks` 必须保持一致.
 - `autopilot/task.py`: 初始化 LLM / Browser, 调 `browser_use.Agent`.
 - `autopilot/task_action.py`: 解析 `AgentHistoryList`, 提取 summary / steps / screenshots 等结构化信息.
 - `autopilot/callback.py`: Server 集成模式下回调 `ele-autopilot`.

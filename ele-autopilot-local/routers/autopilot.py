@@ -10,41 +10,27 @@ router = APIRouter(prefix="/autopilot", tags=["autopilot"])
 
 
 class AutopilotRunRequest(JobConfig):
-    """
-    启动 autopilot Job 的请求体
+    """启动 autopilot Job 的请求体.
 
-    支持两种模式：
-    1. Local 独立模式：tasks 为字符串列表
-    2. Server 集成模式：tasks 为 TaskInput 列表（含 id 和 text）
-
-    Server 集成模式时，job_id 和 callback_url 必填。
+    Local 模式: tasks 为字符串列表.
+    Server 集成模式: tasks 为 TaskInput 列表, 同时必填 job_id 与 callback_url.
     """
 
-    job_id: str | None = None  # Server 传入则使用，否则 Local 自己生成
-    tasks: list[str] | list[TaskInput]  # 支持字符串列表或 TaskInput 列表
-    callback_url: str | None = None  # 有则回调 Server，无则不回调
+    job_id: str | None = None
+    tasks: list[str] | list[TaskInput]
+    callback_url: str | None = None
 
 
 @router.post("/run")
 async def run_autopilot(request: AutopilotRunRequest):
-    """
-    启动一个 autopilot Job（后台异步执行，支持多个任务）
-
-    立即返回 job_id；可用 /autopilot/status/{job_id} 或 /autopilot/jobs/{job_id} 查询状态。
-
-    支持两种任务格式：
-    - 字符串列表：["任务1", "任务2"] （Local 独立模式）
-    - TaskInput 列表：[{"id": "task-id", "text": "任务1"}] （Server 集成模式）
-    """
+    """启动 Job (后台异步). 立即返回 job_id; 用 /autopilot/jobs/{job_id} 查询状态."""
     service = get_job_service()
     try:
-        # 解析 tasks：支持字符串列表或 TaskInput 列表
         tasks: list[str] | list[TaskInput] = []
         for task in request.tasks:
             if isinstance(task, str):
                 tasks.append(task)
             elif isinstance(task, dict):
-                # 从字典构造 TaskInput
                 tasks.append(
                     TaskInput(id=task.get("id", ""), text=task.get("text", ""))
                 )
@@ -70,7 +56,7 @@ async def run_autopilot(request: AutopilotRunRequest):
 
 @router.get("/status/{job_id}")
 async def get_autopilot_status(job_id: str):
-    """获取指定 Job 的当前快照（包含状态与任务列表）"""
+    """Job 当前快照 (状态 + 任务列表)."""
     service = get_job_service()
     try:
         return await service.get_job(job_id)
@@ -80,13 +66,13 @@ async def get_autopilot_status(job_id: str):
 
 @router.get("/jobs/{job_id}")
 async def get_autopilot_job(job_id: str):
-    """获取单个 Job（等价于 /status/{job_id}，仅用于更贴近 REST 命名）"""
+    """同 /status/{job_id}, REST 风格别名."""
     return await get_autopilot_status(job_id)
 
 
 @router.get("/jobs/{job_id}/tasks")
 async def list_autopilot_job_tasks(job_id: str):
-    """列出指定 Job 的任务列表（运行中也可查询）"""
+    """列出 Job 任务 (运行中可查)."""
     service = get_job_service()
     try:
         return await service.get_job_tasks(job_id)
@@ -96,26 +82,21 @@ async def list_autopilot_job_tasks(job_id: str):
 
 @router.get("/jobs")
 async def list_autopilot_jobs(status: TaskStatus | None = None):
-    """列出所有 Job（可按状态筛选，默认按创建时间倒序）"""
+    """列出 Job (可按状态筛选, 默认按创建时间倒序)."""
     service = get_job_service()
     return await service.list_jobs(status=status)
 
 
 class StopRequest(BaseModel):
-    """停止 Job 或指定 task 的请求体"""
-
-    task_id: str | None = None  # 有值则停止指定 task，无值则停止整个 Job
+    task_id: str | None = None
 
 
 @router.post("/jobs/{job_id}/stop")
 async def stop_job(job_id: str, request: StopRequest | None = None):
-    """
-    停止 Job 或指定 task
+    """停止 Job 或指定 task.
 
-    行为：
-    - 不传 task_id（或空 body）：停止整个 Job，当前 task 失败，剩余 task 全部跳过
-    - 传 task_id：只停止当前正在 RUNNING 且 task_id 匹配的 task，后续 task 继续执行
-      - 若该 task 不在 RUNNING 状态，返回 400 错误
+    无 task_id: 停止整个 Job, 当前 task 失败 + 剩余 task 跳过.
+    有 task_id: 只停止当前 RUNNING 且匹配的 task, 后续 task 继续; 不匹配返回 400.
     """
     service = get_job_service()
     task_id = request.task_id if request else None
@@ -130,7 +111,7 @@ async def stop_job(job_id: str, request: StopRequest | None = None):
 
 @router.delete("/jobs/{job_id}")
 async def delete_autopilot_job(job_id: str):
-    """删除一个 Job 记录（运行中的 Job 不允许删除）"""
+    """删除 Job 记录 (运行中不允许)."""
     service = get_job_service()
     try:
         await service.delete_job(job_id)

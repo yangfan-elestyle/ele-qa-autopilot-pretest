@@ -62,8 +62,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
   const startedAt = typeof payload.started_at === 'string' ? payload.started_at : undefined;
   const completedAt = typeof payload.completed_at === 'string' ? payload.completed_at : undefined;
 
-  // 幂等保护: existing task 已是终态 (completed / failed) 时, 拒绝把它
-  // 降级回 running / pending — 防止乱序到达或 client 重试覆盖已落地结果.
+  // 终态幂等: 已 completed / failed 的 task 拒绝降级回 running / pending.
   const existing = await getJobTaskByIndex(rawId, taskIndex);
   if (!existing) {
     return envelope(400, 'Invalid task_index', null, 400);
@@ -74,7 +73,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
     return envelope(0, 'ignored (task already in terminal state)', null);
   }
 
-  // 把 result.steps[].thinking_image 的 base64 落盘到 R2, 字段值替换成 /screenshots/{job_task_id}/{i}.png
   const processedResult = result ? await externalizeScreenshots(existing.id, result) : result;
 
   try {

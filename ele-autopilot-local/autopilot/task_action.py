@@ -1,168 +1,11 @@
 """
-Task Action Handler - 处理 browser-use Agent.run() 的结果
+解析 browser-use `Agent.run()` 返回的 `AgentHistoryList`, 输出结构化 summary / steps / screenshots,
+供云端备份使用. 数据结构与方法签名见 browser-use 官方源码 `browser_use.agent.views`.
 
-====================================================================
-                   browser-use Result 深度分析
-====================================================================
-
-Agent.run() 返回类型: AgentHistoryList[AgentStructuredOutput]
-
-这是一个包含完整执行历史的数据结构，提供了丰富的信息用于分析、
-调试和云端备份。
-
-====================================================================
-                     核心数据结构层级
-====================================================================
-
-AgentHistoryList
-├── history: list[AgentHistory]          # 每个步骤的执行记录
-│   ├── model_output: AgentOutput | None # LLM 的输出（思考过程、动作）
-│   │   ├── thinking: str | None         # LLM 的思考过程
-│   │   ├── evaluation_previous_goal: str | None  # 对上一步目标的评估
-│   │   ├── memory: str | None           # Agent 的记忆/上下文
-│   │   ├── next_goal: str | None        # 下一步目标
-│   │   └── action: list[ActionModel]    # 执行的动作列表
-│   │       └── 动态字段(如 navigate, search, click, input, done 等)
-│   │           ├── index: int           # DOM 元素索引
-│   │           ├── text/input: str      # 输入文本
-│   │           └── ...其他参数
-│   │
-│   ├── result: list[ActionResult]       # 动作执行结果
-│   │   ├── is_done: bool | None         # 任务是否完成
-│   │   ├── success: bool | None         # 是否成功(仅 done 时有效)
-│   │   ├── judgement: JudgementResult | None  # Judge 评判结果
-│   │   │   ├── reasoning: str | None    # 评判推理过程
-│   │   │   ├── verdict: bool            # 最终判定
-│   │   │   ├── failure_reason: str | None  # 失败原因
-│   │   │   ├── impossible_task: bool    # 任务是否不可能完成
-│   │   │   └── reached_captcha: bool    # 是否遇到验证码
-│   │   ├── error: str | None            # 错误信息
-│   │   ├── attachments: list[str] | None    # 附件文件路径
-│   │   ├── images: list[dict] | None    # 图片(base64)
-│   │   ├── long_term_memory: str | None # 长期记忆
-│   │   ├── extracted_content: str | None    # 提取的内容
-│   │   ├── include_extracted_content_only_once: bool  # 仅用于下一步 read_state（不写入长期记忆）
-│   │   ├── include_in_memory: bool (Deprecated)       # 旧字段：是否把 extracted_content 放入 long_term_memory
-│   │   └── metadata: dict | None        # 元数据(如点击坐标)
-│   │
-│   ├── state: BrowserStateHistory       # 浏览器状态快照
-│   │   ├── url: str                     # 页面 URL
-│   │   ├── title: str                   # 页面标题
-│   │   ├── tabs: list[TabInfo]          # 所有标签页信息
-│   │   │   ├── url: str
-│   │   │   ├── title: str
-│   │   │   ├── target_id: str
-│   │   │   └── parent_target_id: str | None   # 弹窗/iframe 等来源 tab（序列化别名 parent_tab_id）
-│   │   ├── interacted_element: list[DOMInteractedElement | None]
-│   │   │   ├── node_id: int             # DOM 节点 ID
-│   │   │   ├── backend_node_id: int     # 后端节点 ID
-│   │   │   ├── frame_id: str | None      # 所在 frame（可能为空）
-│   │   │   ├── node_type: str            # 节点类型（枚举值序列化）
-│   │   │   ├── node_value: str           # 节点值（如文本节点内容）
-│   │   │   ├── node_name: str           # 标签名
-│   │   │   ├── attributes: dict         # 属性
-│   │   │   ├── bounds: DOMRect | None   # 元素边界
-│   │   │   ├── x_path: str              # XPath
-│   │   │   ├── element_hash: int         # 交互元素 hash（不稳定）
-│   │   │   ├── stable_hash: int | None   # 稳定 hash（过滤动态 class，便于匹配）
-│   │   │   └── ax_name: str | None      # 无障碍名称
-│   │   └── screenshot_path: str | None  # 截图路径
-│   │
-│   ├── metadata: StepMetadata | None    # 步骤元数据
-│   │   ├── step_start_time: float       # 开始时间戳
-│   │   ├── step_end_time: float         # 结束时间戳
-│   │   ├── step_number: int             # 步骤编号
-│   │   ├── step_interval: float | None  # 可选：步进间隔/采样间隔（版本相关）
-│   │   └── duration_seconds: float      # 持续时间(秒)
-│   │
-│   └── state_message: str | None        # 状态消息
-
-====================================================================
-                    AgentHistoryList 核心方法
-====================================================================
-
-结果获取方法:
-- final_result() -> str | None           # 获取最终提取的内容
-- structured_output -> AgentStructuredOutput | None  # 结构化输出（依赖 output_model_schema；序列化后通常丢失）
-- get_structured_output(output_model) -> AgentStructuredOutput | None  # 从 final_result 解析结构化输出（适用于反序列化后）
-- is_done() -> bool                      # 任务是否完成
-- is_successful() -> bool | None         # 任务是否成功
-- judgement() -> dict | None             # 获取 Judge 评判结果
-- is_judged() -> bool                    # 是否已进行 Judge 评判
-- is_validated() -> bool | None          # Judge 是否验证通过
-
-历史信息方法:
-- errors() -> list[str | None]           # 获取所有错误
-- has_errors() -> bool                   # 是否有错误
-- urls() -> list[str | None]             # 所有访问过的 URL
-- screenshots(n_last=None, return_none_if_not_screenshot=True) -> list[str | None]  # 截图(base64)
-- screenshot_paths(n_last=None, return_none_if_not_screenshot=True) -> list[str | None]  # 截图路径
-
-动作分析方法:
-- action_names() -> list[str]            # 所有动作名称
-- last_action() -> dict | None           # 最后一个动作（单条）
-- model_actions() -> list[dict]          # 所有动作详情（每条会附带 interacted_element）
-- model_actions_filtered(include=...) -> list[dict]  # 仅保留指定 action 名称
-- action_history() -> list[list[dict]]   # 截断版历史（每 step 一组 action + result 摘要）
-- model_thoughts() -> list[AgentBrain]   # 所有思考过程
-- model_outputs() -> list[AgentOutput]   # 所有 model_output（原始结构）
-- extracted_content() -> list[str]       # 所有提取的内容
-- action_results() -> list[ActionResult] # 所有动作结果
-- agent_steps() -> list[str]             # 面向 Judge 的可读 step 文本（含 actions/result/error）
-
-统计方法:
-- number_of_steps() -> int               # 总步骤数
-- total_duration_seconds() -> float      # 总执行时间
-- __len__() -> int                       # 历史条目数
-
-序列化方法:
-- model_dump() -> dict                   # 转为字典（仅包含 history；不含 usage 等统计字段）
-- save_to_file(filepath, ...)            # 保存到 JSON 文件
-- load_from_dict(data, output_model) -> AgentHistoryList  # 从 dict 反序列化
-- load_from_file(filepath, output_model) -> AgentHistoryList  # 从 JSON 反序列化
-
-辅助方法:
-- add_item(history_item) -> None         # 追加一条 history
-- __str__() -> str                       # 便于调试的字符串表示
-- __repr__() -> str                      # 同 __str__()
-
-====================================================================
-                    可用于云端备份的关键信息
-====================================================================
-
-1. 任务执行概要
-   - 任务描述、状态、是否成功
-   - 开始/结束时间、总耗时
-   - 总步骤数
-
-2. 执行过程详情
-   - 每一步的动作、目标、思考过程
-   - 每一步访问的 URL 和页面标题
-   - 每一步的截图路径或 base64
-
-3. 交互元素记录
-   - 点击/输入的 DOM 元素信息
-   - 元素的 XPath、属性、边界框
-
-4. 结果与错误
-   - 最终结果 (final_result)
-   - 错误列表
-   - Judge 评判(如果启用)
-
-====================================================================
-                    关键注意事项（与云端备份强相关）
-====================================================================
-
-1) 关于 action 名称
-   - 本项目依赖的 browser-use(>=0.11.9) 内置动作名称以实际注册为准，
-     常见为: navigate/search/click/input/scroll/done/read_file/write_file/...；
-     不是 click_element / input_text 这类名字。
-
-2) 关于 screenshot_path 的语义
-   - browser-use 每个 step 都会先抓取“当时用于 LLM 决策的浏览器状态截图”，
-     然后才执行动作；因此 screenshot_path 更像“动作前看到的画面”，不是动作后。
-
-====================================================================
+注意事项:
+- action 名称: navigate / search / click / input / scroll / done / read_file / write_file 等;
+  不要写成 click_element / input_text.
+- `screenshot_path` 是 step 开始时 (LLM 决策那一刻) 的状态截图, 不是动作执行后的画面.
 """
 
 import json
@@ -178,7 +21,6 @@ from typing import Any
 
 from pydantic import BaseModel
 
-# browser-use 类型导入（用于类型提示/IDE 补全）
 from browser_use.agent.views import (
     ActionResult,
     AgentHistory,

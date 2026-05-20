@@ -2,7 +2,7 @@
 
 React Router v7 Framework mode Web 后台。React 19 + Ant Design + Tailwind, Bun, Cloudflare Workers (V8 isolate), D1 存业务数据, R2 存截图与本地 agent 发布产物.
 
-版本与发布遵从根 `AGENTS.md` / `deploy.md`: `package.json#version` 必须等于 git tag 去 `v`; 改代码需更新 `CHANGELOG.md`.
+版本 / 发布 / typegen 等通用规则见根 [AGENTS.md](../AGENTS.md) 与 [deploy.md](../deploy.md).
 
 ## Runtime
 
@@ -39,6 +39,7 @@ React Router v7 Framework mode Web 后台。React 19 + Ant Design + Tailwind, Bu
 - D1 prepared statement 只支持 `?` 位置绑定: `db.prepare(sql).bind(...).all()/first()/run()`.
 - R2 buckets: `SCREENSHOTS=ele-autopilot-screenshots`, `RELEASES=ele-autopilot-releases`.
 - `/screenshots/*` 只读代理 R2, 1 年 immutable cache; `r2KeyFromRelPath()` 必须防 `..` / 控制字符 / 非法字符.
+- Job 状态机权威源在 `lib/db/jobs.ts#syncJobStatusFromTasks`; `ele-autopilot-local/autopilot/job.py#_update_status` 必须与之一致.
 
 ## 命令
 
@@ -51,8 +52,6 @@ bun run typecheck
 bun run build
 bunx wrangler deploy --dry-run
 ```
-
-改 `wrangler.jsonc` 后必须 `bun run typegen`; `worker-configuration.d.ts` 不手改.
 
 ## 编码
 

@@ -16,8 +16,6 @@ import { buildOrderBy, generateId, isRecord, isValidId, queryAll, queryGet, quer
 import { getDb } from './connection';
 import { getTaskById } from './tasks';
 
-// ============ 辅助函数 ============
-
 async function ensureTaskExists(taskId: Id) {
   const exists = await queryGet<{ ok: 1 }>(`SELECT 1 as ok FROM tasks WHERE id = ?`, [taskId]);
   if (!exists) throw new Error('Invalid task_id');
@@ -86,9 +84,7 @@ function toJobTaskLiteRow(dbRow: JobTaskDbRow): JobTaskLiteRow {
   };
 }
 
-/**
- * 递归展开 TaskRow 的 sub_ids, 返回所有叶子节点 (flat 任务数组)
- */
+// 递归展开 sub_ids 链, 返回所有叶子节点.
 async function flattenTaskTree(
   taskId: Id,
   visited: Set<Id> = new Set(),
@@ -109,8 +105,6 @@ async function flattenTaskTree(
   }
   return result;
 }
-
-// ============ Job CRUD ============
 
 export async function getJobById(id: Id): Promise<JobRow | null> {
   const row = await queryGet<JobDbRow>(
@@ -350,8 +344,6 @@ export async function getJobTaskIdsByTaskIds(taskIds: Id[]): Promise<Id[]> {
   return rows.map((r) => r.id);
 }
 
-// ============ JobTask 相关 ============
-
 export async function getJobTasksByJobId(jobId: Id): Promise<JobTaskRow[]> {
   const rows = await queryAll<JobTaskDbRow>(
     `
@@ -481,8 +473,6 @@ export async function syncJobStatusFromTasks(jobId: Id): Promise<JobRow | null> 
 
   return await updateJobById(jobId, patch);
 }
-
-// ============ Job 统计 ============
 
 export type JobStats = {
   total: number;

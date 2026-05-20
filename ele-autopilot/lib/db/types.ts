@@ -1,3 +1,4 @@
+// `*DbRow` 表示 SQL 直读结果, JSON 字段保持 string; 业务层使用对应的 `*Row`.
 export type SortOrder = 'ASC' | 'DESC';
 
 export type Id = string;
@@ -20,7 +21,6 @@ export type TaskRow = {
   created_at: string;
 };
 
-// SQL 原始结果（JSON 字符串字段）
 export type TaskDbRow = Omit<TaskRow, 'sub_ids'> & { sub_ids: string };
 
 export type ListPageArgs = {
@@ -31,12 +31,9 @@ export type ListPageArgs = {
   filter?: Record<string, unknown>;
 };
 
-// ============ Job 相关类型 ============
-
 export type JobStatus = 'pending' | 'running' | 'completed' | 'failed';
 
-// config 使用 JSON string 存储，不定义具体类型
-// 当前已知字段：max_steps, headless，后续可扩展
+// JSON string, 字段动态扩展 (max_steps / headless / ...).
 export type JobConfig = Record<string, unknown>;
 
 export type JobRow = {
@@ -50,7 +47,6 @@ export type JobRow = {
   error: string | null;
 };
 
-// SQL 原始结果（JSON 字符串字段）
 export type JobDbRow = Omit<JobRow, 'config'> & { config: string };
 
 export type JobTaskRow = {
@@ -67,13 +63,9 @@ export type JobTaskRow = {
   completed_at: string | null;
 };
 
-// SQL 原始结果（JSON 字符串字段）
 export type JobTaskDbRow = Omit<JobTaskRow, 'result'> & { result: string | null };
 
-/**
- * 完整执行结果数据结构（参考 autopilot/task_action_out.template.json）
- * 重要：此数据可能非常大（包含每一步的详细信息），需要全量存储
- */
+// 完整执行结果, 可能很大 (含每步细节); 全量存储. 模板见 autopilot/task_action_out.template.json.
 export type TaskActionResult = {
   timestamp: number;
   runtime: Record<string, unknown>;
@@ -126,17 +118,11 @@ export type TaskActionResult = {
   }>;
 };
 
-// Job 详情（含 job_tasks）
 export type JobWithTasks = JobRow & {
   tasks: JobTaskRow[];
 };
 
-// ============ 轻量版类型（用于列表展示，不含完整 result）============
-
-/**
- * 轻量版 JobTask（不含完整 result，只包含 summary 摘要）
- * 用于列表展示和轮询，减少数据传输量
- */
+// 列表展示与轮询用; 只保留 summary, 减少数据传输量.
 export type JobTaskLiteRow = {
   id: Id;
   job_id: Id;
@@ -145,19 +131,15 @@ export type JobTaskLiteRow = {
   task_title: string | null;
   task_text: string;
   status: JobStatus;
-  /** 只包含 summary 摘要，不含 steps 等大数据 */
   result_summary: TaskActionResult['summary'] | null;
   error: string | null;
   started_at: string | null;
   completed_at: string | null;
 };
 
-// Job 详情（含轻量版 job_tasks）
 export type JobWithTasksLite = JobRow & {
   tasks: JobTaskLiteRow[];
 };
-
-// ============ Settings 相关类型 ============
 
 export type SettingRow = {
   key: string;

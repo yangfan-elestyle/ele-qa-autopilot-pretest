@@ -2,7 +2,7 @@
 
 QA AutoPilot 合并仓库. `gateway` + 三个独立业务子项目并存; 非 monorepo workspace, 各自独立技术栈与包管.
 
-全栈 AI-only (Claude Code / Codex 维护). Agent 工作准则见 [AGENTS.md](./AGENTS.md).
+全栈 AI-only (Claude Code / Codex 维护). Agent 工作准则见 [AGENTS.md](./AGENTS.md), 发布流程见 [deploy.md](./deploy.md).
 
 ## 子项目
 
@@ -18,7 +18,7 @@ QA AutoPilot 合并仓库. `gateway` + 三个独立业务子项目并存; 非 mo
 
 ## 系统拓扑
 
-唯一公网入口: gateway Worker `qa`, URL `https://qa.<account-sub>.workers.dev` (Cloudflare Zero Trust + Google Workspace SSO, 仅 `@elestyle.jp`).
+唯一公网入口: gateway Worker `qa`, URL `https://qa.<account-sub>.workers.dev` (Cloudflare Zero Trust + Google Workspace SSO, 仅 `@elestyle.jp`). 路径分发表见 [gateway/README.md](./gateway/README.md#路径分发-worker-处理顺序).
 
 ```
                               ┌────────────────────────────┐
@@ -38,13 +38,6 @@ QA AutoPilot 合并仓库. `gateway` + 三个独立业务子项目并存; 非 mo
                                               └─────────────────────┘
 ```
 
-### gateway 路径分发
-
-- `/` `/index.html` — gateway landing (双卡片 + 本地 agent 安装区, 客户端 fetch `/releases/local/latest.txt`)
-- `/healthz` — gateway 自检
-- `/autotest/*` — strip `/autotest` 后转发 `env.AUTOTEST.fetch` -> `ele-autotesting`
-- 其他 — 原样转发 `env.AUTOPILOT.fetch` -> `ele-autopilot` (`/autopilot*` / `/api/*` / `/screenshots/*` / `/releases/*` / `/install.sh` / `/favicon.ico`)
-
 ### 运行时联动
 
 - `ele-autopilot` 前端默认调本地 `http://127.0.0.1:8000` 创建 Job (`app/admin/_services/local-api.ts`).
@@ -53,9 +46,4 @@ QA AutoPilot 合并仓库. `gateway` + 三个独立业务子项目并存; 非 mo
 
 ## 发布
 
-四子项目版本号 **lockstep**, 单一 tag `vX.Y.Z` 触发四个 workflow 同步部署. 实操流程见 [deploy.md](./deploy.md).
-
-- 四 manifest 同版本: `gateway/package.json`, `ele-autopilot/package.json`, `ele-autopilot-local/pyproject.toml`, `ele-autotesting/package.json`.
-- 发布记录: `gateway/CHANGELOG.md`, `ele-autopilot/CHANGELOG.md`, `ele-autopilot-local/CHANGELOG.md`, `ele-autotesting/CHANGELOGS`.
-- workflow: `.github/workflows/{gateway,autopilot,autopilot-local,autotesting}.yml`.
-- `ele-autopilot-local` 产物上传到 R2 `ele-autopilot-releases/local/<ver>/`, 不挂 GitHub Release.
+四子项目版本号 **lockstep**, 单一 tag `vX.Y.Z` 触发四个 workflow 同步部署. 流程 / 命令 / CHANGELOG 写作详见 [deploy.md](./deploy.md); 一次性 Secrets / Cloudflare 资源准备见 [setup.md](./setup.md).

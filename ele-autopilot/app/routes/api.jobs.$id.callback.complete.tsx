@@ -37,17 +37,14 @@ export async function action({ request, params }: ActionFunctionArgs) {
       ? (body as Record<string, unknown>)
       : {};
 
-  // local 仍可上报 status, 但 server 不再信任 — 改由 syncJobStatusFromTasks 从
-  // job_tasks 实际状态推导, 避免 local 端 _update_status 与 server 端不一致或
-  // callback 乱序导致的状态抖动. 只在格式校验上保留 enum 检查.
+  // status 仅做格式校验, 实际状态由 syncJobStatusFromTasks 从 job_tasks 推导,
+  // 避免 local / server 状态机不一致或 callback 乱序导致的抖动.
   const status = payload.status;
   if (typeof status !== 'string' || !FINAL_STATUSES.includes(status as JobStatus)) {
     return envelope(400, 'Invalid status, must be completed or failed', null, 400);
   }
 
-  // 幂等保护: job 已是终态 (completed / failed) 时, 拒绝 complete callback 覆盖
-  // completed_at / error — 与 task callback 的终态保护对齐, 防止本地 agent 重试
-  // 或异常断连后重发 callback 污染历史指标 (任务结束时间被刷新, error 被空覆盖).
+  // 终态幂等: 拒绝 callback 覆盖 completed_at / error, 防止本地 agent 重试污染历史指标.
   if (TERMINAL_JOB_STATUSES.has(job.status)) {
     return envelope(0, 'ignored (job already in terminal state)', null);
   }
@@ -56,12 +53,10 @@ export async function action({ request, params }: ActionFunctionArgs) {
   const completedAt = typeof payload.completed_at === 'string' ? payload.completed_at : undefined;
 
   try {
-    // 1. 先写 completed_at / error (不强行覆盖 status, 让 sync 决定)
     await updateJobById(rawId, {
       error,
       completed_at: completedAt,
     });
-    // 2. 从 job_tasks 真实状态推导 jobs.status
     await syncJobStatusFromTasks(rawId);
 
     return envelope(0, 'success', null);

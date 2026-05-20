@@ -1,12 +1,3 @@
-"""
-Job 模型：持有 Job 数据并负责串行执行多个任务
-
-职责：
-- 定义可序列化的 Job 数据结构
-- 负责编排 Job 内多个 Task 的执行与状态汇总
-- 支持回调 Server 更新状态（Server 集成模式）
-"""
-
 import logging
 import uuid
 from datetime import datetime
@@ -23,17 +14,11 @@ from .task_action import TaskActionHandler
 
 
 class TaskInput(BaseModel):
-    """单个任务输入（Server 集成时使用）"""
-
-    id: str  # 来源的叶子节点 TaskRow id
-    text: str  # 任务文本
+    id: str  # 叶子节点 TaskRow id
+    text: str
 
 
 class Job(BaseModel):
-    """
-    Job 实体：包含任务列表、执行配置与聚合状态
-    """
-
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     status: TaskStatus = TaskStatus.PENDING
     created_at: datetime = Field(default_factory=datetime.now)
@@ -57,15 +42,6 @@ class Job(BaseModel):
         job_id: str | None = None,
         callback_url: str | None = None,
     ) -> "Job":
-        """
-        从任务描述列表构造 Job（初始化为 PENDING）
-
-        Args:
-            tasks: 任务列表，可以是字符串列表（Local 独立模式）或 TaskInput 列表（Server 集成模式）
-            config: 执行配置
-            job_id: Server 传入的 job_id（可选，不传则自己生成）
-            callback_url: Server 回调 URL（可选，有则回调）
-        """
         task_results = []
         for idx, task in enumerate(tasks):
             if isinstance(task, TaskInput):
@@ -78,7 +54,6 @@ class Job(BaseModel):
                     )
                 )
             else:
-                # 兼容原有的字符串列表模式
                 task_results.append(
                     TaskResult(
                         task=task,
@@ -96,12 +71,10 @@ class Job(BaseModel):
         )
 
     def stop(self, task_id: str | None = None) -> dict:
-        """
-        停止 Job 或当前正在运行的指定 task
+        """停止 Job 或当前正在运行的指定 task.
 
-        Args:
-            task_id: 为 None 时停止整个 Job（当前 task 失败 + 剩余 task 跳过）。
-                     有值时只停止当前正在运行且 task_id 匹配的 task，后续 task 继续。
+        task_id=None: 停止整个 Job (当前 task 失败 + 剩余 task 跳过).
+        task_id=<id>: 只停止当前正在运行且匹配的 task, 后续 task 继续.
         """
         if self.status != TaskStatus.RUNNING:
             return {
@@ -139,15 +112,9 @@ class Job(BaseModel):
         }
 
     def _update_status(self):
-        """按任务状态聚合更新 Job 状态
+        """按任务状态聚合 Job 状态.
 
-        状态机 (与 server 端 syncJobStatusFromTasks 保持一致):
-            1. 任一 RUNNING   -> RUNNING
-            2. 全 COMPLETED   -> COMPLETED
-            3. 任一 PENDING   -> RUNNING (还有未跑的 task, job 仍在推进, 即使
-                                          已有 task FAILED; 避免被过早判 failed)
-            4. 任一 FAILED    -> FAILED (无 pending / running 即终态)
-            5. 兜底           -> PENDING
+        状态机权威源在 ele-autopilot/lib/db/jobs.ts#syncJobStatusFromTasks; 改这里必须同步.
         """
         if not self.tasks:
             self.status = TaskStatus.PENDING
@@ -165,14 +132,7 @@ class Job(BaseModel):
             self.status = TaskStatus.PENDING
 
     async def run(self) -> None:
-        """
-        执行 Job 内所有任务（顺序执行），支持回调 Server 更新状态
-
-        说明：
-        - 每个任务由 TaskRunner 执行并返回 TaskResult
-        - 如发生未捕获异常（包含初始化阶段），会将未完成任务统一标记为 FAILED
-        - 如有 callback_url，每个 task 完成后会回调 Server
-        """
+        """顺序执行 tasks, 支持 callback. 未捕获异常时把未完成 task 统一标 FAILED."""
         callback = CallbackClient(self.callback_url)
         self.started_at = datetime.now()
         self.status = TaskStatus.RUNNING
@@ -185,7 +145,6 @@ class Job(BaseModel):
             for idx, task_result in enumerate(self.tasks):
                 task_result.task_index = idx
 
-                # 检查 Job 是否被停止，跳过剩余 task
                 if self._stop_job:
                     task_result.status = TaskStatus.FAILED
                     task_result.started_at = datetime.now()
@@ -202,41 +161,36 @@ class Job(BaseModel):
                     )
                     continue
 
-                # 记录开始时间，便于外部轮询展示进度
                 task_result.status = TaskStatus.RUNNING
                 task_result.started_at = datetime.now()
 
-                # 上报 task 开始到 Server（此时 result 为 None）
                 await callback.report_task_update(
                     task_index=idx,
                     task_id=task_result.task_id,
                     status="running",
                     result=None,
                     started_at=task_result.started_at,
-                    completed_at=task_result.started_at,  # 临时值
+                    completed_at=task_result.started_at,
                 )
 
                 cloud_payload: dict[str, Any] | None = None
                 try:
-                    # 执行任务（TaskRunner 返回的是简单 TaskResult）
                     result = await runner.run(task_result.task)
 
-                    # 复制执行结果到当前 task_result（保留 task_id 和 task_index）
                     task_result.status = result.status
                     task_result.result = result.result
                     task_result.error = result.error
                     task_result.completed_at = result.completed_at
 
-                    # 浏览器被用户关闭 → 停止整个 Job（不覆盖已有的 remote stop）
+                    # 浏览器被用户手动关闭 -> 视为整 Job 停止信号 (不覆盖已有的 remote stop).
                     if runner.browser_closed and not self._stop_job:
                         self._stop_job = True
                         self._stop_reason = "Browser was closed during task execution"
 
-                    # 由 Job 层统一设置停止原因（覆盖 TaskRunner 的通用消息）
+                    # Job 层覆盖 TaskRunner 的通用 stop 消息, 让 callback 拿到更精确的原因.
                     if self._stop_job and task_result.status == TaskStatus.FAILED:
                         task_result.error = self._stop_reason
 
-                    # 如果有 agent 历史，提取完整执行结果用于回调
                     if hasattr(result, "_agent_history") and result._agent_history:
                         handler = TaskActionHandler(result._agent_history)
                         cloud_payload = handler.to_cloud_payload(
@@ -248,7 +202,6 @@ class Job(BaseModel):
                     task_result.error = str(e)
                     task_result.completed_at = datetime.now()
 
-                # 上报 task 完成到 Server（携带完整执行结果）
                 await callback.report_task_update(
                     task_index=idx,
                     task_id=task_result.task_id,
@@ -260,7 +213,7 @@ class Job(BaseModel):
                 )
 
         except Exception as e:
-            # 兜底异常：将 Job 及未完成任务统一标记为失败，避免出现"永远 RUNNING"
+            # 兜底: 未完成任务统一标 FAILED, 避免 "永远 RUNNING".
             completed_at = datetime.now()
             error = str(e)
             for t in self.tasks:
@@ -275,10 +228,9 @@ class Job(BaseModel):
             self.completed_at = datetime.now()
             self._update_status()
 
-            # 上报 Job 完成到 Server
             await callback.report_job_complete(
                 status=self.status.value,
-                error=None,  # Job 级别的错误通过 tasks 体现
+                error=None,
                 completed_at=self.completed_at,
             )
 

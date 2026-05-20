@@ -1,6 +1,6 @@
-# AGENTS — gateway
+# gateway
 
-LLM 约束. 工程说明见 [README.md](./README.md), 根约束见 [../AGENTS.md](../AGENTS.md).
+LLM 约束. 工程说明见 [README.md](./README.md), 通用约束见根 [AGENTS.md](../AGENTS.md) 与 [deploy.md](../deploy.md).
 
 ## 边界
 
@@ -15,10 +15,7 @@ LLM 约束. 工程说明见 [README.md](./README.md), 根约束见 [../AGENTS.md
 - IdP 仅勾 Google (关掉「接受所有可用的标识提供程序」), policy=Allow + `Emails ending in @elestyle.jp`.
 - CF 单 App 最多 5 条 Bypass domain; 增删时同步精简清单.
 - `vars.TEAM_DOMAIN` / `vars.POLICY_AUD` 由 wrangler 持有; AUD 改动需同步 CF 后台 `QA Gateway` Application Overview.
-- 本地 dev 无 `cf-access-jwt-assertion` header → worker 放行不阻塞, 不要在代码里改成强校验.
 
-## 构建 / 部署约束
+## 构建
 
-- 改 `wrangler.jsonc` 必须跑 `bun run typegen`; `worker-configuration.d.ts` 是生成产物, 不手改.
 - `assets` binding 由 vite plugin 构建时注入 (`build/server/wrangler.json`); 不手动维护 `assets` 字段.
-- workflow `.github/workflows/gateway.yml` 校验 tag = `package.json#version`; 不一致会拦截.

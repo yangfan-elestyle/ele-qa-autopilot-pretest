@@ -1,4 +1,3 @@
-// Types
 export type {
   FolderRow,
   Id,
@@ -16,10 +15,8 @@ export type {
   TaskRow,
 } from './types';
 
-// Connection
 export { getDb } from './connection';
 
-// Folders
 export {
   countFolders,
   createFolder,
@@ -31,7 +28,6 @@ export {
   updateFolderById,
 } from './folders';
 
-// Tasks
 export {
   countTasks,
   createTask,
@@ -43,7 +39,6 @@ export {
   updateTaskById,
 } from './tasks';
 
-// Jobs
 export {
   countJobs,
   createJob,
@@ -62,5 +57,4 @@ export {
 } from './jobs';
 export type { JobStats } from './jobs';
 
-// Settings
 export { getAgentConfig, getSetting, setAgentConfig, setSetting } from './settings';

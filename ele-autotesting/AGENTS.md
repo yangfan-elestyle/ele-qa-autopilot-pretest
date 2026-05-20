@@ -2,7 +2,7 @@
 
 AI 测试用例生成工具。pnpm 10 monorepo, Vue 3 前端, Hono Worker, Cloudflare D1 + Static Assets + Container (`MarkitdownContainer`).
 
-版本与发布遵从根 `AGENTS.md` / `deploy.md`: 根 `package.json#version` 必须等于 git tag 去 `v`; 发布记录写 `CHANGELOGS`.
+版本 / 发布等通用规则见根 [AGENTS.md](../AGENTS.md) 与 [deploy.md](../deploy.md).
 
 ## Workspace
 
@@ -18,7 +18,7 @@ AI 测试用例生成工具。pnpm 10 monorepo, Vue 3 前端, Hono Worker, Cloud
 - 公开入口只能经 gateway `/autotest/*`; 不暴露 `*.workers.dev`.
 - `assets.run_worker_first` 必须覆盖所有 API / proxy / parse 路径; 否则请求会被 Static Assets 抢先处理.
 - service binding 调用会绕过平台层 Static Assets fallback; Worker 内 Hono 404 末尾必须 `env.ASSETS.fetch(request)` 托底.
-- 本地 OrbStack 与 wrangler container sidecar 不兼容时可设 `MARKITDOWN_DEV_URL` 反代; 生产禁设.
+- `MARKITDOWN_DEV_URL`: 本地 OrbStack 兼容兜底, 见 `packages/server/src/types/env.ts`.
 
 ## API / Auth
 
@@ -41,10 +41,7 @@ pnpm --filter @prompt-optimizer/server smoke
 
 本项目只用 pnpm; 不用 npm / yarn 安装依赖。根 `package.json#engines.node` 要求 Node >= 24.
 
-## 迁移 / 发布
+## 迁移
 
 - D1 schema 位于 `packages/server/migrations/*.sql`; 新 migration 按 `0002_xxx.sql` 递增.
 - CI 在 deploy 前跑 `wrangler d1 migrations apply DB --remote`, 幂等.
-- workflow: 根 `.github/workflows/autotesting.yml`.
-- 触发: push `v*` tag; 与 gateway / autopilot / local lockstep.
-- Deploy: `pnpm install --frozen-lockfile` -> `pnpm run build:cf` -> remote D1 migrations -> `wrangler deploy`.

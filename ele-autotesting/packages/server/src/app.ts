@@ -24,12 +24,11 @@ app.use('*', async (c: Context<HonoEnv>, next: Next) => {
 
 app.get('/healthz', (c: Context<HonoEnv>) => c.text('ok'))
 
-// 服务端资源 / 凭据敏感路由统一过 resolveOwner: 必须带 `X-Device-Id` 头才能进, 否则 401.
-// 旧版这几个路由全裸奔, 任意访客都能让 Worker 用服务端 Atlassian token 拉公司 Confluence,
-// 或消耗服务端 LLM API key 跑视觉 / 文本任务. 现统一收回到 V1 owner 模型背后, 即使 V1
-// 还是 shared-owner 没做横向隔离, 至少给后端日志 / 速率限制 / 滥用排查留出 ownerId 维度.
-// 注意: `/stream-proxy` / `/http-proxy` 由 LLM SDK 内部 fetch 发起, SDK 无法注入业务自定义头,
-// 这两个路径继续 open + 走 `proxyGuard` SSRF 黑名单兜底; `/mcps/markitdown/*` 同理.
+// 凭据敏感路由统一过 resolveOwner: 必须带 `X-Device-Id` 头, 否则 401. 防止任意访客
+// 让 Worker 用服务端 Atlassian token 或 LLM API key 跑任务; ownerId 维度给后端日志 /
+// 速率限制 / 滥用排查留口子.
+// `/stream-proxy` / `/http-proxy` / `/mcps/markitdown/*` 由 LLM SDK 内部 fetch 发起,
+// SDK 无法注入业务自定义头, 走 `proxyGuard` SSRF 黑名单兜底.
 app.use('/image-research/*', resolveOwner)
 app.use('/markdown-research', resolveOwner)
 app.use('/markdown-research/*', resolveOwner)
@@ -46,15 +45,12 @@ app.route('/markdown-research', markdownResearchRouter)
 app.route('/figma-parse', figmaParseRouter)
 app.route('/api/sync', syncRouter)
 
-// 兜底 404：未匹配到任何 API 路由时返回结构化 JSON，避免 Hono 默认裸文本响应。
-// 静态资源 (SPA fallback) 由 Workers Static Assets `not_found_handling` 直接接管，
-// 不会走到 Worker，所以此处只服务 API 范围内的 404。
+// API 范围 404 (静态 SPA fallback 由平台层 ASSETS `not_found_handling` 接管, 见 index.ts).
 app.notFound((c: Context<HonoEnv>) =>
   c.json({ error: 'Not Found', path: c.req.path }, 404),
 )
 
-// 全局错误兜底：业务路由内若抛出未捕获异常，统一输出结构化 JSON，
-// 避免栈信息直接泄漏到客户端；同时把详情打到 wrangler tail 便于排障。
+// 业务异常统一结构化 JSON, 避免栈泄漏到客户端; 详情写 wrangler tail.
 app.onError((err, c: Context<HonoEnv>) => {
   console.error(`unhandled error on ${c.req.method} ${c.req.path}:`, err?.message || err)
   return c.json({ error: 'Internal Server Error', path: c.req.path }, 500)

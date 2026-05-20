@@ -2,7 +2,7 @@
 
 Cloudflare Worker `qa`: 三个业务子项目的唯一公网入口. React Router v7 (framework mode, SSR) + `@cloudflare/vite-plugin` + React 19, Bun 包管, 无 D1 / R2 / DO / secret.
 
-LLM 约束见 [AGENTS.md](./AGENTS.md).
+LLM 约束见 [AGENTS.md](./AGENTS.md); 发布流程见根 [deploy.md](../deploy.md).
 
 ## Access (Google Workspace SSO)
 
@@ -13,7 +13,7 @@ LLM 约束见 [AGENTS.md](./AGENTS.md).
 - **Allow App `QA Gateway`**: domain `qa.<sub>.workers.dev` 整域兜底, IdP 仅 Google, policy=Allow + `Emails ending in @elestyle.jp`.
 - **Bypass App `QA Gateway Bypass`** (CF 单 App 最多 5 条 domain): `/api/*` `/install.sh` `/releases/*` `/assets/*` `/healthz`, policy=Bypass + Everyone.
   - 砍掉 `/screenshots/*` / PWA icons — 登录后浏览器带 cookie 仍能加载, 仅影响匿名 SEO / 分享卡片 / iOS 加桌面.
-- worker `workers/app.ts` 用 `jose` 远程 JWKS (`<team>/cdn-cgi/access/certs`) 做深度防御; 本地 dev 无 `cf-access-jwt-assertion` header → 放行不阻塞.
+- worker `workers/app.ts` 用 `jose` 远程 JWKS (`<team>/cdn-cgi/access/certs`) 做深度防御; JWT 校验放行规则见代码 `verifyAccessJwt`.
 - landing 顶栏读 `context.user.email` 渲染身份 + 登出链 `/cdn-cgi/access/logout`; 未登录态不渲染用户区.
 
 ## 路径分发 (worker 处理顺序)
@@ -47,15 +47,9 @@ RR 客户端 hydration bundle (`/assets/*`) 由 wrangler `assets` binding 优先
 ```bash
 bun install
 bun run dev                     # react-router dev (Vite HMR, Workers runtime)
-bun run typegen                 # wrangler types + react-router typegen, 改 wrangler.jsonc 后必跑
+bun run typegen                 # wrangler types + react-router typegen
 bun run typecheck               # typegen + tsc -b
 bun run build                   # 产物到 build/{client,server}
 bunx wrangler deploy --dry-run  # 验证 service bindings + 体积
 bunx wrangler deploy            # 常规走 Actions
 ```
-
-## 发布
-
-workflow: 根 `.github/workflows/gateway.yml`. 触发: push `v*` tag; 版本与三业务 lockstep, 见根 [AGENTS.md](../AGENTS.md) / [deploy.md](../deploy.md).
-
-流程: 校验 tag = `package.json#version` -> `bun install --frozen-lockfile` -> `wrangler deploy` (`@cloudflare/vite-plugin` 触发 `react-router build`, wrangler 读 `build/server/wrangler.json` 部署).

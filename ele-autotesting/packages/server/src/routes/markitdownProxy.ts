@@ -2,14 +2,11 @@ import { getContainer } from '@cloudflare/containers'
 import type { Env } from '../types/env.ts'
 
 /**
- * `/mcps/markitdown/<sub>` → markitdown 服务 `<sub>`。
+ * `/mcps/markitdown/<sub>` → markitdown 服务. 生产走 `env.MARKITDOWN` Container,
+ * dev 下若设 `MARKITDOWN_DEV_URL` (见 types/env.ts) 则反代到该 URL.
  *
- * 生产环境走 `env.MARKITDOWN` Cloudflare Container；本地 dev 若设了
- * `MARKITDOWN_DEV_URL` 则改为反代到该 URL — 用于绕开本地 OrbStack/Docker
- * 与 wrangler dev container sidecar 的 setsockoptint 兼容性问题。
- *
- * Starlette `Mount("/mcp")` 会把 `/mcp` 307 → `/mcp/`，且 Location 是裸 http://
- * 经 Worker edge 时会断链。沿用 markitdown-cloudflare 做法：入口 path 显式补斜杠。
+ * Starlette `Mount("/mcp")` 会把 `/mcp` 307 → `/mcp/`, Location 裸 http:// 在
+ * Worker edge 断链, 故入口 path 显式补斜杠.
  */
 const SUBPATH_PREFIX = '/mcps/markitdown'
 

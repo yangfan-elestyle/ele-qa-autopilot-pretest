@@ -2,6 +2,8 @@
 
 Web 版自动化测试用例生成工具, [产品使用说明书](https://elestyle.atlassian.net/wiki/spaces/teammobile/pages/3357310978).
 
+LLM 约束见 [AGENTS.md](./AGENTS.md); 发布流程见根 [deploy.md](../deploy.md).
+
 ## 架构
 
 ```
@@ -52,7 +54,7 @@ pnpm run dev
 
 本地 `wrangler dev` 通过 `--env-file ../../.env` 加载仓库根 `.env` (脚本在 `packages/server/package.json`). 生产 secrets 用 `wrangler secret put <NAME>`.
 
-可选 `MARKITDOWN_DEV_URL`: OrbStack 上 wrangler container sidecar 与 Docker 网络栈存在 `setsockoptint` 兼容性问题, 设此变量后 `/mcps/markitdown/*` 改为反代到该 URL (仅本地, 生产禁设).
+可选 `MARKITDOWN_DEV_URL`: 详见 `packages/server/src/types/env.ts`.
 
 ## 后端路由
 
@@ -65,13 +67,7 @@ pnpm run dev
 - `POST /markdown-research`: Markdown 中图片批量识别
 - `POST /figma-parse`: Figma 节点 SVG 渲染 + Vision OCR
 - `* /mcps/markitdown/*`: 反代到 markitdown Container (dev 下若 `MARKITDOWN_DEV_URL`, 反代到该 URL)
-- `/api/sync/*` (需带 `X-Device-Id` 头): D1 远程 KV 存储
-  - `GET    /api/sync/items` — 列出当前 owner 的所有 (key,value)
-  - `GET    /api/sync/items/:key` — 单 key 读
-  - `PUT    /api/sync/items/:key` — 单 key 写 `{ value: string }`
-  - `DELETE /api/sync/items/:key` — 单 key 删
-  - `DELETE /api/sync/items` — 清空当前 owner 全部数据
-  - `POST   /api/sync/batch` — 批量 `{ ops: [{key, op:'set'|'remove', value?}] }`
+- `/api/sync/*` (需带 `X-Device-Id` 头): D1 远程 KV; 路由清单见 `packages/server/src/routes/sync.ts` JSDoc
 
 ## 烟雾测试 / 监控
 

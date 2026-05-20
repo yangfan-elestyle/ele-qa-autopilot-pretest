@@ -2,6 +2,8 @@
 
 本地浏览器自动化 HTTP 服务. 基于 `browser-use` + FastAPI + Gemini, LLM Agent 驱动本机 Chrome 异步执行任务. 打 tag → Actions 构建 wheel 推到 Cloudflare R2; 用户从 gateway landing 页一键安装.
 
+LLM 约束见 [AGENTS.md](./AGENTS.md); 发布流程见根 [deploy.md](../deploy.md).
+
 ## 安装
 
 打开 gateway landing (`https://qa.<account-sub>.workers.dev/`) → "本地 agent 安装" 区块, 复制三条命令依次执行. 等价于:
