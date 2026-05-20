@@ -14,7 +14,9 @@ export type AuthHeaderProvider = () => Record<string, string>
  *   DELETE {base}/api/sync/items          (clear all for owner)
  *   POST   {base}/api/sync/batch          <- { ops: [{key, op, value?}] }
  *
- * 身份: 全部依赖 getAuthHeader() 注入 (V1 X-Device-Id, V2 Authorization).
+ * 身份: 经 gateway 时由 Cloudflare Access 边缘注入 `cf-access-jwt-assertion`, 后端
+ * `resolveOwner` 校验后写 ownerId=`google:<email>`. getAuthHeader() 默认空, 仅在扩展场景
+ * (附加 Authorization 等) 或 dev 临时注入时返回非空对象.
  * 业务层只认 IStorageProvider, 不感知后端是 D1 还是 Dexie.
  */
 export class RemoteStorageProvider implements IStorageProvider {
@@ -82,8 +84,8 @@ export class RemoteStorageProvider implements IStorageProvider {
   }
 
   /**
-   * V1 单用户场景下走客户端 read-modify-write.
-   * 多端并发场景在 V2 接入 Google 登录后再加版本号/乐观锁.
+   * 客户端 read-modify-write. 多端同 owner 并发场景未加版本号 / 乐观锁,
+   * 当前业务为单用户单端配置同步, 冲突概率极低; 后续若需要再补 ETag.
    */
   async updateData<T>(key: string, modifier: (currentValue: T | null) => T): Promise<void> {
     const current = await this.getItem(key)

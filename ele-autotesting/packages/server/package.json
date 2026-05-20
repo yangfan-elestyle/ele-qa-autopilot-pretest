@@ -21,6 +21,7 @@
     "@google/genai": "^2.4.0",
     "@resvg/resvg-wasm": "^2.6.2",
     "hono": "^4.9.6",
+    "jose": "^6.2.3",
     "openai": "^6.38.0"
   },
   "devDependencies": {

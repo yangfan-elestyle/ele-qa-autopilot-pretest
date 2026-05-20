@@ -24,9 +24,10 @@ app.use('*', async (c: Context<HonoEnv>, next: Next) => {
 
 app.get('/healthz', (c: Context<HonoEnv>) => c.text('ok'))
 
-// 凭据敏感路由统一过 resolveOwner: 必须带 `X-Device-Id` 头, 否则 401. 防止任意访客
+// 凭据敏感路由统一过 resolveOwner: 校验 gateway 透传的 `cf-access-jwt-assertion` JWT,
+// 取 email 写 ownerId=`google:<email>`; 缺 token 时 401, 校验失败 403. 防止任意访客
 // 让 Worker 用服务端 Atlassian token 或 LLM API key 跑任务; ownerId 维度给后端日志 /
-// 速率限制 / 滥用排查留口子.
+// 速率限制 / 滥用排查留口子. 本地 dev 由 `DEV_FALLBACK_EMAIL` 兜底.
 // `/stream-proxy` / `/http-proxy` / `/mcps/markitdown/*` 由 LLM SDK 内部 fetch 发起,
 // SDK 无法注入业务自定义头, 走 `proxyGuard` SSRF 黑名单兜底.
 app.use('/image-research/*', resolveOwner)

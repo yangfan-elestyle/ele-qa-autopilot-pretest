@@ -282,7 +282,7 @@ const handleUrlEnter = async () => {
       return
     }
 
-    // 调用服务端的 confluence-parse API; 后端 resolveOwner 中间件强制 X-Device-Id 头
+    // 经 gateway 时身份由 CF Access 边缘注入; getAuthHeaders 通常返回空对象, 仍 spread 留口子.
     const response = await fetch(`${getApiBasePath()}/confluence-parse?page_id=${encodeURIComponent(pageId)}`, {
       headers: { ...getAuthHeaders() },
     })

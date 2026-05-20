@@ -71,6 +71,8 @@
   ],
   "vars": {
     "QA_IMAGE_RESEARCH_OPENAI_VISION_MODEL": "gpt-4o",
-    "QA_IMAGE_RESEARCH_GEMINI_VISION_MODEL": "gemini-3-flash-preview"
+    "QA_IMAGE_RESEARCH_GEMINI_VISION_MODEL": "gemini-3-flash-preview",
+    "TEAM_DOMAIN": "https://yigegongjiang.cloudflareaccess.com",
+    "POLICY_AUD": "7da3d8a8012e505a268a913c45a5b840a5b6d3458878fbad7481c3db61ec48d9"
   }
 }

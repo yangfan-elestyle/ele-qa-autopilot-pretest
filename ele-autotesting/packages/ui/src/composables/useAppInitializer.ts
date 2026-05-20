@@ -20,26 +20,25 @@ import type { IModelManager, ITemplateManager, IHistoryManager, ILLMService, IPr
 import type { IPreferenceService } from '../types/services'
 
 /**
- * V1 临时方案: 全部浏览器/会话共享同一个 owner, 方便端到端验证.
+ * 身份注入由 Cloudflare Access 边缘完成: 用户经 gateway 访问时, CF Access 校验 Google
+ * Workspace SSO cookie 后注入 `cf-access-jwt-assertion` header, 经 service binding 透传到
+ * ele-autotesting Worker; 后端 `resolveOwner` (packages/server/src/middleware/auth.ts) 用
+ * jose 校验后取 email → ownerId=`google:<email>`. 浏览器侧无需注入任何业务鉴权头.
  *
- * 后端接到 `X-Device-Id: shared-owner-v1` 后, 数据落在 D1 的
- * owner_id = 'device:shared-owner-v1' 这一行下面.
+ * 本地 dev (wrangler dev, 不经 gateway / Access): 后端读 `DEV_FALLBACK_EMAIL` env 兜底.
  *
- * V2 切到 Google 登录时, 把这里换成
- *   const idToken = await getGoogleIdToken()
- *   getAuthHeader: () => ({ Authorization: `Bearer ${idToken}` })
- * 业务层无需改动, 见 packages/server/src/middleware/auth.ts 注释里的 Google 分支.
- *
- * 工具函数 `ensureDeviceId` (core/utils/deviceId.ts) 已保留, 后续需要按浏览器隔离时直接换上.
+ * 工具函数 `ensureDeviceId` (core/utils/deviceId.ts) 已弃用但暂保留, 后续要按浏览器隔离时再启用.
  */
-const SHARED_OWNER_ID = 'shared-owner-v1'
 
 /**
- * 迁移标志带 owner 后缀: 当 SHARED_OWNER_ID 变化 (例如切到 Google 后) 时,
- * 自动重新走一次"云端是否为空 + 本地是否有数据"判断, 避免迁移逻辑被旧标志锁死.
+ * 迁移标志: 各 owner 一份, 防止登录身份切换后旧标志锁死本地→云端的一次性数据迁移.
+ * 浏览器侧拿不到真正的 email (服务端才能 decode JWT), 故仅用固定字符串 `cf-access`
+ * 作占位 — 旧 SHARED_OWNER_ID 时代的 `shared-owner-v1` flag 不会命中, 用户首启自动重走一次迁移.
  */
-function migrationFlagKey(ownerId: string): string {
-  return `app:remote-migrated:${ownerId}`
+const MIGRATION_OWNER_KEY = 'cf-access'
+
+function migrationFlagKey(ownerKey: string): string {
+  return `app:remote-migrated:${ownerKey}`
 }
 
 /**
@@ -62,10 +61,10 @@ const MIGRATE_BATCH_SIZE = 400
  *   不应该被一次性的数据搬运失败阻塞掉整个 UI 启动.
  * - 不删除 Dexie 数据 (回滚兜底, 也方便手工导出).
  */
-async function migrateDexieToRemoteIfNeeded(remote: RemoteStorageProvider, ownerId: string): Promise<void> {
+async function migrateDexieToRemoteIfNeeded(remote: RemoteStorageProvider, ownerKey: string): Promise<void> {
   if (typeof window === 'undefined' || !window.localStorage) return
 
-  const flagKey = migrationFlagKey(ownerId)
+  const flagKey = migrationFlagKey(ownerKey)
   const flag = window.localStorage.getItem(flagKey)
   if (flag) {
     console.log('[AppInitializer] 本地→远端迁移已完成, 跳过')
@@ -140,10 +139,9 @@ export function useAppInitializer(apiBase: string = '') {
   // 必须早于任何 createLLMService 调用, onMounted 内已经够早 (composable 顺序保证).
   const normalizedBase = apiBase.replace(/\/+$/, '')
   setProxyBasePath(normalizedBase)
-  // 同步注册业务 API 鉴权头 (V1 SHARED_OWNER_ID): UI 组件后续 fetch `/confluence-parse` /
-  // `/figma-parse` / `/image-research/analyze` / `/markdown-research` 时, 拿 getAuthHeaders()
-  // 注入, 让后端 resolveOwner 中间件能识别身份并对齐 RemoteStorageProvider 的同一 owner.
-  setAuthHeaders({ 'X-Device-Id': SHARED_OWNER_ID })
+  // 身份头由 Cloudflare Access 边缘注入 (`cf-access-jwt-assertion`), 浏览器不必显式注入.
+  // setAuthHeaders 仍清一遍状态, 避免 HMR / 测试残留旧 X-Device-Id.
+  setAuthHeaders({})
 
   const services = ref<AppServices | null>(null)
   const isInitializing = ref(true)
@@ -163,14 +161,12 @@ export function useAppInitializer(apiBase: string = '') {
 
       console.log('[AppInitializer] 检测到Web环境，初始化完整服务...')
       // 在Web环境中，所有数据走 Cloudflare D1 远程存储.
-      // 身份: V1 全局共享单一 owner (方便端到端验证), V2 切 Google id_token.
-      // 详见上方 SHARED_OWNER_ID 注释 + packages/server/src/middleware/auth.ts.
-      const remoteProvider = StorageFactory.createRemote(normalizedBase, () => ({
-        'X-Device-Id': SHARED_OWNER_ID,
-      }))
+      // 身份: 经 gateway 时由 CF Access 注入 `cf-access-jwt-assertion`, 后端 resolveOwner
+      // 取 email → ownerId=`google:<email>`. 浏览器侧 fetch 不显式带任何业务鉴权头.
+      const remoteProvider = StorageFactory.createRemote(normalizedBase, () => ({}))
 
       // 一次性把本地 Dexie 中的数据迁移到云端 (若云端为空)
-      await migrateDexieToRemoteIfNeeded(remoteProvider, SHARED_OWNER_ID)
+      await migrateDexieToRemoteIfNeeded(remoteProvider, MIGRATION_OWNER_KEY)
 
       const storageProvider = remoteProvider
 

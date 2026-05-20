@@ -18,10 +18,12 @@
 
 ## API / Auth
 
-- V1 身份模型固定 `device:shared-owner-v1`, 所有请求共享 owner; 仅用于端到端验证, 禁止接真实生产数据.
-- V2 预留 Google `id_token` -> `google:<sub>` 分支, 见 `packages/server/src/middleware/auth.ts`.
+- 身份链路: gateway 套 Cloudflare Access (Google Workspace SSO) → 边缘注入 `cf-access-jwt-assertion` → service binding 透传 → `packages/server/src/middleware/auth.ts` 用 `jose` + 远程 JWKS 校验 → `ownerId=google:<email>` 写入 `c.var.ownerId`.
+- 校验依赖 `vars.TEAM_DOMAIN` / `vars.POLICY_AUD` (与 gateway 锁同值); 改 AUD 同步 CF 后台.
+- 缺 token: 看 `env.DEV_FALLBACK_EMAIL` (仅本地经 `.env` 注入, 生产 wrangler.jsonc 不设); 都缺则 401. 校验失败 403.
 - 生产路径前缀是 `/autotest`; web `BASE_URL`, UI `apiBase`, core `setProxyBasePath()` 必须保持同步.
 - LLM proxy 路径 `/stream-proxy` / `/http-proxy` 也必须带 `/autotest` 前缀, 否则 gateway 会转给 AUTOPILOT.
+- 历史 `device:shared-owner-v1` D1 数据已弃用 (本就明示只用于端到端验证); 用户切 google owner 后从空开始, 前端 `migrationFlagKey` 按 `cf-access` 占位隔离, 自然重走一次 Dexie→remote 迁移.
 
 ## 命令
 

@@ -6,12 +6,11 @@
 let configuredBasePath = ''
 
 /**
- * 业务 API 鉴权头. 由宿主 (web/ui) 在初始化早期通过 `setAuthHeaders` 注入,
- * 现阶段 V1 固定 `X-Device-Id: shared-owner-v1` (与 useAppInitializer 共享同一 owner).
- * UI 组件直接调 `/confluence-parse`、`/figma-parse`、`/image-research/analyze`、
- * `/markdown-research` 等业务路由时必须把这套头带上, 否则后端 resolveOwner 中间件
- * 直接 401. LLM proxy (`/stream-proxy` / `/http-proxy`) 由 LLM SDK 内部 fetch 发起,
- * 这里不参与注入 — 这些路由保持 open 由 `proxyGuard` SSRF 黑名单兜底.
+ * 业务 API 鉴权头. 经 gateway 时由 Cloudflare Access 在边缘注入 `cf-access-jwt-assertion`,
+ * 后端 `resolveOwner` 自行校验; 浏览器侧通常不需要业务头, 保留 setAuthHeaders/getAuthHeaders
+ * 接口仅供未来扩展 (如附加 Authorization Bearer 等场景) 或测试期注入.
+ * LLM proxy (`/stream-proxy` / `/http-proxy`) 由 LLM SDK 内部 fetch 发起, 不参与注入,
+ * 安全靠 `proxyGuard` SSRF 黑名单兜底.
  */
 let configuredAuthHeaders: Record<string, string> = {}
 
@@ -31,8 +30,8 @@ export const setProxyBasePath = (basePath: string): void => {
 export const getApiBasePath = (): string => configuredBasePath
 
 /**
- * 注册业务 API 鉴权头. 后续 UI 组件 `fetch(..., { headers: getAuthHeaders() })`
- * 即可同步拿到. V2 切 Google 登录时把这里换成动态返回 `Authorization: Bearer ...` 即可.
+ * 注册业务 API 鉴权头 (默认空). 经 gateway 时身份由 CF Access 边缘注入,
+ * 此接口仅用于将来扩展或 dev 临时附加自定义头.
  */
 export const setAuthHeaders = (headers: Record<string, string>): void => {
   configuredAuthHeaders = { ...headers }

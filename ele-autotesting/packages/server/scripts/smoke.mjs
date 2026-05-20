@@ -3,6 +3,11 @@
 //
 //   ENDPOINT  default: http://127.0.0.1:8787
 //
+// 鉴权: 业务路由经 `resolveOwner` 校验 `cf-access-jwt-assertion` JWT, 取 email 作 ownerId.
+// smoke 跑本地 wrangler dev (不经 CF Access), 依赖仓库根 `.env` 内
+// `DEV_FALLBACK_EMAIL=smoke@elestyle.jp` 兜底; 缺则全部 401 → FAIL.
+// 远程线上跑须自带 CF Access cookie / token, smoke 默认 ENDPOINT 用本地, 远程跑请单独验证.
+//
 // Exits 0 on full PASS, non-zero on any failure.
 
 const ENDPOINT = (process.env.ENDPOINT ?? 'http://127.0.0.1:8787').replace(/\/+$/, '')
@@ -23,10 +28,9 @@ async function step(name, fn) {
 
 const json = (r) => r.json()
 
-// 业务路由 (/confluence-parse / /image-research / /markdown-research / /figma-parse) 已统一过 resolveOwner.
-// smoke 跑这些用例时复用一个稳定 device id (含 'smoke-' 前缀, 与 SYNC_DEVICE_ID 区分但匹配同一 8-64 char 正则).
-const BUSINESS_DEVICE_ID = `smoke-${Date.now().toString(36)}-business`
-const BUSINESS_AUTH = { 'X-Device-Id': BUSINESS_DEVICE_ID }
+// 业务路由 (/confluence-parse / /image-research / /markdown-research / /figma-parse) 与 /api/sync/*
+// 都过 resolveOwner. 本地 dev 走 DEV_FALLBACK_EMAIL 兜底, 浏览器侧不再注入业务鉴权头.
+const BUSINESS_AUTH = { 'Content-Type': 'application/json' }
 
 await step('GET /healthz', async () => {
   const r = await fetch(`${ENDPOINT}/healthz`)
@@ -52,34 +56,18 @@ await step('GET /unknown/spa-route (SPA fallback)', async () => {
   return 'served index.html'
 })
 
-await step('GET /confluence-parse (auth missing → 401)', async () => {
+await step('GET /confluence-parse (dev fallback → validation 400)', async () => {
   const r = await fetch(`${ENDPOINT}/confluence-parse`)
-  if (r.status !== 401) throw new Error(`status=${r.status}`)
-  return '401 as expected'
-})
-
-await step('GET /confluence-parse (validation)', async () => {
-  const r = await fetch(`${ENDPOINT}/confluence-parse`, { headers: BUSINESS_AUTH })
-  if (r.status !== 400) throw new Error(`status=${r.status}`)
+  if (r.status !== 400) throw new Error(`status=${r.status} (DEV_FALLBACK_EMAIL 未配?)`)
   const body = await json(r)
   if (!body?.error?.includes('page_id')) throw new Error(`unexpected error: ${JSON.stringify(body)}`)
   return body.error
 })
 
-await step('POST /image-research/analyze (auth missing → 401)', async () => {
+await step('POST /image-research/analyze (dev fallback → validation 400)', async () => {
   const r = await fetch(`${ENDPOINT}/image-research/analyze`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({}),
-  })
-  if (r.status !== 401) throw new Error(`status=${r.status}`)
-  return '401 as expected'
-})
-
-await step('POST /image-research/analyze (validation)', async () => {
-  const r = await fetch(`${ENDPOINT}/image-research/analyze`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...BUSINESS_AUTH },
+    headers: BUSINESS_AUTH,
     body: JSON.stringify({}),
   })
   if (r.status !== 400) throw new Error(`status=${r.status}`)
@@ -91,7 +79,7 @@ await step('POST /image-research/analyze (validation)', async () => {
 await step('POST /markdown-research (no images passthrough)', async () => {
   const r = await fetch(`${ENDPOINT}/markdown-research`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...BUSINESS_AUTH },
+    headers: BUSINESS_AUTH,
     body: JSON.stringify({ markdown: '# title\n\nplain content' }),
   })
   if (r.status !== 200) throw new Error(`status=${r.status}`)
@@ -100,20 +88,10 @@ await step('POST /markdown-research (no images passthrough)', async () => {
   return `${body.text.length} bytes`
 })
 
-await step('POST /figma-parse (auth missing → 401)', async () => {
+await step('POST /figma-parse (dev fallback → validation 400)', async () => {
   const r = await fetch(`${ENDPOINT}/figma-parse`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({}),
-  })
-  if (r.status !== 401) throw new Error(`status=${r.status}`)
-  return '401 as expected'
-})
-
-await step('POST /figma-parse (validation)', async () => {
-  const r = await fetch(`${ENDPOINT}/figma-parse`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...BUSINESS_AUTH },
+    headers: BUSINESS_AUTH,
     body: JSON.stringify({}),
   })
   if (r.status !== 400) throw new Error(`status=${r.status}`)
@@ -163,14 +141,15 @@ await step('POST /mcps/markitdown/mcp tools/list', async () => {
 })
 
 // ─── /api/sync (D1) smoke ────────────────────────────────────────────────
-const SYNC_DEVICE_ID = `smoke-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
-const SYNC_HEADERS = { 'X-Device-Id': SYNC_DEVICE_ID, 'Content-Type': 'application/json' }
+// owner 由 resolveOwner 解析 cf-access-jwt-assertion 决定; 本地 dev 走 DEV_FALLBACK_EMAIL
+// 兜底, smoke 流程内每次清空 owner 以保持幂等. 不再注入 X-Device-Id.
+const SYNC_HEADERS = { 'Content-Type': 'application/json' }
 const SYNC_KEY = 'smoke-test-key'
 
-await step('GET /api/sync/items (auth missing → 401)', async () => {
-  const r = await fetch(`${ENDPOINT}/api/sync/items`)
-  if (r.status !== 401) throw new Error(`status=${r.status}`)
-  return '401 as expected'
+await step('DELETE /api/sync/items (reset owner before sync smoke)', async () => {
+  const r = await fetch(`${ENDPOINT}/api/sync/items`, { method: 'DELETE', headers: SYNC_HEADERS })
+  if (!r.ok) throw new Error(`status=${r.status} ${await r.text()}`)
+  return 'cleared'
 })
 
 await step('PUT /api/sync/items/:key', async () => {
