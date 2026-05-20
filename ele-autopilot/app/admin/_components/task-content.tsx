@@ -400,7 +400,7 @@ export default function TaskContent({
                 className: 'cursor-pointer',
               })}
               size="middle"
-              scroll={{ x: 'max-content' }}
+              tableLayout="fixed"
               locale={{
                 emptyText: (
                   <EmptyState
