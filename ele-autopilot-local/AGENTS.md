@@ -1,9 +1,5 @@
 # ele-autopilot-local
 
-macOS 本地浏览器自动化 HTTP 服务。FastAPI + `browser-use` + Gemini (`ChatGoogle`), uv 管理, LLM Agent 驱动本机 Chrome 执行任务.
-
-版本 / 发布等通用规则见根 [AGENTS.md](../AGENTS.md) 与 [deploy.md](../deploy.md).
-
 ## Runtime
 
 - 只支持 macOS: `autopilot/task.py` 写死 Chrome app 路径与 Chrome user data dir; 跨平台改动必须同步这两个常量与 profile 解析逻辑.
@@ -14,11 +10,11 @@ macOS 本地浏览器自动化 HTTP 服务。FastAPI + `browser-use` + Gemini (`
 
 ## 执行链路
 
-- `routers/autopilot.py`: `/autopilot/*` Job 创建、查询、停止、删除.
-- `autopilot/job_service.py`: 创建 Job、内存存储、异步调度.
-- `autopilot/job.py`: 串行执行 Task, 聚合 `PENDING -> RUNNING -> COMPLETED/FAILED`. 状态机与 server `ele-autopilot/lib/db/jobs.ts#syncJobStatusFromTasks` 必须保持一致.
+- `routers/autopilot.py`: `/autopilot/*` Job 创建 / 查询 / 停止 / 删除.
+- `autopilot/job_service.py`: 创建 Job, 内存存储, 异步调度.
+- `autopilot/job.py`: 串行执行 Task, 聚合 `PENDING -> RUNNING -> COMPLETED/FAILED`. 状态机跟随 `ele-autopilot/lib/db/jobs.ts#syncJobStatusFromTasks`.
 - `autopilot/task.py`: 初始化 LLM / Browser, 调 `browser_use.Agent`.
-- `autopilot/task_action.py`: 解析 `AgentHistoryList`, 提取 summary / steps / screenshots 等结构化信息.
+- `autopilot/task_action.py`: 解析 `AgentHistoryList`, 提取 summary / steps / screenshots.
 - `autopilot/callback.py`: Server 集成模式下回调 `ele-autopilot`.
 
 ## 目录
@@ -43,10 +39,6 @@ macOS 本地浏览器自动化 HTTP 服务。FastAPI + `browser-use` + Gemini (`
 - 常见 action 名: `navigate` / `search` / `click` / `input` / `scroll` / `done`; 不要写 `click_element` / `input_text`.
 - 关键类型: `Agent`, `Browser`, `AgentHistoryList`; 用 `final_result()` / `is_done()` / `model_actions()` 做结果提取与调试.
 - `TaskRunner._build_agent_kwargs()` 只传非空 config 字段; 空字符串不得覆盖系统提示词.
-
-## 命令
-
-日常开发命令见 [README.md](./README.md#开发); 发布前验证 (`uv build` + version 自检) 见 [deploy.md §本地验证](../deploy.md#2-本地验证).
 
 ## 编码
 

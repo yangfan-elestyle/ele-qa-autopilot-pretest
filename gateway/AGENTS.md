@@ -1,7 +1,5 @@
 # gateway
 
-LLM 约束. 工程说明见 [README.md](./README.md), 通用约束见根 [AGENTS.md](../AGENTS.md) 与 [deploy.md](../deploy.md).
-
 ## 边界
 
 - gateway 不放业务状态 / 数据库 / R2 / Container / 业务 API; RR loader 只允许通过 service binding 调下游 Worker.

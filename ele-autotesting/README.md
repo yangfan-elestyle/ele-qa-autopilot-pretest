@@ -1,8 +1,6 @@
 # ele-autotesting
 
-Web 版自动化测试用例生成工具, [产品使用说明书](https://elestyle.atlassian.net/wiki/spaces/teammobile/pages/3357310978).
-
-LLM 约束见 [AGENTS.md](./AGENTS.md); 发布流程见根 [deploy.md](../deploy.md).
+AI 测试用例生成工具. [产品说明书](https://elestyle.atlassian.net/wiki/spaces/teammobile/pages/3357310978).
 
 ## 架构
 

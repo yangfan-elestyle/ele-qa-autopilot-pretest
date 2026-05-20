@@ -1,12 +1,10 @@
 # gateway
 
-Cloudflare Worker `qa`: 三个业务子项目的唯一公网入口. React Router v7 (framework mode, SSR) + `@cloudflare/vite-plugin` + React 19, Bun 包管, 无 D1 / R2 / DO / secret.
-
-LLM 约束见 [AGENTS.md](./AGENTS.md); 发布流程见根 [deploy.md](../deploy.md).
+Cloudflare Worker `qa`: 公网唯一入口. React Router v7 (framework mode, SSR) + `@cloudflare/vite-plugin` + React 19, Bun, 无 D1 / R2 / DO / secret.
 
 ## Access (Google Workspace SSO)
 
-公网入口套 Cloudflare Zero Trust Self-hosted Application + Google Workspace IdP, 仅 `@elestyle.jp` 员工可访问.
+套 Cloudflare Zero Trust Self-hosted Application + Google Workspace IdP, 仅 `@elestyle.jp` 员工可访问.
 
 - **Team Domain**: `https://yigegongjiang.cloudflareaccess.com` (wrangler `vars.TEAM_DOMAIN`).
 - **Application Audience (AUD)**: 在 wrangler `vars.POLICY_AUD`; CF 后台 `QA Gateway` → Overview 抄.

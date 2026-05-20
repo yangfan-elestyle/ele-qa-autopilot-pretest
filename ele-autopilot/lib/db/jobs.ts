@@ -430,6 +430,7 @@ export async function updateJobTaskByIndex(
   return updated ? toJobTaskRow(updated) : null;
 }
 
+// Job 状态机权威源. 改这里必须同步 `ele-autopilot-local/autopilot/job.py#_update_status`.
 export async function syncJobStatusFromTasks(jobId: Id): Promise<JobRow | null> {
   const tasks = await getJobTasksByJobId(jobId);
   if (tasks.length === 0) return await getJobById(jobId);

@@ -13,13 +13,12 @@ _STARTED_MONO = time.monotonic()
 
 @router.get("/health")
 async def health_check():
-    """健康检查接口"""
     return {"status": "healthy", "timestamp": datetime.now(timezone.utc).isoformat()}
 
 
 @router.get("/connect")
 async def connect_check():
-    """连接检测接口：让外部服务确认本服务已启动"""
+    """让外部服务确认本服务已启动."""
     uptime_seconds = int(time.monotonic() - _STARTED_MONO)
     return {
         "status": "running",
@@ -36,7 +35,6 @@ async def connect_check():
 
 @router.get("/version")
 async def get_version():
-    """获取系统版本信息"""
     return {
         "name": project_name(),
         "version": project_version(),

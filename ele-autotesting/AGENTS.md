@@ -1,9 +1,5 @@
 # ele-autotesting
 
-AI 测试用例生成工具。pnpm 10 monorepo, Vue 3 前端, Hono Worker, Cloudflare D1 + Static Assets + Container (`MarkitdownContainer`).
-
-版本 / 发布等通用规则见根 [AGENTS.md](../AGENTS.md) 与 [deploy.md](../deploy.md).
-
 ## Workspace
 
 - `packages/core`: prompt / LLM / 代理 URL 等核心逻辑, 构建为 CJS + ESM + d.ts.
@@ -29,7 +25,7 @@ AI 测试用例生成工具。pnpm 10 monorepo, Vue 3 前端, Hono Worker, Cloud
 
 ## 命令
 
-日常开发 / smoke / migration 命令见 [README.md](./README.md#本地开发); 发布前验证见 [deploy.md §本地验证](../deploy.md#2-本地验证).
+只用 pnpm (`engines.node >= 24`); 不用 npm / yarn.
 
 子包测试:
 
@@ -38,8 +34,6 @@ pnpm -F @prompt-optimizer/core test
 pnpm -F @prompt-optimizer/ui test
 pnpm -F @prompt-optimizer/web test
 ```
-
-本项目只用 pnpm; 不用 npm / yarn 安装依赖。根 `package.json#engines.node` 要求 Node >= 24.
 
 ## 迁移
 

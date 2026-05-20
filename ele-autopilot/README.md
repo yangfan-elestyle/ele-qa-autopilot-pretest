@@ -1,8 +1,6 @@
 # ele-autopilot
 
-React Router v7 (Framework mode) Web 应用 — QA 任务管理后台. Cloudflare D1 持久化, Cloudflare R2 存截图, Ant Design + Tailwind UI. 运行时 Cloudflare Workers.
-
-LLM 约束见 [AGENTS.md](./AGENTS.md); 发布流程见根 [deploy.md](../deploy.md), 一次性资源见根 [setup.md](../setup.md).
+QA 任务管理后台. React Router v7 (Framework mode) + React 19 + Ant Design + Tailwind, Bun. 运行时 Cloudflare Workers + D1 (业务数据) + R2 (截图).
 
 ## 开发
 

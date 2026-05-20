@@ -1,9 +1,5 @@
 # ele-autopilot
 
-React Router v7 Framework mode Web 后台。React 19 + Ant Design + Tailwind, Bun, Cloudflare Workers (V8 isolate), D1 存业务数据, R2 存截图与本地 agent 发布产物.
-
-版本 / 发布 / typegen 等通用规则见根 [AGENTS.md](../AGENTS.md) 与 [deploy.md](../deploy.md).
-
 ## Runtime
 
 - `workers/app.ts`: Worker fetch 入口; 用 `runWithBindings()` 注入 Cloudflare bindings 后交给 RR7 `createRequestHandler`.
@@ -39,11 +35,6 @@ React Router v7 Framework mode Web 后台。React 19 + Ant Design + Tailwind, Bu
 - D1 prepared statement 只支持 `?` 位置绑定: `db.prepare(sql).bind(...).all()/first()/run()`.
 - R2 binding 名与 bucket 名见 `wrangler.jsonc`.
 - `/screenshots/*` 只读代理 R2, 1 年 immutable cache; `r2KeyFromRelPath()` 必须防 `..` / 控制字符 / 非法字符.
-- Job 状态机权威源在 `lib/db/jobs.ts#syncJobStatusFromTasks`; `ele-autopilot-local/autopilot/job.py#_update_status` 必须与之一致.
-
-## 命令
-
-日常开发命令见 [README.md](./README.md#开发); 发布前验证 (lint / typecheck / build / wrangler deploy --dry-run) 见 [deploy.md §本地验证](../deploy.md#2-本地验证).
 
 ## 编码
 

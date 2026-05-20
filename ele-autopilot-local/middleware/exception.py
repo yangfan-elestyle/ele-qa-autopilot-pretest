@@ -5,7 +5,6 @@ from pydantic import ValidationError
 
 
 async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
-    """处理 HTTP 异常，返回统一格式"""
     return JSONResponse(
         status_code=exc.status_code,
         content={
@@ -19,9 +18,7 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
 async def validation_exception_handler(
     request: Request, exc: RequestValidationError
 ) -> JSONResponse:
-    """处理请求参数验证异常"""
     errors = exc.errors()
-    # 格式化错误信息
     error_messages = []
     for error in errors:
         loc = " -> ".join(str(x) for x in error["loc"])
@@ -40,7 +37,6 @@ async def validation_exception_handler(
 async def pydantic_exception_handler(
     request: Request, exc: ValidationError
 ) -> JSONResponse:
-    """处理 Pydantic 验证异常"""
     errors = exc.errors()
     error_messages = []
     for error in errors:
@@ -58,7 +54,6 @@ async def pydantic_exception_handler(
 
 
 async def generic_exception_handler(request: Request, exc: Exception) -> JSONResponse:
-    """处理未捕获的异常"""
     return JSONResponse(
         status_code=500,
         content={

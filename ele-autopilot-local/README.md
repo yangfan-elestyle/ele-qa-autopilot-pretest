@@ -1,8 +1,6 @@
 # ele-autopilot-local
 
-本地浏览器自动化 HTTP 服务. 基于 `browser-use` + FastAPI + Gemini, LLM Agent 驱动本机 Chrome 异步执行任务. 打 tag → Actions 构建 wheel 推到 Cloudflare R2; 用户从 gateway landing 页一键安装.
-
-LLM 约束见 [AGENTS.md](./AGENTS.md); 发布流程见根 [deploy.md](../deploy.md).
+macOS 本地浏览器自动化 HTTP 服务. `browser-use` + FastAPI + Gemini, uv. 打 tag 后 Actions 构建 wheel 推到 Cloudflare R2, 用户从 gateway landing 一键安装.
 
 ## 安装
 

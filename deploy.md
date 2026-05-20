@@ -4,18 +4,17 @@
 
 ## TL;DR
 
-1. 四 manifest 同 bump + 四 CHANGELOG 加段
+1. 四 manifest 同 bump + 有改动的 CHANGELOG 加段
 2. 本地验证 (各项目 build / typecheck / dry-run)
 3. `git commit -m "release: vX.Y.Z"` → `git tag -a vX.Y.Z -m "vX.Y.Z"` → `git push origin <branch> vX.Y.Z`
 4. 等四 workflow success
 
-> 一次性前置 (Secrets / Cloudflare 资源) 见 [setup.md](./setup.md) （不需要主动处理，除非用户特别说明）.
+> 一次性前置 (Secrets / Cloudflare 资源) 见 [setup.md](./setup.md), 默认无需主动处理.
 
 ## 1. 写版本
 
-- 默认 PATCH; 新功能 MINOR; 不兼容改动 (破坏性 DB schema / API 响应结构) MAJOR.
-- Tag 仅 `vX.Y.Z`.
-- Release commit 固定 `release: vX.Y.Z`; 其他用 Conventional Commits, 跨项目改动加 scope (`feat(gateway): ...`).
+- 默认 PATCH; 新功能 MINOR; 破坏性 DB schema / API 响应结构 MAJOR.
+- Tag 仅 `vX.Y.Z`; release commit 固定 `release: vX.Y.Z`; 其他改动用 Conventional Commits, 跨项目改动加 scope (`feat(gateway): ...`).
 - **四 manifest lockstep 同 bump** (tag 含 `v`, version 不含): `gateway/package.json` / `ele-autopilot/package.json` / `ele-autopilot-local/pyproject.toml` / `ele-autotesting/package.json`. workflow 各自校验 manifest = tag 去 `v`, 不一致 fail.
 
 ### CHANGELOG 写作
@@ -23,8 +22,8 @@
 面向使用者, 不是代码审计.
 
 - 写: 新功能 / 行为修复 / 体验改进 / 安全 / 命令与入口迁移.
-- 不写: 文件路径 / 组件名 / CSS class / 重构细节 / 元叙述.
-- 单条 ≤ 2 行, 单版本 ≤ 5 条; 占位发版写 "跟随版本同步发布".
+- 不写: 文件路径 / 组件名 / CSS class / 重构细节 / 元叙述 / "跟随版本同步发布" 之类占位条目.
+- 单条 ≤ 2 行, 单版本 ≤ 5 条; 该子项目本次无用户可感知改动则**完全省略本版本段** (版本号可跳过, manifest 仍 lockstep).
 - 遵循 Keep a Changelog (Added / Changed / Fixed / Removed / Security); 中文行文, 术语保留原文.
 
 ## 2. 本地验证
@@ -32,7 +31,7 @@
 按改动面跑对应子项目, 失败中断:
 
 ```bash
-# gateway (必须先于其他 project 之前 build)
+# gateway 必须最先 build (下游 typegen 依赖其生成产物)
 cd gateway
 bun install --frozen-lockfile && bun run typecheck && bun run build
 bunx wrangler deploy --dry-run
@@ -74,9 +73,7 @@ push `v*` tag → `.github/workflows/{gateway,autopilot,autopilot-local,autotest
 
 ## 4. amend 修上版 bug
 
-AI 自主识别 (信号: 反馈指向刚 push 的 tag / 改动极小仅修缺陷 / "刚那个" "刚发的").
-
-> commit + tag 同步更新， 以触发 github actions 重跑.
+AI 自主识别 (信号: 反馈指向刚 push 的 tag / 改动极小仅修缺陷 / "刚那个" "刚发的"). commit 与 tag 同步更新, 触发 workflow 重跑.
 
 ```bash
 git commit -a --amend --no-edit

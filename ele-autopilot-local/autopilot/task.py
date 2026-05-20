@@ -199,7 +199,6 @@ class TaskRunner:
         return should_stop
 
     def stop_current_task(self) -> bool:
-        """停止当前正在执行的 task。返回 True 表示已发送停止信号。"""
         agent = self._current_agent
         if agent is not None:
             agent.stop()
@@ -207,7 +206,6 @@ class TaskRunner:
         return False
 
     def _init_llm(self):
-        """初始化 LLM，model 通过 config 传入，api_key 通过环境变量配置"""
         if self._llm is None:
             self._llm = ChatGoogle(
                 model=self.config.gemini_model,
@@ -218,7 +216,6 @@ class TaskRunner:
         return self._llm
 
     async def _init_browser(self) -> Browser:
-        """初始化浏览器实例"""
         chrome_executable_path = (
             "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
         )
@@ -238,13 +235,9 @@ class TaskRunner:
             headless=self.config.headless,
             keep_alive=False,
             args=["--start-maximized", "--test-type=webdriver"],
-            # If the bad-flags prompt still needs a targeted workaround later,
-            # restore ignore_default_args here to drop only
-            # `--extensions-on-chrome-urls` from browser-use defaults.
         )
 
     async def _cleanup(self, browser: Browser | None):
-        """清理浏览器资源"""
         if browser is None:
             return
         try:
@@ -253,8 +246,6 @@ class TaskRunner:
             pass
 
     def _build_agent_kwargs(self) -> dict:
-        """构建 Agent 初始化参数：只包含 config 中有值的参数"""
-        # Agent 参数与 config 字段的映射
         param_mapping = {
             "use_vision": "use_vision",
             "max_failures": "max_failures",

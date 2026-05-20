@@ -112,10 +112,7 @@ class Job(BaseModel):
         }
 
     def _update_status(self):
-        """按任务状态聚合 Job 状态.
-
-        状态机权威源在 ele-autopilot/lib/db/jobs.ts#syncJobStatusFromTasks; 改这里必须同步.
-        """
+        # 状态机需与 ele-autopilot/lib/db/jobs.ts#syncJobStatusFromTasks 一致.
         if not self.tasks:
             self.status = TaskStatus.PENDING
             return
