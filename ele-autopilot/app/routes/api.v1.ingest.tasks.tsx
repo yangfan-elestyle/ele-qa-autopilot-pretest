@@ -129,10 +129,7 @@ export async function action({ request }: ActionFunctionArgs) {
       return jsonError('`chain.subs` must be a non-empty array', 400);
     }
     try {
-      const head = parseTaskInput(
-        { title: chainRaw.title, text: chainRaw.text },
-        'chain',
-      );
+      const head = parseTaskInput({ title: chainRaw.title, text: chainRaw.text }, 'chain');
       const subs: IngestTaskInput[] = [];
       for (let i = 0; i < subsRaw.length; i++) {
         subs.push(parseTaskInput(subsRaw[i], `chain.subs[${i}]`));
