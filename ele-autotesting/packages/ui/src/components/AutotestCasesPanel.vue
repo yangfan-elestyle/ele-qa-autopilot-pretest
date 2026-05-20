@@ -1,7 +1,7 @@
 <template>
   <div class="ds-ms-panel">
     <div class="ds-ms-toolbar">
-      <span class="ds-ms-toolbar-title">Excel 源数据 (mock)</span>
+      <span class="ds-ms-toolbar-title">AutoTest 用例 (示例)</span>
       <span class="ds-ms-toolbar-meta">{{ cases.length }} 条</span>
     </div>
     <div class="ds-ms-table-wrap">
@@ -44,7 +44,7 @@
 </template>
 
 <script setup lang="ts">
-import { MOCK_EXCEL_CASES, type ExcelCaseRow } from './_mock/excel-cases'
+import { MOCK_AUTOTEST_CASES, type AutotestCase } from './_mock/autotest-cases'
 
-const cases: ExcelCaseRow[] = MOCK_EXCEL_CASES
+const cases: AutotestCase[] = MOCK_AUTOTEST_CASES
 </script>

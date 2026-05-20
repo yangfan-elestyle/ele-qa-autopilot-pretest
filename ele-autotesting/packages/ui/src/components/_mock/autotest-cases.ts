@@ -1,10 +1,10 @@
 /**
- * Mock Excel 源用例数据.
- * 占位用, 等真正把 OutputDisplayCore 的 Excel 表格状态接进来后下线.
+ * Mock AutoTest 自有测试用例.
+ * 占位用, 等真正接入 testcase-generator 输出后下线.
  * 字段贴近 MeterSphere 功能用例, 方便后期回写 mapping.
  */
 
-export interface ExcelCaseRow {
+export interface AutotestCase {
   id: string
   num: number
   name: string
@@ -15,7 +15,7 @@ export interface ExcelCaseRow {
   tags?: string[]
 }
 
-export const MOCK_EXCEL_CASES: ExcelCaseRow[] = [
+export const MOCK_AUTOTEST_CASES: AutotestCase[] = [
   {
     id: 'mock-001',
     num: 1,

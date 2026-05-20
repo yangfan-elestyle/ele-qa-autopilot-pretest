@@ -15,7 +15,7 @@
             </span>
             <h2 class="ds-modal-title">
               数据联动
-              <span class="ds-modal-subtitle hidden sm:inline">Excel 源数据 ⇄ MeterSphere</span>
+              <span class="ds-modal-subtitle hidden sm:inline">AutoTest 用例 ⇄ MeterSphere</span>
             </h2>
           </div>
           <div class="ds-modal-head-right">
@@ -32,10 +32,10 @@
         <div class="ds-ms-tabs">
           <button
             class="ds-ms-tab"
-            :class="{ 'ds-ms-tab--active': active === 'excel' }"
-            @click="active = 'excel'"
+            :class="{ 'ds-ms-tab--active': active === 'autotest' }"
+            @click="active = 'autotest'"
             type="button"
-          >Excel 源数据</button>
+          >AutoTest 用例</button>
           <button
             class="ds-ms-tab"
             :class="{ 'ds-ms-tab--active': active === 'metersphere' }"
@@ -45,7 +45,7 @@
         </div>
 
         <div class="ds-modal-body ds-ms-body">
-          <ExcelDataPanel v-show="active === 'excel'" />
+          <AutotestCasesPanel v-show="active === 'autotest'" />
           <MeterSphereDataPanel v-show="active === 'metersphere'" />
         </div>
       </div>
@@ -55,13 +55,13 @@
 
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted } from 'vue'
-import ExcelDataPanel from './ExcelDataPanel.vue'
+import AutotestCasesPanel from './AutotestCasesPanel.vue'
 import MeterSphereDataPanel from './MeterSphereDataPanel.vue'
 
 const props = defineProps<{ show: boolean }>()
 const emit = defineEmits<{ (e: 'update:show', v: boolean): void; (e: 'close'): void }>()
 
-const active = ref<'excel' | 'metersphere'>('excel')
+const active = ref<'autotest' | 'metersphere'>('autotest')
 
 function close() {
   emit('update:show', false)
@@ -72,7 +72,7 @@ function handleKeyDown(event: KeyboardEvent) {
   if (event.key === 'Escape' && props.show) close()
 }
 
-watch(() => props.show, (v) => { if (v) active.value = 'excel' })
+watch(() => props.show, (v) => { if (v) active.value = 'autotest' })
 
 onMounted(() => document.addEventListener('keydown', handleKeyDown))
 onUnmounted(() => document.removeEventListener('keydown', handleKeyDown))

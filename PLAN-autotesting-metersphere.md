@@ -1,6 +1,6 @@
 # autotesting ⇄ MeterSphere 数据联动面板 (P1)
 
-> [PLAN.md](./PLAN.md) §M1 第一阶段切片. **只做两 tab 用例展示**: 左 mock Excel, 右 MeterSphere 拉取. 暂不做回写 / 选择推送 / 同步.
+> [PLAN.md](./PLAN.md) §M1 第一阶段切片. **只做两 tab 用例展示**: 左 mock AutoTest 自有用例, 右 MeterSphere 拉取. 暂不做回写 / 选择推送 / 同步.
 
 ## 1. 范围
 
@@ -8,14 +8,14 @@
 
 - autotesting 顶栏新增"联动"按钮 → 弹出 `DataLinkagePanel` (modal).
 - 面板含两 tab:
-  1. **Excel 源数据** — mock JSON 用例列表 + 表格渲染.
+  1. **AutoTest 用例** — mock JSON 用例列表 + 表格渲染.
   2. **MeterSphere 数据** — AK/SK 输入 + 组织 / 项目 / 模块 选择 + 用例表.
 - Worker 经 VPC service `METERSPHERE` 反代到 `qa.elepay.link`, 完成 AES-CBC 签名鉴权.
 - 本地 dev + 生产 deploy 双链路打通.
 
 ❌ 本期不做:
 
-- Excel → MS 写回 (upsert 用例).
+- AutoTest 用例 → MS 写回 (upsert 用例).
 - MS → 推 autopilot ingest.
 - harness 任务生成.
 - AK/SK 持久化与加密 at rest (输入仅 session 内, 关 panel 即丢; **未来阶段** 走 [PLAN-vpc.md §5](./PLAN-vpc.md) 的 D1 KV owner 隔离).
@@ -118,8 +118,8 @@ async function buildSignHeaders(ak: string, sk: string) {
 <!-- prettier-ignore -->
 | 组件 | 责任 |
 |---|---|
-| `DataLinkagePanel.vue` | Modal 容器, 双 tab 切换 (excel / metersphere), 状态隔离 |
-| `ExcelDataPanel.vue` | mock 用例数组 → 表格 (复用现有 ds 风格 class) |
+| `DataLinkagePanel.vue` | Modal 容器, 双 tab 切换 (autotest / metersphere), 状态隔离 |
+| `AutotestCasesPanel.vue` | mock 用例数组 → 表格 (复用现有 ds 风格 class) |
 | `MeterSphereDataPanel.vue` | AK/SK form + project Select + module Tree + 用例 Table; AK/SK 仅 reactive ref, 不 persist |
 
 `packages/web/src/App.vue`:
@@ -127,7 +127,7 @@ async function buildSignHeaders(ak: string, sk: string) {
 - actions slot 加 `ActionButtonUI` "联动" → `showDataLinkage = true`.
 - 顶层 `<DataLinkagePanelUI :show="showDataLinkage" @close="showDataLinkage = false" />`.
 
-Mock 数据放 `packages/ui/src/components/_mock/excel-cases.ts`, 6-10 条样例, 字段贴近 MS 用例: `{id, num, name, module, priority, steps[], expected}`.
+Mock 数据放 `packages/ui/src/components/_mock/autotest-cases.ts`, 6-10 条样例, 字段贴近 MS 用例: `{id, num, name, module, priority, steps[], expected}`.
 
 ## 8. 实施步骤 (jjplan 内)
 
@@ -135,7 +135,7 @@ Mock 数据放 `packages/ui/src/components/_mock/excel-cases.ts`, 6-10 条样例
 2. `src/lib/metersphere/sign.ts` (AES-CBC, 单元测试可选).
 3. `src/routes/metersphere.ts` (5 路由).
 4. `app.ts` 挂载.
-5. `ExcelDataPanel.vue` + mock.
+5. `AutotestCasesPanel.vue` + mock.
 6. `MeterSphereDataPanel.vue` (先 projects, 再 modules, 再 cases).
 7. `DataLinkagePanel.vue` 容器 + tab.
 8. `App.vue` 入口.

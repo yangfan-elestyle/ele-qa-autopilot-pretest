@@ -2,6 +2,12 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.11.1] - 2026-05-21
+
+### Changed
+
+- 数据联动面板左侧 tab 文案从「Excel 源数据」改为「AutoTest 用例」, 更准确表达 autotesting 自有用例数据 (Excel 仅为导出格式之一, 非内容定位).
+
 ## [1.11.0] - 2026-05-21
 
 ### Added
