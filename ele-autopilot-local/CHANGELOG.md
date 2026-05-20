@@ -2,6 +2,16 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.9.5] - 2026-05-20
+
+整体目标: 与 ele-autopilot v1.9.5 状态机同步; 本轮 local 仅改 `_update_status` 聚合规则, FastAPI app / 路由 / browser-use 执行链路 / callback 上行格式不变.
+
+### Fixed
+
+- `autopilot/job.py` `Job._update_status` 状态机 corner case: 此前 tasks = `[COMPLETED, FAILED, PENDING]` (用户中途 stop 或单 task 抛错但 for 循环继续跑剩余 task 的瞬间) 命中"没 RUNNING → not all COMPLETED → has FAILED → FAILED"分支, 把 job 过早标记 FAILED, 与 server 端 `syncJobStatusFromTasks` 同问题. 现新增"没 RUNNING 但有 PENDING → RUNNING"规则, 把 FAILED 终态兜底放到无 PENDING 无 RUNNING 之后, 与 server 端语义对仗. 不影响 callback 上行的 task 级别 status (`running` / `completed` / `failed`), 只影响 job 终态聚合.
+
+[1.9.5]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.4...v1.9.5
+
 ## [1.9.4] - 2026-05-20
 
 ### Changed

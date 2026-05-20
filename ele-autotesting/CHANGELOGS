@@ -1,3 +1,13 @@
+# 2026.05.20 (lockstep v1.9.5)
+
+整体目标: 收一处对外响应里上游 errorText 直接回传的信息泄漏点; 与 ele-autopilot 本轮 callback / 状态机加固一并 lockstep 发布.
+
+## Fixed
+
+1. `packages/server/src/routes/confluenceParse.ts` 把上游 Atlassian HTTP 失败响应体从 client 响应里剥离: 此前 `errorText.slice(0, 4000)` 直接塞进 client 的 `details` 字段, Atlassian 4xx / 5xx 时上游响应体可能含内部错误堆栈 / 请求 id / token 提示, 暴露给 web 端等于把后端日志直接喂给浏览器 console. 现 errorText 仅写到 Worker 日志 (前 2000 字便于运维查), client 只看到 `Failed to fetch Confluence page: HTTP <status>` — 同步收紧 catch 分支的 `details: error.message` 字段, 避免 fetch 异常消息把内部 hostname / 解析栈泄漏给客户端.
+
+[1.9.5]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.4...v1.9.5
+
 # 2026.05.20 (lockstep v1.9.4)
 
 整体目标: AI 主动扫雷第二轮 — 把 LLM 代理链路 (http-proxy / stream-proxy) 从开放 SSRF 跳板收回到可控边界, 同时切断上游敏感响应头对客户端 cookie / 凭据空间的污染.

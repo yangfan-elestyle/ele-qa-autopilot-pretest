@@ -139,7 +139,16 @@ class Job(BaseModel):
         }
 
     def _update_status(self):
-        """按任务状态聚合更新 Job 状态（RUNNING > COMPLETED > FAILED > PENDING）"""
+        """按任务状态聚合更新 Job 状态
+
+        状态机 (与 server 端 syncJobStatusFromTasks 保持一致):
+            1. 任一 RUNNING   -> RUNNING
+            2. 全 COMPLETED   -> COMPLETED
+            3. 任一 PENDING   -> RUNNING (还有未跑的 task, job 仍在推进, 即使
+                                          已有 task FAILED; 避免被过早判 failed)
+            4. 任一 FAILED    -> FAILED (无 pending / running 即终态)
+            5. 兜底           -> PENDING
+        """
         if not self.tasks:
             self.status = TaskStatus.PENDING
             return
@@ -148,6 +157,8 @@ class Job(BaseModel):
             self.status = TaskStatus.RUNNING
         elif all(t.status == TaskStatus.COMPLETED for t in self.tasks):
             self.status = TaskStatus.COMPLETED
+        elif any(t.status == TaskStatus.PENDING for t in self.tasks):
+            self.status = TaskStatus.RUNNING
         elif any(t.status == TaskStatus.FAILED for t in self.tasks):
             self.status = TaskStatus.FAILED
         else:

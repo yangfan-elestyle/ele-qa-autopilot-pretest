@@ -2,6 +2,14 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.9.5] - 2026-05-20
+
+### Changed
+
+- lockstep 同步, 与上游 ele-autopilot / ele-autopilot-local / ele-autotesting v1.9.5 一同发布; 本项目无业务改动. 本轮上游聚焦 AI 主动扫雷第三轮: ele-autopilot `createJob` 改 `D1 db.batch([...])` 保证 jobs + N×job_tasks 链式插入 all-or-nothing, callback.task 加终态幂等保护 (existing 已 completed / failed 时不允许被乱序 / 重试 callback 降级抹掉结果), callback.complete 改用 `syncJobStatusFromTasks` 从 job_tasks 真实状态推导 jobs.status (不再信任 local 上报值), `syncJobStatusFromTasks` 状态机修 corner case: tasks = `[completed, failed, pending]` 时不再过早判 'failed', 而是判 'running' 等 pending 跑完; ele-autopilot-local `Job._update_status` 同步加同规则保持两端语义对仗. ele-autotesting 把 `confluenceParse` 上游 errorText 从 client 响应剥离仅写日志, 避免上游 4xx / 5xx 响应体里的内部堆栈 / token hint 泄漏到浏览器 console. 本项目 landing 页路由分发 / `/autotest/*` strip / SSR loader / service bindings 行为不变.
+
+[1.9.5]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.4...v1.9.5
+
 ## [1.9.4] - 2026-05-20
 
 ### Changed

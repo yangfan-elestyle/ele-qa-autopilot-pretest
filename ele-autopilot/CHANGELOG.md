@@ -2,6 +2,19 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.9.5] - 2026-05-20
+
+整体目标: AI 主动扫雷第三轮 — 把 Job 创建链路 + callback 状态同步链路两条 server-side 数据流的并发缺陷收齐, 闭环"半成品 job 残留 / 终态被乱序覆盖 / 状态机过早判 failed"三类问题.
+
+### Fixed
+
+- `lib/db/jobs.ts` `createJob` 改走 D1 `db.batch([...])`: 此前 `INSERT jobs` 之后用 for 循环逐条 `INSERT job_tasks`, 中途任一行失败 (D1 throttling / 行级约束) 会留下半成品 `jobs` 行但缺 `job_tasks` — 这种 job 永远卡在 pending, syncJobStatusFromTasks 也救不回 (`tasks.length === 0` 直接返回原 row). 现把整条链组装成 prepared statements 一次 batch 提交, D1 单 shard 保证 all-or-nothing, 失败时整体回滚不留脏数据.
+- `app/routes/api.jobs.$id.callback.task.tsx` 终态幂等保护: 此前 callback 拿到 task_index 就直接 `updateJobTaskByIndex`, existing 已是 `completed` / `failed` 时若网络层重试或乱序到达把 `running` callback 重放, 会把已落地的 `result` / `error` 抹回 null. 现在 update 之前先 `getJobTaskByIndex` 取 existing, existing 终态且 next 非终态时直接 `envelope(0, 'ignored ...')` 跳过 — 不报错 (避免触发 client retry storm), 但也不污染已落地数据.
+- `app/routes/api.jobs.$id.callback.complete.tsx` 状态推导改用 `syncJobStatusFromTasks`: 此前 callback.complete 直接把 local 上报的 `status` 写入 `jobs.status`, 与 callback.task 链路触发的 `syncJobStatusFromTasks` 推导存在竞争, 且 local 的 `_update_status` 与 server 状态机过去并不完全一致 (本轮已同步). 现 server 不再信任 local 给的 status 字段 (仅保留格式校验), 只写 `completed_at` / `error`, status 一律由 `syncJobStatusFromTasks` 从 `job_tasks` 真实状态推导, 单一信源消除抖动.
+- `lib/db/jobs.ts` `syncJobStatusFromTasks` 状态机 corner case: 此前 tasks = `[completed, failed, pending]` 命中"没 running → not all completed → has failed → 'failed'"分支, 把还有 pending 未跑的 job 过早标记 failed, 直到下一个 task callback 到达才修正回 running, 中间态会闪在 UI 上. 现新增第 3 条规则: 没 running 且存在 pending 时判 'running' (job 仍在推进), 把 failed 兜底放到第 4 条 — 仅当无 pending 无 running 且有 failed 才进终态. ele-autopilot-local `autopilot/job.py` `Job._update_status` 同步改, 保持 local / server 两端语义对仗.
+
+[1.9.5]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.4...v1.9.5
+
 ## [1.9.4] - 2026-05-20
 
 整体目标: AI 主动扫雷第二轮 — 对 callback 入口与 sub_ids 链路两条数据流做缺陷专项排查, 把"恶意 / 异常 client 撑爆 R2"与"删任务后留下悬挂引用"两类问题闭环.

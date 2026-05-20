@@ -33,12 +33,15 @@ router.get('/', async (c: Context<HonoEnv>) => {
     const response = await fetch(apiUrl, { headers })
 
     if (!response.ok) {
+      // 上游响应体可能含 Atlassian 内部错误堆栈 / token hint, 仅记到服务端日志,
+      // 不回写给客户端; 客户端只看到 status code, 便于运维查 log 而不泄露细节.
       const errorText = await response.text()
-      console.error(`HTTP error fetching Confluence page ${pageId}: ${response.status}`)
+      console.error(
+        `HTTP error fetching Confluence page ${pageId}: ${response.status} ${errorText.slice(0, 2000)}`,
+      )
       return c.json(
         {
           error: `Failed to fetch Confluence page: HTTP ${response.status}`,
-          details: errorText.slice(0, 4000),
         },
         400,
       )
@@ -76,7 +79,6 @@ router.get('/', async (c: Context<HonoEnv>) => {
     return c.json(
       {
         error: 'Failed to fetch Confluence page',
-        details: error?.message || 'Unknown error occurred',
       },
       500,
     )

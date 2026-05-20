@@ -13,6 +13,7 @@ import type {
   TaskActionResult,
 } from './types';
 import { generateId, isRecord, isValidId, queryAll, queryGet, queryRun } from './utils';
+import { getDb } from './connection';
 import { getTaskById } from './tasks';
 
 // ============ 辅助函数 ============
@@ -250,19 +251,28 @@ export async function createJob(input: { task_id: Id; config?: JobConfig }): Pro
     throw new Error('No tasks to execute');
   }
 
-  await queryRun(
-    `INSERT INTO jobs (id, task_id, status, config, created_at, started_at) VALUES (?, ?, ?, ?, ?, ?)`,
-    [jobId, taskId, 'pending', JSON.stringify(config), now, now],
-  );
-
+  // D1 batch: 整个 job + job_tasks 链原子写入. 任一条失败整体回滚, 避免
+  // 半成品 job (jobs 写入但 job_tasks 缺失) 留在表里.
+  const db = getDb();
+  const statements: D1PreparedStatement[] = [
+    db
+      .prepare(
+        `INSERT INTO jobs (id, task_id, status, config, created_at, started_at) VALUES (?, ?, ?, ?, ?, ?)`,
+      )
+      .bind(jobId, taskId, 'pending', JSON.stringify(config), now, now),
+  ];
   for (let i = 0; i < flatTasks.length; i++) {
     const ft = flatTasks[i];
     const jtId = generateId();
-    await queryRun(
-      `INSERT INTO job_tasks (id, job_id, task_id, task_index, task_title, task_text, status) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [jtId, jobId, ft.id, i, ft.title, ft.text, 'pending'],
+    statements.push(
+      db
+        .prepare(
+          `INSERT INTO job_tasks (id, job_id, task_id, task_index, task_title, task_text, status) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .bind(jtId, jobId, ft.id, i, ft.title, ft.text, 'pending'),
     );
   }
+  await db.batch(statements);
 
   const result = await getJobWithTasks(jobId);
   if (!result) throw new Error('Failed to create job');
@@ -427,12 +437,21 @@ export async function syncJobStatusFromTasks(jobId: Id): Promise<JobRow | null> 
   const tasks = await getJobTasksByJobId(jobId);
   if (tasks.length === 0) return await getJobById(jobId);
 
+  // 状态机:
+  //   1. 任一 running     -> running
+  //   2. 全 completed     -> completed
+  //   3. 任一 pending     -> running  (job 仍在推进, 即使已有 task failed; 这是
+  //                                    callback 异步到达时的中间态, 避免被过早
+  //                                    标记 failed 后又被后到的 callback 抖回)
+  //   4. 任一 failed      -> failed   (没有 pending / running, 终态)
+  //   5. 兜底             -> pending
   let newStatus: JobStatus;
-
   if (tasks.some((t) => t.status === 'running')) {
     newStatus = 'running';
   } else if (tasks.every((t) => t.status === 'completed')) {
     newStatus = 'completed';
+  } else if (tasks.some((t) => t.status === 'pending')) {
+    newStatus = 'running';
   } else if (tasks.some((t) => t.status === 'failed')) {
     newStatus = 'failed';
   } else {
