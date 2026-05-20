@@ -12,7 +12,8 @@ import type { HonoEnv } from '../types/env.ts'
  *   3. 本中间件用 jose 远程 JWKS 二次校验 (深度防御), 拿 email 后写入 `c.set('ownerId', 'google:<email>')`.
  *
  * 本地 dev (wrangler dev :8787, 不经 gateway / Access):
- *   - 缺 cf-access-jwt-assertion → 看 `c.env.DEV_FALLBACK_EMAIL` (经 .env 经 wrangler `--env-file` 注入)
+ *   - 缺 cf-access-jwt-assertion → 看 `c.env.DEV_FALLBACK_EMAIL` (经 `ele-autotesting/.env` +
+ *     `wrangler dev --env-file ../../.env` 注入)
  *   - 生产 wrangler.jsonc 不设 DEV_FALLBACK_EMAIL, 缺 token 必 401, 保留兜底拦截.
  *
  * ownerId 前缀化 (`google:` / `device:`) 是身份来源标记, 不要去掉. D1 schema 见

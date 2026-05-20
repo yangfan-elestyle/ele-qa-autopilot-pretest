@@ -36,7 +36,7 @@ export interface Env {
 
   /**
    * 本地 dev 兜底邮箱: 当请求缺 `cf-access-jwt-assertion` (wrangler dev 本地不经 CF Access)
-   * 时, resolveOwner 用 `google:<DEV_FALLBACK_EMAIL>` 作 ownerId. 经仓库根 `.env` +
+   * 时, resolveOwner 用 `google:<DEV_FALLBACK_EMAIL>` 作 ownerId. 经 `ele-autotesting/.env` +
    * `wrangler dev --env-file ../../.env` 注入. 生产 wrangler.jsonc / secret 绝不可设.
    */
   DEV_FALLBACK_EMAIL?: string
@@ -46,7 +46,8 @@ export type HonoEnv = {
   Bindings: Env
   Variables: {
     config: ServerConfig
-    // 仅 /api/sync/* 在 resolveOwner 中间件里写入. 其他路由不会读, 所以做成可选.
+    // 业务路由与 /api/sync/* 都过 resolveOwner, 写入 `google:<email>`; /healthz 等公开路径不写,
+    // 所以做成可选 — 读取端 (如 sync 子路由) 用 SyncEnv 收紧成必填.
     ownerId?: string
   }
 }

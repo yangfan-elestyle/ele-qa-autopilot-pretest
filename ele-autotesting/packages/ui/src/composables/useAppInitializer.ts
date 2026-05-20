@@ -26,8 +26,6 @@ import type { IPreferenceService } from '../types/services'
  * jose 校验后取 email → ownerId=`google:<email>`. 浏览器侧无需注入任何业务鉴权头.
  *
  * 本地 dev (wrangler dev, 不经 gateway / Access): 后端读 `DEV_FALLBACK_EMAIL` env 兜底.
- *
- * 工具函数 `ensureDeviceId` (core/utils/deviceId.ts) 已弃用但暂保留, 后续要按浏览器隔离时再启用.
  */
 
 /**
@@ -140,7 +138,7 @@ export function useAppInitializer(apiBase: string = '') {
   const normalizedBase = apiBase.replace(/\/+$/, '')
   setProxyBasePath(normalizedBase)
   // 身份头由 Cloudflare Access 边缘注入 (`cf-access-jwt-assertion`), 浏览器不必显式注入.
-  // setAuthHeaders 仍清一遍状态, 避免 HMR / 测试残留旧 X-Device-Id.
+  // setAuthHeaders 仍清一遍状态, 避免 HMR / 测试残留旧头.
   setAuthHeaders({})
 
   const services = ref<AppServices | null>(null)

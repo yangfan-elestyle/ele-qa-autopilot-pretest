@@ -4,9 +4,13 @@
 //   ENDPOINT  default: http://127.0.0.1:8787
 //
 // 鉴权: 业务路由经 `resolveOwner` 校验 `cf-access-jwt-assertion` JWT, 取 email 作 ownerId.
-// smoke 跑本地 wrangler dev (不经 CF Access), 依赖仓库根 `.env` 内
-// `DEV_FALLBACK_EMAIL=smoke@elestyle.jp` 兜底; 缺则全部 401 → FAIL.
+// smoke 跑本地 wrangler dev (不经 CF Access), 依赖 `ele-autotesting/.env` 内
+// `DEV_FALLBACK_EMAIL` 兜底; 缺则全部 401 → FAIL.
 // 远程线上跑须自带 CF Access cookie / token, smoke 默认 ENDPOINT 用本地, 远程跑请单独验证.
+//
+// 重要: smoke 仅对自身写入的 keys (SMOKE_KEYS) 做 PUT/GET/batch/DELETE, list 用 "包含"
+// 断言而非 "等于" 断言. 绝不 DELETE /api/sync/items 全清 — 该 owner 通常对应 dev 真实账号,
+// 全清会摧毁本地开发的云端配置.
 //
 // Exits 0 on full PASS, non-zero on any failure.
 
@@ -142,14 +146,17 @@ await step('POST /mcps/markitdown/mcp tools/list', async () => {
 
 // ─── /api/sync (D1) smoke ────────────────────────────────────────────────
 // owner 由 resolveOwner 解析 cf-access-jwt-assertion 决定; 本地 dev 走 DEV_FALLBACK_EMAIL
-// 兜底, smoke 流程内每次清空 owner 以保持幂等. 不再注入 X-Device-Id.
+// 兜底. 不再注入 X-Device-Id. smoke 用固定 owner 跑, 仅操作自身 keys (见顶部说明).
 const SYNC_HEADERS = { 'Content-Type': 'application/json' }
 const SYNC_KEY = 'smoke-test-key'
+const SMOKE_KEYS = [SYNC_KEY, 'smoke-a', 'smoke-b']
 
-await step('DELETE /api/sync/items (reset owner before sync smoke)', async () => {
-  const r = await fetch(`${ENDPOINT}/api/sync/items`, { method: 'DELETE', headers: SYNC_HEADERS })
-  if (!r.ok) throw new Error(`status=${r.status} ${await r.text()}`)
-  return 'cleared'
+await step('DELETE smoke keys (pre-clean)', async () => {
+  for (const k of SMOKE_KEYS) {
+    const r = await fetch(`${ENDPOINT}/api/sync/items/${encodeURIComponent(k)}`, { method: 'DELETE', headers: SYNC_HEADERS })
+    if (!r.ok) throw new Error(`DELETE ${k} status=${r.status} ${await r.text()}`)
+  }
+  return 'cleared smoke keys'
 })
 
 await step('PUT /api/sync/items/:key', async () => {
@@ -186,25 +193,30 @@ await step('POST /api/sync/batch (set + remove)', async () => {
   return 'ok'
 })
 
-await step('GET /api/sync/items (list after batch)', async () => {
+await step('GET /api/sync/items (list contains smoke keys, excludes removed)', async () => {
   const r = await fetch(`${ENDPOINT}/api/sync/items`, { headers: SYNC_HEADERS })
   if (!r.ok) throw new Error(`status=${r.status}`)
   const body = await json(r)
-  const keys = Object.keys(body.entries).sort()
-  if (keys.join(',') !== 'smoke-a,smoke-b') throw new Error(`got keys=${keys.join(',')}`)
   if (body.entries['smoke-a'] !== 'a' || body.entries['smoke-b'] !== 'b') {
-    throw new Error(`bad values: ${JSON.stringify(body.entries)}`)
+    throw new Error(`smoke-a/b missing or wrong: ${JSON.stringify({ a: body.entries['smoke-a'], b: body.entries['smoke-b'] })}`)
   }
-  return `${keys.length} entries`
+  if (SYNC_KEY in body.entries) {
+    throw new Error(`${SYNC_KEY} not removed by batch: ${body.entries[SYNC_KEY]}`)
+  }
+  return `smoke-a/b present, ${SYNC_KEY} removed`
 })
 
-await step('DELETE /api/sync/items (clear owner)', async () => {
-  const r = await fetch(`${ENDPOINT}/api/sync/items`, { method: 'DELETE', headers: SYNC_HEADERS })
-  if (!r.ok) throw new Error(`status=${r.status}`)
-  const verify = await fetch(`${ENDPOINT}/api/sync/items`, { headers: SYNC_HEADERS })
-  const body = await json(verify)
-  if (Object.keys(body.entries).length !== 0) throw new Error(`not empty: ${JSON.stringify(body)}`)
-  return 'cleared'
+await step('DELETE smoke keys (cleanup)', async () => {
+  for (const k of SMOKE_KEYS) {
+    const r = await fetch(`${ENDPOINT}/api/sync/items/${encodeURIComponent(k)}`, { method: 'DELETE', headers: SYNC_HEADERS })
+    if (!r.ok) throw new Error(`DELETE ${k} status=${r.status}`)
+  }
+  for (const k of SMOKE_KEYS) {
+    const v = await fetch(`${ENDPOINT}/api/sync/items/${encodeURIComponent(k)}`, { headers: SYNC_HEADERS })
+    const body = await json(v)
+    if (body.value !== null) throw new Error(`${k} still present after cleanup: ${body.value}`)
+  }
+  return 'smoke keys cleared'
 })
 
 await step('POST /mcps/markitdown/mcp convert_to_markdown(data:URI)', async () => {

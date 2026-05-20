@@ -65,7 +65,7 @@ pnpm run dev
 - `POST /markdown-research`: Markdown 中图片批量识别
 - `POST /figma-parse`: Figma 节点 SVG 渲染 + Vision OCR
 - `* /mcps/markitdown/*`: 反代到 markitdown Container (dev 下若 `MARKITDOWN_DEV_URL`, 反代到该 URL)
-- `/api/sync/*` (需带 `X-Device-Id` 头): D1 远程 KV; 路由清单见 `packages/server/src/routes/sync.ts` JSDoc
+- `/api/sync/*`: D1 远程 KV; owner 由 `resolveOwner` 解析 `cf-access-jwt-assertion` JWT 取 email 决定. 路由清单见 `packages/server/src/routes/sync.ts` JSDoc
 
 ## 烟雾测试 / 监控
 

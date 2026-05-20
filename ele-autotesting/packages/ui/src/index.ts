@@ -43,7 +43,6 @@ export {
   StorageFactory,
   DexieStorageProvider,
   RemoteStorageProvider,
-  ensureDeviceId,
   ModelManager,
   createModelManager,
   TemplateManager,

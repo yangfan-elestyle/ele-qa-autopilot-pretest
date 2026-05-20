@@ -31,7 +31,6 @@ export { LocalStorageProvider } from './services/storage/localStorageProvider'
 export { MemoryStorageProvider } from './services/storage/memoryStorageProvider'
 export { RemoteStorageProvider } from './services/storage/remoteStorageProvider'
 export type { AuthHeaderProvider } from './services/storage/remoteStorageProvider'
-export { ensureDeviceId, clearDeviceId } from './utils/deviceId'
 
 // 导出提示词服务相关
 export { PromptService } from './services/prompt/service'
