@@ -11,10 +11,6 @@
         <input v-model="sk" type="password" placeholder="SK (16/24/32 字符)" autocomplete="off" />
       </div>
       <div class="ds-ms-field">
-        <label>组织 (organizationId)</label>
-        <input v-model="organizationId" type="text" placeholder="MS 组织 id" />
-      </div>
-      <div class="ds-ms-field">
         <label>项目</label>
         <select v-model="projectId" :disabled="!projects.length">
           <option value="">{{ projects.length ? '请选择' : '尚未加载' }}</option>
@@ -31,7 +27,7 @@
         </select>
       </div>
       <div class="ds-ms-actions">
-        <button class="ds-ms-btn" :disabled="!ak || !sk || !organizationId || loading.projects" @click="loadProjects">
+        <button class="ds-ms-btn" :disabled="!ak || !sk || loading.projects" @click="loadProjects">
           {{ loading.projects ? '加载…' : '拉项目' }}
         </button>
         <button class="ds-ms-btn" :disabled="!projectId || loading.modules" @click="loadModules">
@@ -108,7 +104,6 @@ interface MsCase {
 
 const ak = ref('')
 const sk = ref('')
-const organizationId = ref('')
 const projectId = ref('')
 const moduleId = ref('')
 
@@ -153,14 +148,11 @@ async function loadProjects() {
   error.value = ''
   loading.value.projects = true
   try {
-    const res = await callApi<any>('POST', '/api/ms/projects', {
-      organizationId: organizationId.value.trim(),
-      current: 1,
-      pageSize: 100,
-    })
+    // organizationId 由 Worker 经 /is-login 自动发现, 前端不传.
+    const res = await callApi<any>('POST', '/api/ms/projects', { current: 1, pageSize: 100 })
     const list: MsProject[] = res?.data?.list ?? res?.data ?? []
     projects.value = list.map((p) => ({ id: p.id, name: p.name, organizationId: p.organizationId }))
-    if (!projects.value.length) error.value = '项目列表为空 (确认 AK 是否有该组织权限)'
+    if (!projects.value.length) error.value = '项目列表为空 (确认 AK 是否有项目读权限)'
   } catch (e: any) {
     error.value = `拉项目失败: ${e?.message ?? e}`
   } finally {

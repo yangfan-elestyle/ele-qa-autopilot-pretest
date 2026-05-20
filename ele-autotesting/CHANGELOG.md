@@ -2,6 +2,12 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.11.2] - 2026-05-21
+
+### Changed
+
+- MeterSphere 面板取消「组织」输入项: 私有部署 + 单组织场景下, 仅需 Access Key / Secret Key 即可一键列出全部可见项目 (Worker 内部通过 MS 登录态接口自动定位用户组织, 链路对使用方透明).
+
 ## [1.11.1] - 2026-05-21
 
 ### Changed

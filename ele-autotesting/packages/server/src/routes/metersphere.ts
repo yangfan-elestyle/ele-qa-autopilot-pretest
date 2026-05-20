@@ -107,6 +107,15 @@ router.get('/orgs', async (c: Context<HonoEnv>) => {
   }
 })
 
+/**
+ * `/api/ms/projects` — 列出 AK 用户可见的项目, 前端 **无需** 传 organizationId.
+ *
+ * MS v3 的 `/organization/project/page` 必须带 organizationId, 但私有部署 + 单组织
+ * (即本部署形态) 下用户感知不到 "组织" 概念. 服务端先调 `/is-login` (AK/SK 鉴权
+ * 同样生效, 由 ApiKeyFilter 注入 SessionUser, `autoSwitch` 会修正过期 lastOrg),
+ * 取出 `lastOrganizationId` 或退化到 `userRoleRelations[]` 第一个 organization id,
+ * 再走 `/organization/project/page` 翻页. 整条链路对 UI 透明.
+ */
 router.post('/projects', async (c: Context<HonoEnv>) => {
   const ak = getAkSk(c)
   if (ak instanceof Response) return ak
@@ -114,27 +123,62 @@ router.post('/projects', async (c: Context<HonoEnv>) => {
   try {
     body = await c.req.json()
   } catch {
-    return c.json({ error: 'invalid json body' }, 400)
-  }
-  const organizationId = body?.organizationId
-  if (!organizationId || typeof organizationId !== 'string') {
-    return c.json({ error: 'organizationId required (string)' }, 400)
+    // body 可选, 不必强制 JSON.
+    body = {}
   }
   const current = Number(body?.current ?? 1)
   const pageSize = Math.min(200, Math.max(1, Number(body?.pageSize ?? 50)))
+
   try {
+    const orgId = await discoverOrganizationId(c, ak.ak, ak.sk)
+    if (!orgId) {
+      return c.json(
+        { error: 'metersphere: unable to discover organizationId from AK (no lastOrganizationId / userRoleRelations)' },
+        502,
+      )
+    }
     return callMeterSphere(c, {
       method: 'POST',
       path: '/organization/project/page',
       ak: ak.ak,
       sk: ak.sk,
-      body: { organizationId, current, pageSize, keyword: body?.keyword ?? '' },
+      body: { organizationId: orgId, current, pageSize, keyword: body?.keyword ?? '' },
     })
   } catch (e: any) {
     console.error('ms projects error:', e?.message || e)
     return c.json({ error: String(e?.message || e) }, 500)
   }
 })
+
+/**
+ * 调 MeterSphere `/is-login` 拿当前 AK 用户的 organization context.
+ * 优先 `lastOrganizationId` (autoSwitch 已修正过期 id); 缺时回退到 `userRoleRelations`
+ * 里第一个 sourceType=ORGANIZATION 的条目. 返回 null 表示彻底无法决定.
+ */
+async function discoverOrganizationId(
+  c: Context<HonoEnv>,
+  ak: string,
+  sk: string,
+): Promise<string | null> {
+  const { accessKey, signature } = await buildMsSignedHeaders(ak, sk)
+  const resp = await c.env.METERSPHERE.fetch(`${BACKEND_BASE}/is-login`, {
+    method: 'GET',
+    headers: { accept: 'application/json', accessKey, signature },
+  })
+  if (!resp.ok) {
+    throw new Error(`/is-login HTTP ${resp.status}`)
+  }
+  const json: any = await resp.json().catch(() => ({}))
+  const data = json?.data ?? json
+  const lastOrg = typeof data?.lastOrganizationId === 'string' ? data.lastOrganizationId : null
+  if (lastOrg) return lastOrg
+  const relations: any[] = Array.isArray(data?.userRoleRelations) ? data.userRoleRelations : []
+  for (const r of relations) {
+    const orgId = r?.organizationId ?? (r?.type === 'ORGANIZATION' ? r?.sourceId : null)
+    if (typeof orgId === 'string' && orgId) return orgId
+  }
+  return null
+}
 
 router.get('/modules', async (c: Context<HonoEnv>) => {
   const ak = getAkSk(c)

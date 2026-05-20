@@ -25,7 +25,7 @@
 ```
 浏览器 Vue UI
   │  ① 用户输入 AK/SK (临时 sessionStorage / Pinia, 不入 D1)
-  │  ② 选 organization → project → module
+  │  ② 选 project → module (组织由 Worker /is-login 自动发现, UI 不暴露)
   │  ③ 拉用例
   ▼ HTTPS gateway (/autotest/api/ms/*)
 ele-autotesting Worker
@@ -46,8 +46,8 @@ qa.elepay.link:443 / MeterSphere REST API
 <!-- prettier-ignore -->
 | 调用 | Method + Path | Body / Query | 返回字段 (按需用) |
 |---|---|---|---|
-| 当前用户组织 | `GET /user/key/info` 或 `GET /organization/list/options` | — | `id, name` (待 dev 验证) |
-| 项目列表 | `POST /organization/project/page` | `{organizationId, current:1, pageSize:50}` | `list[].id, name, organizationId` |
+| 组织自动发现 | `GET /is-login` (AK/SK 同样认证) | — | `SessionUser` 含 `lastOrganizationId` + `userRoleRelations[]`; Worker 内部用, 不直接暴露 UI |
+| 项目列表 | `POST /organization/project/page` | `{organizationId (Worker 自填), current, pageSize}` | `list[].id, name, organizationId` |
 | 模块树 | `GET /functional/case/module/tree/{projectId}` | — | 递归 `BaseTreeNode[]` (`id, name, parentId, children`) |
 | 用例分页 | `POST /functional/case/page` | `{projectId, moduleIds:[mid], current:1, pageSize:50}` | `list[].id, num, name, caseEditType, tags, createTime, createUserName` |
 
@@ -84,8 +84,8 @@ async function buildSignHeaders(ak: string, sk: string) {
 | Endpoint | 用途 | 入参 | 备注 |
 |---|---|---|---|
 | `GET /api/ms/_smoke` | 链路烟雾 | — | 直接 `env.METERSPHERE.fetch('https://backend/')`, 期望非 502 |
-| `POST /api/ms/orgs` | 组织 (可选, 看 MS 返回结构再定) | — | 先用 `/user/key/info` 探 |
-| `POST /api/ms/projects` | 项目分页 | `{organizationId}` 或空 | 调 `/organization/project/page` |
+| `GET /api/ms/orgs` | 当前 AK 用户的组织上下文 (诊断用, UI 不调) | — | 透传 `/user/key/info` 响应 |
+| `POST /api/ms/projects` | 项目分页 | `{current?, pageSize?, keyword?}` | Worker 先调 `/is-login` 拿 `lastOrganizationId`, 再 `/organization/project/page`; 私有部署单组织对 UI 透明 |
 | `GET /api/ms/modules` | 模块树 | `?projectId=` | 调 `/functional/case/module/tree/{projectId}` |
 | `POST /api/ms/cases` | 用例分页 | `{projectId, moduleIds, current, pageSize}` | 调 `/functional/case/page` |
 
@@ -151,7 +151,7 @@ Mock 数据放 `packages/ui/src/components/_mock/autotest-cases.ts`, 6-10 条样
 cd ele-autotesting && pnpm run dev
 # 浏览器开 http://127.0.0.1:18181, 顶栏点 "联动":
 # - 左 tab 看到 mock 表格.
-# - 右 tab 输入 .env 里的 AK/SK, 选 organization/project/module, 看到真实 MS 用例分页.
+# - 右 tab 输入 .env 里的 AK/SK -> 拉项目 -> 选项目 -> 拉模块 -> 选模块 -> 拉用例.
 ```
 
 线上 (gateway):
@@ -164,7 +164,7 @@ curl -fsS "$ENDPOINT/autotest/api/ms/_smoke"   # 非 502 即链路通
 ## 10. 风险 / 未决
 
 - **MS 用例 schema 字段名细节**: 以 dev 期实拉为准, 可能与源码 DTO 有差异.
-- **organizationId 取值**: 若 `/user/key/info` 不返回, 改用 `GET /organization/list/options/user`; dev 期确认.
+- **organizationId 自动发现**: Worker 走 `/is-login` 取 `lastOrganizationId` (MS `autoSwitch` 修正过期 id); 若该字段缺失, 回退到 `userRoleRelations[]` 第一个 ORGANIZATION 关系. 私有部署多组织情形 (本期不考虑) 暂不暴露切换 UI.
 - **AK/SK 不入 D1**: 本期 session-only; 关 modal 后丢失. 用户每次开 panel 重输. M1 阶段再做 D1 KV 持久化 + 加密策略.
 - **CORS**: `/api/ms/*` 与 `/api/sync/*` 同源 (经 gateway), 不涉及.
 - **AES key 长度**: 仅支持 AK/SK 都是 16B (AES-128) 的情况; 若 MS 后续生成 24/32B SK, 需按长度切 AES-192/256, 加保护性校验.
