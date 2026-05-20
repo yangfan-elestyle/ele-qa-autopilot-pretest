@@ -1,27 +1,61 @@
 # ele-qa-autopilot
 
-QA AutoPilot 系统合并仓库. 三个独立子项目共存:
+QA AutoPilot 合并仓库. `gateway` + 三个独立业务子项目并存; 非 monorepo workspace, 各自独立技术栈与包管.
+
+全栈 AI-only (Claude Code / Codex 维护). Agent 工作准则见 [AGENTS.md](./AGENTS.md).
+
+## 子项目
 
 <!-- prettier-ignore -->
-| 子目录 | 角色 | 技术栈 | 部署 |
+| 子目录 | 角色 | 技术栈 | 部署目标 |
 |---|---|---|---|
-| [`ele-autopilot/`](./ele-autopilot) | 任务管理中心 + Web 后台 | RR7 + Bun + Cloudflare Workers + D1 + R2 | CF Workers |
-| [`ele-autopilot-local/`](./ele-autopilot-local) | 本地浏览器执行 agent (macOS) | FastAPI + browser-use + uv + Python 3.12 | 本机 :8000 |
-| [`ele-autotesting/`](./ele-autotesting) | AI 测试用例生成工具 | Vue3 + Hono + pnpm + Cloudflare Workers + Container | CF Workers |
+| [`gateway/`](./gateway) | 公网入口 + 路由分发 | TS / Bun + RR7 | CF Workers `qa` |
+| [`ele-autopilot/`](./ele-autopilot) | 任务管理中心 + Web 后台 | TS / Bun + RR7 + React 19 + AntD + Tailwind | CF Workers + D1 + R2 |
+| [`ele-autopilot-local/`](./ele-autopilot-local) | 本地浏览器执行 agent (macOS) | Python 3.12 / uv + FastAPI + browser-use | 本机 `0.0.0.0:8000` |
+| [`ele-autotesting/`](./ele-autotesting) | AI 测试用例生成工具 | TS / pnpm + Vue3 + Hono | CF Workers + D1 + Container |
 
-## 系统关系
+各子项目独立 README + AGENTS; 详细约束见子目录 `AGENTS.md`.
+
+## 系统拓扑
+
+唯一公网入口: gateway Worker `qa`, URL `https://qa.<account-sub>.workers.dev` (Cloudflare Zero Trust + Google Workspace SSO, 仅 `@elestyle.jp`).
 
 ```
-[ele-autotesting]         [ele-autopilot] ◄──┐
- (独立, 生成用例)          (Web 后台/任务中心) │ HTTP callback
-                                │  ▲           │
-                                ▼  │           │
-                          [ele-autopilot-local] ─┘
-                          (本地 :8000, 驱动 Chrome)
+                              ┌────────────────────────────┐
+公网用户 (SSO) ─────────────► │ gateway (CF Worker `qa`)   │
+                              └─┬──────────┬──────────────┬┘
+                                │          │              │
+                          /autotest/*    其他          /, /index.html
+                                │          │              │
+                       ┌────────▼───┐ ┌────▼────────┐ (landing)
+                       │ele-autotest│ │ele-autopilot│
+                       │ing (CF)    │ │ (CF+D1+R2)  │ ◄────┐
+                       └────────────┘ └─────────────┘      │ HTTP callback
+                                                           │
+                                              ┌────────────┴────────┐
+                                              │ ele-autopilot-local │
+                                              │ macOS :8000         │
+                                              └─────────────────────┘
 ```
+
+### gateway 路径分发
+
+- `/` `/index.html` — gateway landing (双卡片 + 本地 agent 安装区, 客户端 fetch `/releases/local/latest.txt`)
+- `/healthz` — gateway 自检
+- `/autotest/*` — strip `/autotest` 后转发 `env.AUTOTEST.fetch` -> `ele-autotesting`
+- 其他 — 原样转发 `env.AUTOPILOT.fetch` -> `ele-autopilot` (`/autopilot*` / `/api/*` / `/screenshots/*` / `/releases/*` / `/install.sh` / `/favicon.ico`)
+
+### 运行时联动
+
+- `ele-autopilot` 前端默认调本地 `http://127.0.0.1:8000` 创建 Job (`app/admin/_services/local-api.ts`).
+- `ele-autopilot-local` 通过 `autopilot/callback.py` 回调 `ele-autopilot`; callback base URL 由后端按 request origin 下发, 经 gateway 变为公网入口.
+- `ele-autotesting` 当前与 autopilot 运行时无耦合; 未来联动加 service binding.
 
 ## 发布
 
-三子项目**版本号 lockstep**, 单一发布 tag `vX.Y.Z` (任一 tag push → 三 workflow 同步 redeploy). 实操流程见 [deploy.md](./deploy.md).
+四子项目版本号 **lockstep**, 单一 tag `vX.Y.Z` 触发四个 workflow 同步部署. 实操流程见 [deploy.md](./deploy.md).
 
-全栈 AI-only (Claude Code / Codex 维护).
+- 四 manifest 同版本: `gateway/package.json`, `ele-autopilot/package.json`, `ele-autopilot-local/pyproject.toml`, `ele-autotesting/package.json`.
+- 发布记录: `gateway/CHANGELOG.md`, `ele-autopilot/CHANGELOG.md`, `ele-autopilot-local/CHANGELOG.md`, `ele-autotesting/CHANGELOGS`.
+- workflow: `.github/workflows/{gateway,autopilot,autopilot-local,autotesting}.yml`.
+- `ele-autopilot-local` 产物上传到 R2 `ele-autopilot-releases/local/<ver>/`, 不挂 GitHub Release.

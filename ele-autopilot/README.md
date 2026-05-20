@@ -26,4 +26,21 @@ git push origin <branch> vX.Y.Z
 
 push `v*` tag → GitHub Actions (校验版本 → build → `wrangler d1 migrations apply --remote` → `wrangler deploy`). 三子项目 lockstep, 同一 tag 三 workflow 同步触发, 详见根 [deploy.md](../deploy.md).
 
-前置 (一次性): GitHub Secrets `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID`, D1 (`ele-autopilot`) 与 R2 (`ele-autopilot-screenshots`) 手动创建并将 `database_id` 写入 `wrangler.jsonc`.
+前置 (一次性): GitHub Secrets `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID`, D1 (`ele-autopilot`) 与 R2 (`ele-autopilot-screenshots`) 手动创建并将 `database_id` 写入 `wrangler.jsonc`. 详见根 [setup.md](../setup.md).
+
+## 运维 (D1 / R2)
+
+```bash
+# 查 D1
+bunx wrangler d1 execute ele-autopilot --remote --command "SELECT COUNT(*) FROM tasks"
+
+# 查 R2 对象
+bunx wrangler r2 object get ele-autopilot-screenshots/<key> --file ./out.png
+bunx wrangler r2 bucket list
+
+# 备份 / 还原 D1
+bunx wrangler d1 export ele-autopilot --remote --output backup.sql
+bunx wrangler d1 execute ele-autopilot --remote --file restore.sql
+```
+
+> D1 上限 10 GB (Workers Paid); R2 无单 bucket 上限 (按 storage + class A/B 操作计费).

@@ -1,647 +1,372 @@
 # Changelog
 
-[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
+面向使用者的公开更新记录: 写可见的新功能、修复与体验变化, 不写内部实现.
+
+格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
 ## [1.10.0] - 2026-05-20
 
 ### Changed
 
-- lockstep 同步, 与 gateway / ele-autopilot-local / ele-autotesting v1.10.0 一同发布; 本项目无业务改动 (admin UI / `/api/admin/*` / D1 schema / `/screenshots/*` R2 proxy / R2 截图写入 / 本地 agent 派单链路 / `syncJobStatusFromTasks` 状态机全部沿用 v1.9.9). 本轮上游聚焦 gateway 把公网入口套上 Cloudflare Zero Trust Access + Google Workspace SSO: gateway 内 `workers/app.ts` 用 `jose` 远程 JWKS 校验 `cf-access-jwt-assertion` 并把 `{ email }` 注入 RR `AppLoadContext.user`, landing 顶栏渲染登录邮箱 + 一键登出. 副作用: 浏览器访问 `/autopilot*` 现在被前置 Allow App (整域兜底 `Emails ending in @elestyle.jp`) 拦截走 Google SSO, 但 `/api/*` 在 `QA Gateway Bypass` App 名单, 本地 agent 回调 (`/api/jobs/:id/callback/{task,complete}`) 与 admin 前端 fetch (`/api/admin/...`) 完全不感知 CF Access, R2 写入 / callback 状态机 / job 终态保护沿用 v1.9.9. autopilot 后端如未来想读当前用户身份可从透传 header `cf-access-authenticated-user-email` 取, 本期不动.
-
-[1.10.0]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.9...v1.10.0
+- 后台访问需经 Google Workspace 单点登录, 本地 agent 回调与安装链路不受影响.
 
 ## [1.9.9] - 2026-05-20
 
-整体目标: AI 主动扫雷第七轮 — 跨工程功能流程审计后的双线修复. 重点收两条曾在体感上"任务卡住又找不到根因"的链路: (1) callback.task 单张截图坏 base64 让整条 callback 500 → task 永卡 running; (2) admin UI 调本地 agent 三处 fetch 全无 timeout, 本地 agent hang 时 UI 一直 spinner 只能刷页. 同步在 lockstep 把 ele-autopilot-local `callback.py` 的 callback 子路径 (`/task` / `/complete`) 从硬编码字符串提为顶层常量并消除尾斜杠拼接歧义, 与 server 端 `app/routes.ts` 注册的 `/api/jobs/:id/callback/{task,complete}` 形成可审计的契约绑定.
+### Fixed
+
+- 单张截图损坏不再让整次任务卡死, 后台不再无故停在"运行中".
+- 本地 agent 失联时操作不再无限转圈, 改为给出明确超时提示.
+- 任务异常断连后, 已完成任务的最终状态不再被重发的回调覆盖.
+
+## [1.9.8] - 2026-05-20
 
 ### Fixed
 
-- `lib/screenshots.ts` `externalizeScreenshots` 把 `writeScreenshotToR2(...)` 包进逐张 try-catch: 此前 `base64ToBytes` 内部 `atob()` 遇 base64 非法字符会抛 `InvalidCharacterError`, 该异常从 `await externalizeScreenshots(existing.id, result)` 一路冒到 `app/routes/api.jobs.$id.callback.task.tsx` 的外层 try 之外 (调用点在 try 之前), 直接让 callback 返 500 → local agent 在 retry 上限 (3 次) 之后 give up, server 端 `job_tasks.status` 永远停在前一个值, `syncJobStatusFromTasks` 也没数据可推导 → admin UI 看到的 task 永远 running 永不收敛. 现在单张失败仅 `console.warn` + 字段置 null, 同一 step 的其他截图与整体 task 状态正常落地; `writeScreenshotToR2` 函数注释也补了"让异常向上传播给逐张 try-catch"的契约说明, 防止后续被人无意收回函数内部.
-- `app/admin/_services/local-api.ts` 三处 `fetch` 加显式 `AbortSignal.timeout`: `dispatchToLocal` (POST `/autopilot/run`) 30s, `stopJobOnLocal` (POST `/autopilot/jobs/:id/stop`) 10s, `checkLocalConnection` (GET `/system/connect`) 5s. 此前裸 fetch 无超时, 本地 agent 卡死 / Chrome user data dir 锁未释放 / wifi 切换网络黑洞时, 前端 spinner 永远转, 用户只能刷新整页. timeout 阈值按各路径业务上限给: dispatch 留 30s 因为 Chrome 冷启动 + browser-use Agent 初始化在慢机上能跑到 10s+, stop / connect 走静态路径短超时. `TimeoutError` 分支 throw 时携带 `{ cause: err }` 满足 ESLint `preserve-caught-error` 规则, UI 上抛出可读中文 ("Local API 超时 ..."); `checkLocalConnection` 的 catch 保持静默返回 false (轮询接口不应让一次失败把 useAgentConnection hook 崩成 error 态).
-
-### Fixed
-
-- `app/routes/api.jobs.$id.callback.complete.tsx`: 新增 `TERMINAL_JOB_STATUSES = new Set<JobStatus>(['completed', 'failed'])`, 校验 status 字段格式之后立刻判断当前 `job.status`, 若已是终态直接返回 `envelope(0, 'ignored (job already in terminal state)', null)` (200 OK + code 0, 不算错误, 让 local 端 `_post_with_retry` 视为成功停止重试). 不动 `task` callback 路径 — 那里早已带 `isTerminal(existing.status) && !isTerminal(nextStatus)` 反降级保护, 本次只是把同样的语义对齐到 job 维度. 没改 `syncJobStatusFromTasks` — 它从 `job_tasks` 真实状态推导 jobs.status 是幂等的, 与新加的拦截层叠加无副作用 (终态 job 走不到 sync 调用).
-
-[1.9.9]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.8...v1.9.9
-[1.9.8]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.7...v1.9.8
+- 跟随版本同步发布.
 
 ## [1.9.7] - 2026-05-20
 
-整体目标: AI 主动扫雷第五轮 — Job 时间戳真实性修正. 此前 `jobs.started_at` 在 `createJob` 时硬写成 `now`, 与 `status='pending'` 同时落地, 任务后续真正开始执行时 server 端再无写入入口, 导致前端任何"耗时 = completed_at - started_at"算式都把 local agent 接收 callback 到第一次 task running 之间的等待时长 (取决于 local agent 负载 / 浏览器冷启动, 可能几十秒) 算进去, 用户排查"这条任务为什么跑这么久"会得到错误结论. 配套修 `syncJobStatusFromTasks` 在状态首次推进到非 pending 时回填该字段.
-
 ### Fixed
 
-- `lib/db/jobs.ts` `createJob`: `INSERT INTO jobs` 的 `started_at` 列从 `now` 改成 `null`. D1 schema (`migrations/0001_init.sql`) 的 `started_at TEXT` 本就可空, 之前写入 `now` 是初次实现时把"创建时间"和"启动时间"语义混在一起的遗留 bug; 此版回到正确语义 — pending 阶段没启动就没 started_at, 与 `job_tasks` 同字段语义对齐. 历史已有 `jobs` 行的 `started_at` 不动 (向后兼容, 不写 migration 回填, 旧数据耗时仍偏长但不再继续产新错数据).
-- `lib/db/jobs.ts` `syncJobStatusFromTasks`: 推导新 status 之后, 若新状态非 pending 且 `jobs.started_at IS NULL`, 拿 `getJobTasksByJobId` 的 task 列表里最早一个有 `started_at` 的时间回填; 全部 task 都还没 started_at (理论上 sync 触发时必有至少一个 task 进入过 running, 但兜底保险) 时退化到 `new Date().toISOString()`. 已写入的 `jobs.started_at` 永不覆盖, 保留首次启动时间 — 同一 job 后续多次 callback 触发 sync 是幂等的. 这一步把"何时回填"绑在 callback.task / callback.complete 两条 server 端唯一信源上, 不需要新加 callback 字段或改 local 端 callback 协议.
-
-[1.9.7]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.6...v1.9.7
+- 任务耗时统计修正: 此前会把派发等待时间算进任务实际执行时间.
 
 ## [1.9.6] - 2026-05-20
 
-整体目标: AI 主动扫雷第四轮 — 后台列表 sort/order 链路审计, 修掉 react-admin 列表头点排序在后端被静默忽略的功能缺陷, 顺手 lockstep 对齐 ele-autotesting 业务 API 鉴权收紧.
-
 ### Fixed
 
-- `lib/db/utils.ts` 新增 `buildOrderBy(sort, order, allowed, fallback)` helper: D1 prepared statement 仅支持值占位符, 列名 / 方向只能字符串拼接, 直接拿前端传的 sort 字段拼 `ORDER BY ${col} ${dir}` 是显式注入面 — 这里强制字段白名单 + 方向归一化 (`ASC` / `DESC`, 默认 `DESC`), 不命中回退到调用方给的 fallback 表达式. 三处列表 (jobs / tasks / folders) 共用一份, 避免各 list*Page 各自实现走样.
-- `lib/db/jobs.ts` `listJobsPage` 真正实施 sort/order: 此前 `app/routes/api.admin.jobs.tsx` 把 `parseListParams` 解析到的 `sort` / `order` 透传进 `listJobsPage(args)`, 但 SQL 里写死 `ORDER BY created_at DESC` 完全无视 args — 表现是 react-admin 列表头任意点列排序按钮都不生效, 永远是 created_at DESC. 现接入 `buildOrderBy` + 白名单 `id / task_id / status / created_at / started_at / completed_at`, 命中即按字段+方向拼装, 不命中回退 `created_at DESC` 兜底.
-- `lib/db/tasks.ts` `listTasksPage` 同上修复: `ORDER BY t.created_at DESC` 写死无视前端 sort. 现接入 `buildOrderBy` + 白名单 `id / folder_id / title / created_at`, 命中后自动用 `t.` 前缀避免与 `WITH RECURSIVE descendants(id)` CTE 里 `id` 列重名歧义; 不命中保持 `t.created_at DESC` 兜底.
-- `lib/db/folders.ts` `listFoldersPage` 同上修复: 此前默认 `CASE WHEN order_index IS NOT NULL ... f.order_index ASC, f.created_at DESC` 是 reorderFolders 友好的稳定排序, 但 sort/order 完全失效. 现 sort 命中白名单 `id / name / parent_id / order_index / created_at` 时改用单字段 + `f.` 前缀; 未传 sort / 不命中保留原默认顺序, 不破坏 drag reorder 之后 UI 顺序的直观性.
-
-[1.9.6]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.5...v1.9.6
+- 任务 / 文件夹 / 执行历史列表表头点击排序恢复正常.
 
 ## [1.9.5] - 2026-05-20
 
-整体目标: AI 主动扫雷第三轮 — 把 Job 创建链路 + callback 状态同步链路两条 server-side 数据流的并发缺陷收齐, 闭环"半成品 job 残留 / 终态被乱序覆盖 / 状态机过早判 failed"三类问题.
-
 ### Fixed
 
-- `lib/db/jobs.ts` `createJob` 改走 D1 `db.batch([...])`: 此前 `INSERT jobs` 之后用 for 循环逐条 `INSERT job_tasks`, 中途任一行失败 (D1 throttling / 行级约束) 会留下半成品 `jobs` 行但缺 `job_tasks` — 这种 job 永远卡在 pending, syncJobStatusFromTasks 也救不回 (`tasks.length === 0` 直接返回原 row). 现把整条链组装成 prepared statements 一次 batch 提交, D1 单 shard 保证 all-or-nothing, 失败时整体回滚不留脏数据.
-- `app/routes/api.jobs.$id.callback.task.tsx` 终态幂等保护: 此前 callback 拿到 task_index 就直接 `updateJobTaskByIndex`, existing 已是 `completed` / `failed` 时若网络层重试或乱序到达把 `running` callback 重放, 会把已落地的 `result` / `error` 抹回 null. 现在 update 之前先 `getJobTaskByIndex` 取 existing, existing 终态且 next 非终态时直接 `envelope(0, 'ignored ...')` 跳过 — 不报错 (避免触发 client retry storm), 但也不污染已落地数据.
-- `app/routes/api.jobs.$id.callback.complete.tsx` 状态推导改用 `syncJobStatusFromTasks`: 此前 callback.complete 直接把 local 上报的 `status` 写入 `jobs.status`, 与 callback.task 链路触发的 `syncJobStatusFromTasks` 推导存在竞争, 且 local 的 `_update_status` 与 server 状态机过去并不完全一致 (本轮已同步). 现 server 不再信任 local 给的 status 字段 (仅保留格式校验), 只写 `completed_at` / `error`, status 一律由 `syncJobStatusFromTasks` 从 `job_tasks` 真实状态推导, 单一信源消除抖动.
-- `lib/db/jobs.ts` `syncJobStatusFromTasks` 状态机 corner case: 此前 tasks = `[completed, failed, pending]` 命中"没 running → not all completed → has failed → 'failed'"分支, 把还有 pending 未跑的 job 过早标记 failed, 直到下一个 task callback 到达才修正回 running, 中间态会闪在 UI 上. 现新增第 3 条规则: 没 running 且存在 pending 时判 'running' (job 仍在推进), 把 failed 兜底放到第 4 条 — 仅当无 pending 无 running 且有 failed 才进终态. ele-autopilot-local `autopilot/job.py` `Job._update_status` 同步改, 保持 local / server 两端语义对仗.
-
-[1.9.5]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.4...v1.9.5
+- 任务部分成功 + 部分未跑的中间态不再被错误标记为"失败".
+- 创建任务时若中途异常, 不再留下半成品记录.
 
 ## [1.9.4] - 2026-05-20
 
-整体目标: AI 主动扫雷第二轮 — 对 callback 入口与 sub_ids 链路两条数据流做缺陷专项排查, 把"恶意 / 异常 client 撑爆 R2"与"删任务后留下悬挂引用"两类问题闭环.
-
 ### Fixed
 
-- `lib/screenshots.ts` `externalizeScreenshots` 单张截图 base64 长度上限 `MAX_SCREENSHOT_BASE64_LENGTH = 6 * 1024 * 1024` (解码后原图 ~4.5MB, Worker 单实例 128MB 留余量). callback 路由对截图体积零校验, base64 字段直接写 R2, 异常或恶意 client 一次 callback 可携带 N 个 step × 任意大 base64, 把 R2 配额或 Worker 内存撑爆. 现超限截图字段置空 + console.warn 记录 (`step {i} of {jobTaskId} dropped`), task 结果 D1 行仍能写回, 不让单步异常拖垮整个 callback.
-- `lib/db/tasks.ts` 新增 `pruneSubIdReferencesUnsafe(deletedIds)`: 扫表 `sub_ids != '[]'` 的所有 task, JSON.parse 后 filter 掉被删 id 再回写. `sub_ids` 是 JSON 字符串列, 不是 FK, D1 cascade 管不到, 删 task 不清理父链就留悬挂引用 — `flattenTaskTree` 走到时 `getTaskById` 返回 null 会 skip 不崩, 但 admin UI 展示 / 导出会带幽灵 id, 数据完整性破口. `deleteTaskById` 在 D1 行删除后调用 prune; `deleteTasksByFolderIds` 先 `SELECT id` 收集再删, 拿到 id 数组后 prune.
-- `lib/db/folders.ts` `deleteFolderById` 递归级联删 tasks 后追加 `pruneSubIdReferencesUnsafe(taskIds)` — 子树内的 task 被批量删时, 子树外引用它们的 task `sub_ids` 链也要同步清, 避免跨 folder 删除留下脏引用.
+- 删除任务后, 其他任务里残留的引用自动清理, 后台不再显示幽灵 id.
 
-[1.9.4]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.3...v1.9.4
+### Security
+
+- 限制单张截图体积上限, 防止异常上传撑爆存储.
 
 ## [1.9.3] - 2026-05-20
 
-整体目标: 主动扫雷 — 对 v1.9.x 工作台已稳定的功能流程做后端缺陷专项排查, 修掉删除链 R2 残留 / 错误码语义错位 / 列表参数 DoS 隐患三类问题, 把 UI 也顺手抛了 Tree drag indicator / Toast 进度条 / FullscreenDialog 头部三处.
-
 ### Fixed
 
-- `lib/screenshots.ts` 新增 `deleteScreenshotsByJobTaskIds(ids)`: 按 `<jobTaskId>/` 前缀分页 list + batch delete R2 对象, 解决 D1 cascade 链 (folder→tasks→jobs→job_tasks) 不会跨进 R2 桶导致截图永久残留的资源泄漏. 单 job_task 可能含 N 张 step 截图, 调用方传 id 数组, 内部按对象 ≤1000 分页吃完, 失败仅 warn 不抛 — D1 行已先删, 残留 R2 比中断更可接受.
-- `lib/db/jobs.ts` `deleteJobById(id)` 返回类型从 `number` 改为 `{ changes, jobTaskIds }`, 删 D1 前先 `SELECT id FROM job_tasks WHERE job_id = ?` 把受影响的 job_task id 收齐; 新增 `getJobTaskIdsByTaskIds(taskIds)` (供 task 删除用).
-- `lib/db/tasks.ts` `deleteTaskById(id)` 同步改返回 `{ changes, jobTaskIds }`, 删 D1 前两段查询拿到 `task → jobs → job_tasks` 所有受影响 id.
-- `lib/db/folders.ts` `deleteFolderById(id)` 同步改返回 `{ changes, jobTaskIds }`, 递归 CTE 拿全部子 folder + 关联 task + 关联 job_tasks id 链; 这是删 D1 行之前唯一能拿到孤儿 R2 key 的窗口.
-- `app/routes/api.admin.{folders,tasks,jobs}.$id.tsx` DELETE handler 改为先解构 `{ changes, jobTaskIds }`, 再 `await deleteScreenshotsByJobTaskIds(jobTaskIds)` 清 R2 — 三处入口共享同一清理函数, 不再有"删 folder 残留 R2 / 删 task 残留 R2 / 删 job 残留 R2"三套各异行为.
-- `app/lib/api-shared.ts` `mapDbErrorToStatus` 新增对 D1 / SQLite `FOREIGN KEY constraint failed` / `SQLITE_CONSTRAINT_FOREIGNKEY` 错误的识别, 映射 → 409 Conflict (之前落 500). 触发场景: 误删含 task 的 folder / 含 job 的 task 时 ON DELETE RESTRICT 命中, 前端拿到正确的"资源被引用"语义.
-- `app/lib/api-shared.ts` `parseListParams` 新增 `MAX_RANGE_SPAN = 1000` 上限保护 — react-admin 默认分页 ≤100, 但前端构造 `range=[0, 1e9]` 时会被原样塞进 LIMIT/OFFSET 触发全表扫描, 现在强制截到 1000 行内, 并对 NaN / 非整数 / 负数做兜底, 不影响正常列表行为.
+- 删除任务 / 文件夹 / 执行历史时, 关联截图自动清理.
+- 误删被引用的资源时给出明确冲突提示.
 
 ### Changed
 
-- `app/globals.css` Ant Design Tree 拖拽视觉强化: drop indicator 默认细线 + 灰蓝改 brand-500 + 3px 高度 + 9x9 端点圆点 + 软光晕双层阴影; treenode-drop-over 整行底色切 brand-50 + 1.5px brand-500 ring + 12px brand 阴影; 正在拖拽的源节点透明度切 0.55; switcher 展开/收起 icon 加 transform rotate 过渡, 与设计 token 动效曲线一致. 视觉反馈从"几乎看不见的细线"拉到"明确锚点 + 软光晕", 解决之前用户反馈"拖拽到底是落到哪一行说不清"的硌手感.
-
-[1.9.3]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.2...v1.9.3
+- 任务拖拽落点视觉反馈强化.
 
 ## [1.9.2] - 2026-05-20
 
 ### Changed
 
-- lockstep 同步, 与上游 ele-autotesting v1.9.2 一同发布; 本项目无业务改动. 本轮 Phase 2 抛光主要发生在 ele-autotesting 端: 3 个 Manager 弹窗 (模型 / 模板 / 数据) 全部统一 `.ds-modal-head` 设计语言, 关闭 / 操作按钮回归 `.ds-icon-btn-sm` + `.ds-pill-btn`, emoji 全部换 svg, TextDiff 完全重写为 `.ds-diff-shell` 子系统. ele-autopilot 端无视觉变更, 表格行 + KPI + Task 操作菜单与 v1.9.1 一致. React Router v7 路由 / API loader/action / D1 schema / R2 截图链路完全不变.
+- AutoTest 工作台模型 / 模板 / 数据管理弹窗视觉统一 (本端无业务改动).
 
 ## [1.9.1] - 2026-05-20
 
-整体目标: 在 v1.9.0 "工作台框架抬升" 之后, 进入"硌手细节抛光" Phase 1, 收敛 task 列表行的高频误触面 & 强化任务行选择感.
-
-### Added
-
-- `app/globals.css` 新增 `.ds-row-actions` + `.ds-row-action-btn` + `.ds-row-action-btn--primary` 一组任务行操作按钮 token:
-  - 30x30 触达点 (此前 `!h-8 !w-8` 配 `gap-0.5` 5 按钮挤一排), gap 改 2px + 整组外 1px padding 让 hover 视觉收敛在容器内.
-  - primary 变体 hover 切 brand-50 软底 + brand-700 文字 + 1px brand ring; 普通变体 hover 切 surface-subtle, 颜色随表格行 hover 态自动 secondary→primary.
-- `app/globals.css` 表格行加 left brand-accent bar 视觉反馈:
-  - `tr.ant-table-row > td:first-child::before` 默认 0 高度透明, hover 时 60% 高度 + brand-500, 配合现有 `--ds-brand-50` 行底色形成"行被聚焦"二阶反馈, 替代单纯换底色的弱反馈.
-  - 同时删除 ant-table head `::before` 默认列分隔条 (与 `.ds-section-head` 的 1px soft 分隔重复), 表格 body 行底 border 统一切 `--ds-border-soft`.
-
 ### Changed
 
-- `app/admin/_components/task-content.tsx` 任务行操作列从 5 个图标按钮 (派单 / 预览 / 任务链 / 编辑 / 删除) 收敛为 3 个按钮 (派单 + 预览 + 更多), 实质改动:
-  - 抽出 `TaskRowActions` 组件, 派单按钮挂 `--primary` 变体, 视觉权重最高, 与"主操作"语义一致.
-  - 编辑 / 任务链 / 删除 收纳进 `AntD Dropdown` 菜单, 删除项 `danger=true` + AntD `Popconfirm` 二次确认 (`此操作不可撤销, 确认删除?`), 删除流程从"单击图标即触发底层 confirm 对话框"改"明确两步操作", 显著降低误触.
-  - 任务链按钮仅在 `record.sub_ids?.length > 0` 时出现在菜单中, 文案带数量 `查看任务链 (N)`.
-  - 操作列宽度 156 → 140, 因按钮数从 5 缩到 3, 横向更紧凑.
-- `app/admin/_components/task-content.tsx` 改用新的 import: 增加 `MoreOutlined` icon + `Dropdown` / `Popconfirm` / `MenuProps` 类型.
+- 任务行操作精简为派单 / 预览 / 更多三按钮.
+- 删除操作走二次确认, 防误触.
 
 ## [1.9.0] - 2026-05-20
 
-整体目标: 把任务后台从"草稿感"拉到"成熟科技公司管理后台"层级, 集中升级页面层级 / 表格密度 / 视图状态机 / KPI 节奏 / 空状态文案 / 弹窗信息层级.
+### Changed
 
-### Added
+- 任务工作台整体提级: 面包屑 + 状态筛选 + KPI 概览 + 紧凑表格.
+- 任务详情可展开 / 收起, 长文本不再撑破布局.
+- 批量创建任务的语法说明从输入框 placeholder 提到可展开帮助卡.
 
-- `app/globals.css` 新增 8 组工作台级 design token utility class, 收敛此前散落在各 component 的 inline 视觉:
-  - `.ds-kbd` 键盘按键提示: 等宽字体 + inset 阴影双层(底边 + 1px 描边), 与 macOS 风格键盘按键一致.
-  - `.ds-page-header` + `.ds-page-header-row` + `.ds-page-title` + `.ds-page-breadcrumb` + `.ds-page-breadcrumb-sep` + `.ds-page-breadcrumb-current` + `.ds-page-eyebrow` 一组"页头"语义类: 面包屑(11.5px tertiary) → 标题(18px primary -0.01em letter-spacing) → 工具栏 三层垂直节奏, 替代 task-content 此前 inline 用 `text-[12px]` / `text-(--ds-text-tertiary)` / `RightOutlined fontSize:9` 散写的 breadcrumb.
-  - `.ds-section` + `.ds-section-head` + `.ds-section-title` + `.ds-section-title-dot` + `.ds-section-body`: 主区表面卡 head + body 双段结构, head 自带 gradient 底色与 1px soft 分隔, title 自带 brand-500 圆点 + 18% 软光晕, 与 autotesting 的 ds-panel-head 一一对齐.
-  - `.ds-toolbar-divider` 18px vertical 1px 分隔条, 用于 toolbar 视觉分组.
-  - `.ds-segmented` + `.ds-segmented-btn` + `.ds-segmented-btn--active` + `.ds-segmented-btn-count`: 轻量段控件(state filter), active 态 elevated 白底 + 1px brand-22% ring + 微 shadow, 内嵌计数 chip (active 时 brand-100 / brand-700, 否则 surface-muted / tertiary), 替代 task list 多用 ant-btn group + 手写 disabled.
-  - `.ds-task-row-text` 三行 line-clamp + line-height 1.55 + 13px primary, hover 整行切 brand-700, 替代原本任务行 `max-h-44 + overflow-auto` 内部滚动的反常体感.
-  - `.ds-task-row-meta` 任务行第二行 meta (id mono + 任务链 chain icon) 排版.
+## [1.8.6] - 2026-05-20
 
 ### Changed
 
-- `app/admin/_components/task-content.tsx` 全面重写工作区:
-  - 页面头从"chip 串 + 单行标题"重排为 `ds-page-breadcrumb` → `ds-page-title` → `ds-segmented` 三层, breadcrumb 写 "任务工作台 › <folder>", title 后挂 1 个 count chip + 1 个 "进行中" pulse chip (loading 旋转 spin), 全局工具按钮 (刷新 / 已选 / 新建任务) 右对齐.
-  - 搜索行下方接 `ds-segmented`, 4 段状态筛选: 全部 / 未运行 / 进行中(info tint) / 有失败(danger tint), 每段带行数 chip, 切换走纯前端 filter, 不再 round-trip 后端.
-  - KPI strip 从 5 列改 4 列 (任务总数 / 成功率 / 进行中 / 失败累计), 中间被收敛的"累计执行"下沉到"任务总数 hint"; 各 tile 文案改 "X 已运行 · Y 待执行" / "跨 N 次执行" / "占 X% · N 任务" 等具体度量, 删除"-"占位.
-  - Task 表格列从 4 列 (ID / 任务内容 / 执行统计 / 操作) 改 3 列 (任务内容 / 执行统计 / 操作), id 下沉为任务行 meta 第二行 (mono 11px tertiary), 任务链数量也下沉到 meta. 主单元用 `.ds-task-row-text` 三行 line-clamp + 横向 ellipsis 替代原本 `max-h-44 overflow-auto` 单元内滚动.
-  - JobStatsDisplay 空态从 `"-"` 单字符改 "未运行" uppercase tracking, 与下方 Empty state 语义一致.
-- `app/admin/_components/folder-sider.tsx` 顶部 head 重构:
-  - 单 chip "X" 改为 brand-50 软底 icon-square + 标题 + mono `X 路径 · Y 任务` meta 三段堆叠, 强化"路径管理工作区" 而非"普通 sider".
-  - "展开 / 折叠" 按钮从主按钮组拆到 head 右侧 icon button group, 主按钮 "新建路径" 独占一行 + block, 提升主动作权重.
-- `app/admin/_components/admin-task-explorer.tsx` AppHeader 不再传 subtitle (避免与 task-content 内的 page header 重复).
-- `app/admin/_components/app-header.tsx` brand 旁追加 `AutoPilot` env-pill (uppercase + 0.08em letter-spacing + brand-500 1.5px 圆点), 与 autotesting 端的 `Studio 就绪` pill 对仗, 明确多工作台身份.
-- `app/admin/_components/task-modal.tsx` 批量分隔语法 (`+++` / `%%%`) 从灰色 placeholder 提到 head 右侧可折叠"批量创建语法"按钮, 展开后是 `ds-banner-info` 带语法演示代码块, 不再让新用户在 placeholder 里读语法.
-- `app/admin/preview/_components/preview-workspace.tsx` task summary 区:
-  - 顶部加 `ds-page-breadcrumb` "任务工作台 › 执行历史 › #xxxxxxxx", 与任务后台 breadcrumb 对仗.
-  - 任务文本从 `max-h-20 overflow-auto` 改 2 行 line-clamp + "展开任务详情 / 收起" 切换按钮, 阈值 240 字符, 超过才出按钮.
-
-### Removed
-
-- `app/admin/_components/task-content.tsx` ID 列 (96px width responsive md) 与单元内"max-h-44 内滚"行为, ID 改 meta 第二行 mono 8 字符前缀.
-
-
-
-### Added
-
-- `app/globals.css` 新增 3 组复用 utility class, 收敛 drawer / preview / 任务链管理界面的散落 inline 视觉:
-  - `.ds-num-square` + `ds-num-square-{neutral / brand}` 2 variant: 24x24 圆角方块, mono 11px 等宽数字, neutral 走 surface-subtle 灰底, brand 走 brand-50 软底 + brand-700 文字; 替代原本 selected-tasks-drawer / job-detail-panel JobTaskLabel 各自 inline 复刻的 `h-6 w-6 + background + color` 索引块.
-  - `.ds-banner` + `ds-banner-{info / success / warning / danger}` 4 variant: 行内提示横幅, 12px 字号 + 8/12px padding + ds-radius-md + inset 1px ring 边框, 4 色软底全部走 token, 替代原本各 drawer / modal 顶部提示用 inline `border + bg + color` 三联手写.
-  - `.ds-dnd-item` + `.ds-dnd-item-over` + `.ds-dnd-item-dragging` 拖拽卡片 3 态:
-    - default: elevated 白底 + soft border + xs shadow, hover 切 border-default.
-    - over: 1px brand-500 + 4px brand-soft ring (drop 目标视觉提示).
-    - dragging: 0.6 opacity + `scale(0.99)` + brand-400 边框 (拖拽中视觉提示).
-    - 全部 transition 走 `--ds-motion-{fast/base} / --ds-ease-standard` token.
-
-### Changed
-
-- `app/admin/_components/selected-tasks-drawer.tsx` 抽出全部内联视觉:
-  - 顶部 "拖动可排序" 提示从 inline `border + bg + color` 3 行收敛到 `.ds-banner .ds-banner-info`.
-  - 拖拽卡片从 10 行三态 inline (`borderColor` 3 元 / `boxShadow` 2 元 / `opacity` 2 元) 收敛到 `ds-dnd-item ds-dnd-item-over ds-dnd-item-dragging` 三个 className 组合, hover 微动效 + over / dragging 状态全部走 token.
-  - 序号方块从 inline `h-6 w-6 + bg + color` 收敛到 `.ds-num-square .ds-num-square-brand`.
-- `app/admin/preview/_components/job-detail-panel.tsx` JobTaskLabel 索引方块从 inline `h-6 w-6 + bg-subtle + color-secondary` 收敛到 `.ds-num-square .ds-num-square-neutral`, 与 selected-tasks-drawer 序号方块视觉对称 (brand 软底 = 主动选择, neutral 灰底 = 执行历史).
+- 已选任务抽屉与执行历史索引视觉统一.
 
 ## [1.8.5] - 2026-05-20
 
-### Added
-
-- `app/globals.css` 提取首屏骨架与 preview job 卡片为全局 token 类:
-  - `.ds-skeleton` + `@keyframes ds-skeleton-shimmer` 通用 shimmer 骨架条 (200% 200% background gradient + 1.6s ease-in-out 循环 + opacity / position 双轴动画), 替代原本 ConsoleBootSkeleton / PreviewBootSkeleton 各自 inline `<style>` 注入的 `.ds-boot-bar` + `.ds-preview-bar` 重复 keyframes 与 class 定义, SSR / hydration 一致.
-  - `.ds-job-card` + `.ds-job-card-selected` + `.ds-job-card-accent`: preview workspace 执行历史卡片完整状态机. 默认 elevated 白底 + soft border + xs shadow, hover `translateY(-1px)` + border-default + sm shadow, focus-visible 4px brand ring, selected 切 brand-50 软底 + 1px brand-500 + 0.18 透明品牌阴影 + 0.22 hover 阴影更强, accent 条由 3px 圆角 absolute 左侧条按 4 种 JobStatus 状态色驱动. 全部 transition 走 `--ds-motion-base / --ds-ease-standard` token.
-
 ### Changed
 
-- `app/admin/_components/admin-task-explorer-page.tsx` `ConsoleBootSkeleton`:
-  - 删除组件内 `<style>` 注入 (4 行 keyframes + 12 行 `.ds-boot-bar`), 6 处 `ds-boot-bar` 全改用全局 `.ds-skeleton`.
-  - 顶栏 brand 方块从 inline `linear-gradient(135deg, ...)` 收敛到 `.ds-brand-mark` class, 保留 0.85 opacity (加载态视觉提示) 用 inline override.
-- `app/routes/autopilot.preview.$taskId.tsx` `PreviewBootSkeleton`: 同 ConsoleBootSkeleton (删除内 `<style>` + 全 `.ds-preview-bar` 改 `.ds-skeleton` + brand 块 `.ds-brand-mark`).
-- `app/admin/preview/_components/job-history-list.tsx` 执行历史卡片 button:
-  - 从 22 行 inline `border / background / boxShadow / marginBottom / padding / overflow` + 三元 selected 判断收敛到 `ds-job-card ds-job-card-selected` 一行 className 组合.
-  - 状态色 accent 左侧条改用全局 `.ds-job-card-accent` (3px 8px-inset 圆角 absolute), accent 色与 STATUS_ACCENT map 保持耦合.
-  - hover 微动效 (`translateY(-1px)`) + focus ring (brand-500 + 4px focus shadow) 首次接入历史卡片, 与任务列表表格的 hover 节奏对齐.
+- 首屏骨架与执行历史卡片状态色统一.
 
 ## [1.8.4] - 2026-05-20
 
 ### Changed
 
-- `app/admin/preview/_components/preview-workspace.tsx` 抽出全部内联 tonemap, 与任务列表页风格统一:
-  - `StatBadge` (preview banner 右侧"总 / 成功 / 失败 / 进行中") 从 4 色 inline `fg/bg` map (`#15803d` / `#b91c1c` / `#2563eb` + 3 色 rgba bg) 收敛到 `ds-chip ds-chip-{tone}` 一行声明, mono 数字仍走 `ds-text-mono` token, 风格与 task-content StatChip 完全对称.
-  - Task summary banner 的 task id 短码 chip 从 inline `rounded-full + bg/color` 收敛到 `ds-chip ds-chip-neutral ds-text-mono`.
-  - 左侧执行历史 sider 顶部 jobs 数量 chip 同样收敛到 `ds-chip ds-chip-neutral ds-text-mono`, 与 task-content / folder-sider header 三处数字胶囊视觉完全一致.
+- 执行历史顶部统计视觉对齐.
 
 ## [1.8.3] - 2026-05-20
 
-### Added
-
-- `app/globals.css` 引入 motion token 子系统 (`--ds-motion-fast/base/slow` + `--ds-ease-standard/decelerate/accelerate/spring`), 与 gateway / ele-autotesting 同名 token 对齐, 全工程 transition 时长 / 缓动从散落硬编码统一到 3 档.
-- `app/globals.css` 新增 4 组复用 utility class, 直接消除任务后台内联样式:
-  - `.ds-status-pill` + 5 variant (`success` / `info` / `danger` / `warning` / `neutral`): 12px 字号胶囊式状态徽章, inset ring 边框, 动效 token 化.
-  - `.ds-chip` + 6 variant (`neutral` / `brand` / `success` / `danger` / `info` / `warning`): 11px 数字 / 标签胶囊, 启用 `tnum` 等宽数字, 替代任务列表 / 目录树到处出现的 inline `padding + rounded-full + bg/color`.
-  - `.ds-vrule` (20px 垂直 1px 分隔条) + `.ds-divider-h` (横向 1px), 给顶栏与工具栏的 actions 分组提供统一隔断.
-  - `.ds-brand-mark`: 36 / 32 / 28px 通用品牌方块 (indigo 渐变 + 0.35 透明品牌阴影 + 1px inner white ring), 替代各 brand 入口的 inline gradient.
-  - `.ds-status-dot-pulse`: 8px 状态点 + 2.4s 脉冲扩散 (`::after` scale + opacity), 替代原 ds-status-dot 静态点.
-
 ### Changed
 
-- `app/admin/_components/app-header.tsx` 抽出全部内联样式:
-  - `StatusBadge` 三态 (connected / checking / disconnected) 从各自 21 行 inline `background / color / boxShadow` 收敛到一行 `ds-status-pill ds-status-pill-{success/info/danger}`, connected 态用 `ds-status-dot-pulse` 替代静态 dot.
-  - 顶栏 brand 容器从 inline `linear-gradient(135deg, ...) + boxShadow + 1px white inner ring` 收敛到 `ds-brand-mark` class.
-  - 顶栏 actions 区 (rightExtra / 返回首页按钮 / Agent Settings) 之间加 `ds-vrule` 垂直 1px 分隔, 替代原本 actions 全挤在一起没有视觉分组的草稿感; subtitle 与 brand 之间的 inline `1px h-5 width-px background` 也改用 `ds-vrule`.
-- `app/admin/_components/task-content.tsx` 表格 `StatChip` (任务执行统计的数字 chip) 从 inline tonemap 4 色 (`#475569` / `#15803d` / `#b91c1c` / `#2563eb` 配 4 色 rgba) 直接收敛到 `ds-chip ds-chip-{tone}`, 列表行的 hover / selected 与 chip 颜色完全 token 同步.
-- `app/admin/_components/task-content.tsx` 与 `app/admin/_components/folder-sider.tsx`: page header 任务条数 (`{taskCount} 条`) 与目录树总数 chip 改用 `ds-chip ds-chip-neutral ds-text-mono`, 替代原本两处重复的 `rounded-full px-2 py-0.5 text-[11px] + inline background / color`.
+- 顶部状态徽章 / 分隔条 / 品牌方块视觉统一.
 
 ## [1.8.2] - 2026-05-20
 
 ### Changed
 
-- lockstep 同步, 与上游 ele-autotesting v1.8.2 一同发布; 本项目无业务改动. 上游 ele-autotesting AutoTest 前端工作台 UX 提级 (App.vue 完整布局骨架替代单 spinner / OptimizationModeSelector 重写为段控件含 icon + label + hint / PromptPanel 标题加 brand dot indicator + 版本切换段控件 + 独立 iterate 按钮 / MainLayout 加 Studio 就绪状态徽章). D1 / R2 / API / Worker 绑定 / `install.sh` 渲染 / R2 wheel 拉取 / SHA256 校验 / 返回首页 button 行为不变.
+- 跟随版本同步发布.
 
 ## [1.8.1] - 2026-05-20
 
 ### Added
 
-- `app/admin/_components/metric-tile.tsx`: 通用 KPI 指标砖. 单 tile 由 (label 大写 11px tertiary + dot indicator + 可选 trailing icon chip + value mono 20px tabular + hint 11px tertiary) 组成, 5 个 tone (`neutral` / `brand` / `success` / `warning` / `danger` / `info`) 决定 value 主色 / dot / icon chip 软色背景 + ring, 卡片本体保持 elevated 白底 + soft border + xs shadow + 12px 圆角. Value 启用 `font-feature-settings: "tnum" 1, "ss01" 1` 等宽数字, 大数字纵向不抖动. 主用于任务列表顶部 KPI 条与执行概要 5 列指标块.
-- `app/admin/_components/empty-state.tsx`: 统一空状态组件. 4 段结构 (icon 圆角软底容器 / title 14px primary / description 12.5px tertiary / action 按钮区), 3 档尺寸 (sm / md / lg), 2 档色调 (`brand` indigo soft / `neutral` surface subtle). 替换原项目里散落的 `<Empty>` + 自写 emoji 文案组合, 给"没数据"也带产品感.
-- `app/admin/_components/table-skeleton.tsx`: 任务列表 loading 骨架. CSS keyframes `ds-skeleton-shimmer` (240px shift 1.4s ease-in-out infinite), 多列宽度递减模拟真实列, 多行 opacity 渐变营造表格景深. 替代原 `<Spin>` 旋转圈, 首屏内容轮廓即刻出现.
-- `app/admin/_components/admin-task-explorer-page.tsx`: `ConsoleBootSkeleton` 首屏挂载前用 (整页 grid: 顶栏 logo + brand bar + agent pill / 296px sider 标题 + 输入 + 8 行 tree placeholder / main breadcrumb + h1 + 5 KPI 砖 + 6 行 table placeholder), 完整还原最终布局轮廓; 替代原"整屏只有一个大 Spin"的草稿感.
-- `app/routes/autopilot.preview.$taskId.tsx`: `PreviewBootSkeleton` preview 页同款骨架 (顶栏 + 任务摘要 banner 3 行 + 340px sider 列表 5 卡 + main 执行概要 5 KPI + 进度条 + 4 行步骤). Workspace 加载就位前先呈现页面骨架.
+- 任务列表新增跨任务的 KPI 概览条 (任务数 / 成功率 / 进行中 / 失败累计).
+- 执行概要新增进度条与五项指标.
+- 执行历史卡片显示相对时间, 加状态色提示.
 
 ### Changed
 
-- `app/admin/_components/task-content.tsx`: 顶部 page header 下新增 5 列 KPI strip — 任务数 / 累计执行 / 成功率 / 进行中 / 失败累计, 跨当前路径下全部任务 `taskStats` 聚合 (executed / completed / failed / running+pending), 成功率按 (completed / (completed+failed)) 计算并按 80/50 阈值切 success / warning / danger tone, 失败 tile 在失败 0 时回退 neutral, 进行中 tile 有任务时切 info 并显示 LoadingOutlined icon. 表格 loading 状态从 `<Spin>` 改为 `<TableSkeleton rows=8 columns=4>` (仅在 `tasks.length===0` 时), 已有数据后续刷新仍用 antd 内置 loading 但 indicator 切到 `<LoadingOutlined spin />`. 表格 empty 改为 `<EmptyState>` 4 段结构 + 上下文敏感文案 (无路径 / 无任务 / 搜索无结果三种状态对应三档不同 title/description/action).
-- `app/admin/_components/folder-sider.tsx`: 搜索框加 `<SearchOutlined>` prefix 与右侧一致. 空 tree 从内联 emoji + 一行文字升级到 `<EmptyState size="sm" tone="brand">` (FolderOpen icon brand soft + title + description + 「新建路径」CTA), 搜索无结果分支只显示文案不显示 CTA.
-- `app/admin/preview/_components/preview-workspace.tsx`: 任务摘要 banner 右侧新增 4 个 `StatBadge` (总 / 成功 / 失败 / 进行中, 进行中 0 时不渲染) 给页面顶部即时态势感. 左侧 sider 标题前加 `<HistoryOutlined>` brand 色 icon 与「执行历史」对齐. 右侧无 job 选中态从内联卡片改 `<EmptyState size="lg">` 包在 `ds-surface-card` 内, 文案更产品向.
-- `app/admin/preview/_components/job-history-list.tsx`: 每个 job 卡片左侧新增 3px 状态色 vertical bar (pending slate / running blue / completed green / failed red), 时间显示从 `MM-DD HH:mm:ss` 改相对时间 (刚刚 / N 分钟前 / N 小时前 / N 天前 / 月日, hover title 仍显示完整时间) 配合 mono 字体, 第二行加 `<CalendarOutlined>` 开始时间 + `<ClockCircleOutlined>` 耗时双 chip. 选中态阴影从 indigo 1px ring 升级到 1px + 4px brand 18% shadow 双层. 空列表改用 `<EmptyState size="sm" tone="neutral">`.
-- `app/admin/preview/_components/job-detail-panel.tsx`: 执行概要 5 列从原 `StatBlock` (软色 padding-2 简易块) 改为 5 个 `<MetricTile>` (任务总数 / 成功 / 失败 / 执行中 / 等待中), 每 tile 带 dot indicator + icon chip + hint (占比 / 健康 / 队列状态). 新增执行进度条 (h-1.5 圆角, brand 渐变填充; 有 failed 时切渐变 success → danger 分段), 上方 KPI tile 下方 Descriptions 仍保留 ID / 时间 / 耗时, 形成"概览 → 进度 → 详情"三段式信息层级. 顶部 Descriptions + grid 顺序对调, 让最关键的指标先映入眼帘.
-
-### Notes
-
-- 设计 token (`--ds-brand-*` / `--ds-surface-*` / `--ds-text-*` / `--ds-shadow-*` / `--ds-radius-*`) 与 antd theme 沿用 v1.7.0; 本版只新增组件 + 重排信息层级, 不改 token 值与全局样式. 兼容现有所有调用方.
-- D1 schema / R2 buckets / API 契约 / Worker bindings / 路由表 / install-script / 截图代理 / 本地 agent 通信链路 100% 不变.
+- 首屏从单 spinner 升级为完整布局骨架.
+- 空状态文案与按钮规整.
 
 ## [1.8.0] - 2026-05-20
 
 ### Changed
 
-- lockstep 同步, 与上游 ele-autotesting v1.8.0 一同发布; 本项目无业务改动. 上游 ele-autotesting AutoTest 前端工作台 UI 整体重塑, 对齐 v1.7.0 本项目设计语言 (CSS variables design tokens / Inter 字体 / indigo 主色 / 卡片化 / SVG icon 替代 emoji / Modal 加 size prop / Toast token 化). 形成 AutoPilot + AutoTest 两个工作台统一品牌识别. D1 / R2 / API / Worker 绑定 / `install.sh` 渲染 / R2 wheel 拉取 / SHA256 校验 / 返回首页 button 行为不变.
+- 跟随版本同步发布; AutoTest 工作台整体重塑与本端视觉对齐.
 
 ## [1.7.0] - 2026-05-20
 
-### Added
-
-- `app/admin/_components/app-header.tsx`: 全新顶部品牌栏 (60px 高, sticky + `backdrop-filter: blur(12px)`, 半透明白底). 左侧 brand mark 渐变 SVG + 产品名 `QA AutoPilot` + 副标题 `Test Orchestration Console`; 右侧本地 Agent 状态徽章 (绿/蓝/红圆点 + 文字, 点击展开 Popover 编辑 URL + JSON 配置, 替代原 `folder-sider.tsx` 底部内嵌入口) + `HomeOutlined` 圆形回首页按钮. `subtitle` / `rightExtra` props 让 admin / preview 两个页面复用同一 header.
-- `app/admin/_components/status-pill.tsx`: 统一的 JobStatus 徽章 (pending / running / completed / failed) — pill 形 + 状态色软背景 + inset ring + 图标. 替代散落在 task-content / job-history-list / job-detail-panel / job-task-detail 里的 `text-green-600` / `text-red-500` / `text-blue-500` 硬编码 Tailwind 颜色与不同 `Tag color` 写法.
-- `app/admin/preview/_components/preview-workspace.tsx`: preview 页主工作区抽离, 套上同款 AppHeader, 任务摘要 banner (ID + title + text + 共 N 次执行), 左侧 340 px Sider (含执行历史卡片化列表) + 右侧 Content (空态卡片 + JobDetailPanel).
-
 ### Changed
 
-- 设计语言整体重塑: `app/globals.css` 引入 CSS variables design tokens (`--ds-brand-50..800` indigo, `--ds-surface-*`, `--ds-text-*`, `--ds-success/warning/danger/info` + soft 变体, `--ds-border-soft/default/strong`, `--ds-radius-xs/sm/md/lg/xl/pill`, `--ds-shadow-xs/sm/md/lg/focus`, `--ds-font-sans` Inter 优先 + 中文 fallback 链, `--ds-font-mono` JetBrains Mono); body 字体切换到 Inter + 中文系统字体, 启用 `cv02/cv03/cv04/cv11/ss01` font-feature-settings + antialiased; 自定义滚动条 (`scrollbar-width: thin` + ::-webkit-scrollbar 10px 圆角, hover 加深); 全局 `::selection` 改 indigo soft. `@layer antd` 精修 Table hover/header / Card / Modal radius + header / Tree node radius+selected / Tag radius+weight / Button primary shadow / Input focus ring 4px / Drawer header / Empty description / Collapse border 全套.
-- `app/admin/_theme/antd-theme.ts`: 主色 `#1677ff` → `#4f46e5` indigo-600, 圆角 6 → 8, 控件高度 36 (LG 40 / SM 28), font 全套切到 Inter + JetBrains Mono, 状态色 success/warning/error/info 对齐 token, Layout / Button / Input / Select / Table / Card / Modal / Drawer / Tag / Tree / Tooltip / Tabs / Popover / Alert / Descriptions / Collapse 全部 components 表精细化 (header bg, row hover, padding, font, shadow, border radius).
-- `app/admin/_components/admin-task-explorer.tsx`: Layout 套一层 `ds-app-shell` (radial gradient indigo + sky 微纹理 + canvas 底色), 顶部插入 `AppHeader subtitle={selectedFolder?.name}`, Sider + Content 改成 header 下方的子 Layout.
-- `app/admin/_components/folder-sider.tsx`: 默认宽 280 → 296 (min 240 / max 520), 顶部加 `FolderOpenOutlined` + 「任务目录」标题 + 路径计数 pill, 搜索框 + 新建按钮 + 展开/折叠按钮分组, 节点 hover 操作按钮组 (新建子路径 / 重命名 / 删除) 改 6x6 圆角灰底 floating, 拖拽手柄改 indigo-200 hover; **彻底移除底部 Agent 连接 + JSON 配置 Popover** (迁到 AppHeader); Tree 空态加 placeholder (区分搜索无结果 / 真空路径); 移除 `useAgentConnection` import 与依赖.
-- `app/admin/_components/task-content.tsx`: 顶部改成 PageHeader 风格 — breadcrumb (`任务工作台 / <folder>`) + h1 标题 + 任务计数 pill + 右侧主操作按钮组 (刷新 / 已选 / 新建任务); 搜索框独立一行带 `SearchOutlined` prefix. 表格用 `ds-surface-card` 包裹 (圆角 12 + 1px soft border + xs shadow); ID 列字号 11px tertiary + responsive `md`, 内容列加 indigo hover 背景, 执行统计列从 4 个并排 mono span 改为 4 个 `StatChip` (mono + 软色背景 pill, 总数/成功/失败/进行中 + Tooltip), 操作列加 `hover:text-brand` 与统一 8x8 size + 右对齐, 空态加 Empty + 大号新建任务按钮 CTA. 移除原"返回首页"按钮 (AppHeader 已承载).
-- `app/admin/_components/task-modal.tsx`: 宽度 880 → 960 (min 92vw), TextArea 从固定 `height: calc(60vh - 70px)` 改 `autoSize {minRows: 14, maxRows: 28}` + mono 字体 + 13px leading-relaxed; label 区域加批量分隔语法提示 (`+++` / `%%%`).
-- `app/admin/_components/folder-modal.tsx` / `task-chain-modal.tsx`: 加 `destroyOnClose`, `task-chain-modal` 顶部新增 indigo soft 信息条说明任务链条数, 输入加 maxLength + 业务向占位符.
-- `app/admin/_components/selected-tasks-drawer.tsx`: 项卡片化 (white bg + 1px soft border + xs shadow + lg radius), drag 时 indigo focus ring 4px + 半透明, 序号改 6x6 indigo soft pill, 拖拽 icon 改 `HolderOutlined`, 路径行单独一行 11px tertiary; 顶部加 indigo soft 信息条; readonly 模式继续支持.
-- `app/admin/_components/task-title-tag.tsx`: 从 `[Title]` 文本 + 主色加粗改 inline pill (mono + 11px + indigo soft bg + inset ring).
-- `app/routes/autopilot.preview.$taskId.tsx`: 拆出 PreviewWorkspace, 套 `App + AgentConnectionProvider` (header Agent 徽章需要 context).
-- `app/admin/preview/_components/job-history-list.tsx`: 列表项从 border-left 选中态改卡片态 (圆角 8 + selected 时 indigo soft bg + 双 shadow ring), 用 `StatusPill` 替代原 `Tag` 写法, 字号与字体走 mono token, error 行加 danger soft 软背景 pill.
-- `app/admin/preview/_components/job-detail-panel.tsx`: 状态字段从 Descriptions 拆到 title 行 + 用 `StatusPill` 展示; 任务统计从一行 `font-mono` text 改成 2/5 列 grid `StatBlock` 卡片 (软背景 + 18px mono 数值 + 11px label); error Alert 加 `showIcon`; 任务标签行序号改 6x6 mono pill, 用 `StatusPill` 替代 Tag; 折叠最后一项不再画底边. 移除 `statusConfig` 重复定义.
-- `app/admin/preview/_components/job-task-detail.tsx`: 全部 `bg-gray-50` / `bg-gray-100` / `border-gray-100` / `text-gray-400` / `text-gray-500` / `text-red-500` 硬编码 Tailwind 色替换为 `var(--ds-surface-subtle)` / `var(--ds-surface-muted)` / `var(--ds-border-soft)` / `var(--ds-text-tertiary)` / `#dc2626` token; 步骤序号小 pill 按 hasError 切红/紫两态; 摘要分区抽 `<Section>`, 详情字段抽 `<DetailBlock>`, runtime info 改 mono 11px; Alert title 全部规范化到 `message` (AntD 6 API). 修复多处 `Alert title=` (deprecated) → `message=`.
-- `app/root.tsx`: `meta theme-color` 从 GitHub blue `#0969da` → 品牌 indigo `#4f46e5`.
-
-### Removed
-
-- `app/admin/_components/folder-sider.tsx`: 底部 Agent 连接 + JSON 配置 Popover 整块 (迁移至 AppHeader, 详见 Added 段). 同步删除 `App` / `Popover` / `Space` / `Tag` / `CheckCircleOutlined` / `CloseCircleOutlined` / `LoadingOutlined` / `SettingOutlined` / `TextArea` import + `useAgentConnection` 相关 state (`inputUrl` / `popoverOpen` / `configText` / `configError`) 与 handler (`handleAgentCheck` / `handleConfigChange` / `handleSaveConfig`).
+- 任务后台 UI 重塑: 顶部品牌栏 + 卡片化任务列表 + 优化的执行历史.
+- 本地 Agent 配置入口从侧栏底部移到顶栏徽章.
+- 状态徽章统一, 弹窗与抽屉视觉精修.
 
 ## [1.6.9] - 2026-05-19
 
-### Removed
+### Changed
 
-- lockstep 同步, 与上游 ele-autotesting v1.6.9 一同发布; 本项目无业务改动. 上游回滚 autotesting workflow 到 v1.5.2 状态, 撤销 buildx layer cache + main trigger + image URI cache 全部 cache 优化改动. D1 / R2 / API / Worker 绑定 / `install.sh` 渲染 / R2 wheel 拉取 / SHA256 校验 / 返回首页 button 行为不变.
+- 跟随版本同步发布.
 
 ## [1.6.8] - 2026-05-19
 
 ### Changed
 
-- lockstep 同步, 与上游 ele-autotesting v1.6.8 一同发布; 本项目无业务改动. 上游修 v1.6.7 引入的 autotesting Capture step condition bug (改 `patched != 'true'`, 让 markitdown 未改但 cache 首次 miss 走 rebuild path 时也 capture URI) + 去掉过度设计的 main trigger. 期望 v1.6.9 起 lockstep 占位发版的 autotesting tag run 自动走 reuse path. D1 / R2 / API / Worker 绑定 / `install.sh` 渲染 / R2 wheel 拉取 / SHA256 校验 / 返回首页 button 行为不变.
+- 跟随版本同步发布.
 
 ## [1.6.7] - 2026-05-19
 
 ### Changed
 
-- lockstep 同步, 与上游 ele-autotesting v1.6.7 一同发布; 本项目无业务改动. 本版用途: seed 一次 autotesting workflow 新增的 markitdown image URI cache (`markitdown-image-uri-<hashFiles>` key) — 下次 (v1.6.8 起) lockstep 占位发版自动走 reuse path, jq patch `wrangler.jsonc` 的 `containers[0].image` 为 registry URI, wrangler deploy 跳过 docker build + image push. D1 / R2 / API / Worker 绑定 / `install.sh` 渲染 / R2 wheel 拉取 / SHA256 校验 / 返回首页 button 行为不变.
+- 跟随版本同步发布.
 
 ## [1.6.6] - 2026-05-19
 
 ### Changed
 
-- lockstep 同步, 与上游 ele-autotesting v1.6.6 一同发布; 本项目无业务改动. 本版主要触发用途: 验证上版 (v1.6.5 deploy 后) push 到 main 的 `d72763e` (`fix(ci/autotesting): share buildx cache via main branch scope`) 是否让本次 tag push 流程下 autotesting workflow 通过 `restore-keys: buildx-markitdown-` 兜底 fallback 命中已写入 `refs/heads/main` scope 的 386 MB buildx layer cache (run 26101456149, 2 min 完成), wrangler 跑 markitdown docker build 时跳过 apt-get install ffmpeg / pip install markitdown[all] (含 onnxruntime / pandas / lxml 等大依赖). 对照 v1.6.5 autotesting cold build ~4 min, v1.6.6 期望 ~1-2 min. D1 / R2 / API / Worker 绑定 / `install.sh` 渲染 / R2 wheel 拉取 / SHA256 校验 / `task-content.tsx` 返回首页按钮行为不变.
+- 跟随版本同步发布.
 
 ## [1.6.5] - 2026-05-19
 
 ### Added
 
-- `app/admin/_components/task-content.tsx` 任务列表 topbar 加返回首页按钮 (用户反馈"两个子工程没有返回按钮, 返回不回来"): 现有 `<Space className="w-full justify-between" wrap>` 内左侧 `<Space wrap>` 最前面 (移动菜单 `MenuOutlined` / 新建任务 `PlusOutlined` 之前) 插入 `<Button icon={<HomeOutlined />} href="/" aria-label="返回首页">返回首页</Button>`, `href="/"` 直接走浏览器跳转 (不经 RR7 内部路由) 由 gateway 接管返回 landing. `@ant-design/icons` import 按字母序加 `HomeOutlined`. preview 页 (`autopilot.preview.$taskId.tsx` 已自带任务详情 Header) 暂不加 — 主迷失点是任务列表; 后续若需扩散到 preview 再独立加.
-
-### Changed
-
-- lockstep 同步, 与上游 gateway v1.6.5 一同发布. 上游 gateway landing 友情链接重做: host 前缀 `agentic-loop-ui` → `harness`, 入口位置从 v1.6.4 footer 末行小字 (`.footer-friend`) 提升为与 AutoPilot / AutoTest 并列的第三张卡片 (`.cards` `grid-template-columns: repeat(3, 1fr)` + `<= 900px` 2 列 fallback + `<= 640px` 1 列, 新增 `.card-tag` 11px subtle 圆角小标签嵌在 `<h2>`, 删 `.footer-friend`). D1 / R2 / API / Worker 绑定 / `install.sh` 渲染 / R2 wheel 拉取 / SHA256 校验行为不变.
+- 任务列表顶部新增"返回首页"按钮, 方便回到 landing.
 
 ## [1.6.4] - 2026-05-19
 
 ### Changed
 
-- lockstep 同步, 与上游 gateway v1.6.4 一同发布; 本项目无业务改动. 上游 gateway landing footer 新增动态后缀友情链接 `agentic-loop-ui`: `app/routes/home.tsx` loader 加 `deriveFriendLink(origin)` 用 `new URL(request.url).origin` 取当前 host, 把首个 `.` 之前的 label 替换为 `agentic-loop-ui` 保留剩余 host (含端口与后续 label); host 不含 `.` (e.g. `localhost:5173`) 或匹配 IPv4 `/^\d+\.\d+\.\d+\.\d+(:\d+)?$/` 时返回 `null` 短路不渲染, 避免开发态错链; 配 `app/app.css` `.footer-friend` (`flex-basis: 100%` 配合 `.footer flex-wrap: wrap` 独占第二行 + `font-size: 11px` 低于主行 12px + `color: var(--fg-subtle)` + `<a>` `text-decoration-color: var(--border)` underline) 渲染在 footer 末行, `target="_blank"` + `rel="noopener noreferrer"`. 实际访问 host 为 `ele-qa-autopilot.<domain>` 时友链指向 `https://agentic-loop-ui.<domain>` (后缀实时跟随当前域名, 不写死). D1 / R2 / API / Worker 绑定 / `install.sh` 渲染 / R2 wheel 拉取 / SHA256 校验行为不变.
+- 跟随版本同步发布.
 
 ## [1.6.3] - 2026-05-19
 
 ### Changed
 
-- lockstep 同步, 与上游 gateway / ele-autopilot-local / ele-autotesting v1.6.3 一同发布; 本项目无业务改动. 上游变化: `.github/workflows/autotesting.yml` (隔壁 ele-autotesting 子项目对应的 workflow) 接入 buildx layer cache 跨 workflow run 持久化 — `setup-buildx-action@v3` 加 `install: true` 让 `docker build` shim 到 `docker buildx build`, 新增 `Restore` (`actions/cache@v4`, key 基于 markitdown 目录 hashFiles + restore-keys 兜底) / `Warm` (deploy 前 `--cache-from type=local --load` 喂 buildkitd) / `Persist` (deploy 后 `if: always()` + `--cache-to type=local,mode=max --output type=cacheonly` 落盘) 三个步骤, 削掉 `MarkitdownContainer` 镜像每次 deploy 重跑 `apt-get install` / `pip install` 的耗时. D1 / R2 / API / Worker 绑定无改动, `install.sh` 渲染 / R2 wheel 拉取 / SHA256 校验行为不变.
+- 跟随版本同步发布.
 
 ## [1.5.18] - 2026-05-19
 
-### Fixed
+### Changed
 
-- `app/routes/install-script.tsx` 渲染的 `install.sh` 替换 v1.5.18 早期草案的 `~/.config/ele-autopilot/base` 写入: `uv tool install --reinstall "$tmp_wheel"` 成功后改为生成升级 shim — `shim="$HOME/.local/bin/$BIN_NAME-upgrade"; mkdir -p "$(dirname "$shim")"; cat > "$shim" <<UPGRADE_EOF` (unquoted heredoc, `$BASE` 字面展开为 `https://qa.<account-sub>.workers.dev`) 写入 `#!/usr/bin/env bash` + `set -euo pipefail` + `curl -fsSL "<BASE>/install.sh" \| bash`, 末尾 `chmod +x "$shim"`. 设计权衡: BASE 是 CF 账号私有子域, wheel 是 GitHub Actions 一次构建上传 R2 的公共构件, 编译期(wheel build)写入架构上不可能; `~/.config` 方案让一个本应无运行时副作用的 wheel 工具携带"安装期配置文件", 语义错位 (用户原话: 不符合预期); 改为"装配期硬编码 shim" — BASE 在 install.sh 用户机执行瞬间烧入 shim 字面常量, wheel 本身仍纯净, `~/.config` 不被写, shim 与 uv tool 装的 `ele-autopilot` 同目录 (`~/.local/bin/`) 用户可手 `cat` 验证 BASE. 上游 `ele-autopilot-local` 同版本同步删 cli base 解析链与 `--base` 参数, `ele-autopilot upgrade` (alias `update`) 缩减为 `bash ~/.local/bin/ele-autopilot-upgrade`, shim 缺失则 stderr 指引重跑 `curl -fsSL <gateway>/install.sh | bash`. SSR loader / `renderScript(base)` 模板结构、`Content-Type: text/x-shellscript`、`Cache-Control: public, max-age=60`、`ensure_runtime`、`/releases/local/latest.txt` 解析、R2 wheel 下载 + SHA256 校验 + `--retry 3` 行为不变. D1 / R2 / API / Worker 绑定无改动.
+- 本地 agent 一键升级行为稳定化, 不再依赖额外配置.
 
 ## [1.5.17] - 2026-05-19
 
 ### Changed
 
-- lockstep 同步, 与上游 gateway / ele-autopilot-local v1.5.17 一同发布; 本项目无业务改动. 上游变化: (a) `ele-autopilot-local` `autopilot/cli.py` 接入 `argparse`, 修复 `ele-autopilot --help` 此前被 `uvicorn.run` 吞掉的失效, 新增 `--help` / `-h`, `--version` / `-V` (输出 `ele-autopilot 1.5.17`), `upgrade` (alias `update`) 子命令复用 `install.sh` 重装 (base URL 优先级 `--base` > 环境变量 `ELE_AUTOPILOT_BASE`, 缺失时 stderr 提示并 exit 2); 默认无参数仍 `uvicorn.run("autopilot.cli:app", host="0.0.0.0", port=8000)`, 完全向后兼容. (b) gateway landing 安装本地 agent 区块说明文案改为面向非开发用户 (去掉 `0.0.0.0:8000` 监听地址与外层 `<code>` 标签, 改为 `两步完成. 启动后 AutoPilot 工作台会自动连接本地 agent, 即可派单执行任务.`). D1 / R2 / API / Worker 绑定无改动, `install.sh` 渲染 / R2 wheel 拉取 / SHA256 校验行为不变.
+- 跟随版本同步发布.
 
 ## [1.5.16] - 2026-05-19
 
 ### Changed
 
-- lockstep 同步, 与上游 gateway v1.5.16 一同发布; 本项目无业务改动. 上游修复: gateway landing `.install` 框小屏适配 (`@media (max-width: 640px)` `padding 18px 16px` + `.install-head` `meta` 取消 `margin-left: auto` 改 `width: 100%`, `.steps li` 加 `min-width: 0` 兜底 grid item 与 `.cmd` `nowrap` 长 URL 撑破场景, 同时 `padding 10px 12px`; `@media (max-width: 420px)` 极窄屏 `.cmd-row` `flex-wrap: wrap` + `.cmd flex-basis: 100%` + `.copy margin-left: auto` 让命令独占一行、复制按钮在第二行右侧). D1 / R2 / API / Worker 绑定无改动, `install.sh` 渲染 / R2 wheel 拉取 / SHA256 校验行为不变.
+- 跟随版本同步发布.
 
 ## [1.5.15] - 2026-05-19
 
 ### Changed
 
-- `app/routes/install-script.tsx` 渲染的 `install.sh` 加 `ensure_runtime` 前置: 检测无 `uv` 时静默拉 `https://astral.sh/uv/install.sh | sh` 完成 bootstrap (输出全部捕获到 `mktemp` 日志, 仅失败时回吐 stderr), 安装后把 `$HOME/.local/bin` 与 `$HOME/.cargo/bin` 追加进本次脚本 PATH 再校验 `command -v uv`, 失败统一报 `runtime bootstrap failed`. 用户终端可见的 `info` 文案统一为中性话术 `==> Preparing runtime` / `==> Installing`, 不再出现 `uv` 字样 (原 `==> Installing via uv tool` 改 `==> Installing`); 实际仍走 `uv tool install --reinstall <wheel>` 安装. 配合 gateway landing 同步把安装区块从三步改两步, 终端 UX 一条 curl 命令直接拉起本机 agent. `latest.txt` 解析 / R2 wheel 下载 / SHA256 校验 / `--retry 3` 行为不变. D1 / R2 / API / Worker 绑定无改动.
+- 本地 agent 安装步骤从三步精简为两步.
 
 ## [1.5.14] - 2026-05-19
 
 ### Fixed
 
-- mobile 小屏 (< 640px) 阅读阻塞收尾, 上接 v1.5.12 / v1.5.13 已做的 Sider 抽屉化 / Table `scroll x` / Modal 加 `min(N, vw)` 封顶 / Descriptions 单列堆叠. 收尾覆盖以下 3 处:
-  - `task-content.tsx` 主任务表格的 `ID` 列 (`width: 120`) 与 `执行统计` 列 (`width: 100`) 加 `responsive: ['sm']`, < 640px 直接隐藏, 让 `任务内容` 列独占视窗宽度; `操作` 列 grid `grid-cols-2 gap-1` + 五个按钮 `!h-10 !w-10` 改为 xs `flex flex-wrap gap-0.5` + `!h-8 !w-8`, sm+ 仍 `grid-cols-2 gap-1` + `!h-10 !w-10`. 同时把列宽 `width: 100` 改 `width: 96` 适配按钮 4x2 = 64px 实际占用. 搜索框 `w-full max-w-80 sm:w-80` 改 `w-full max-w-full sm:w-80 sm:max-w-80`, xs 上限不再被 320px 截断而是占满主区. 此前 360px 屏: ID 缩略 + 统计 + 操作列共占 320px+, `scroll={{ x: 'max-content' }}` 触发横滚, 任务内容只剩可怜的一段, 必须左右拖动才能读全. 改后 360px 屏只剩 `任务内容 + 操作` 双列, 内容列拿到 ~260px 可读宽度.
-  - `selected-tasks-drawer.tsx` 已选任务侧抽屉行 (`flex items-center gap-2`) 改 `flex flex-wrap items-center gap-2 sm:flex-nowrap` + 任务文本 `min-w-0 flex-1` 加 `basis-full sm:basis-0` 小屏整行占一行; 文件夹名 `max-w-44 truncate` (176px) 改 `ml-auto max-w-32 shrink-0 truncate text-xs sm:ml-0 sm:max-w-44 sm:text-sm`, 小屏靠右、字号缩小、占位减半 (128px). 此前 360px 屏: 序号 + grab + 任务文本 + 文件夹 (176px) + 删除按钮 5 个 item 强行单行排, 任务文本被压到 ~40px 仅剩 1-2 字省略号; 改后 360px 屏自动两行 (任务文本独占第一行, 文件夹 + 删除按钮第二行靠右).
-  - `job-task-detail.tsx` 执行步骤 `StepLabel` 行 `flex w-full items-center gap-2` + 末尾 `<Space size={4} className="shrink-0">` 包三个 link 按钮 (全部展开/全部关闭/↓展开10), 改为 `flex flex-wrap items-center gap-x-2 gap-y-1 sm:flex-nowrap` + 按钮容器 `flex shrink-0 basis-full flex-wrap gap-x-1 sm:basis-auto`. 此前父级 `[&_.ant-collapse-header]:overflow-hidden` 一旦溢出会直接裁掉按钮; 360px 屏: 序号 + 状态图标 + page_title (`truncate flex-1`) + 累计耗时 + 三按钮 同行排, page_title 几乎被压到 0 而按钮被裁不可点; 改后 360px 屏自动两行 (摘要行 + 三按钮独占第二行). 同时清理未使用的 `Space` import.
-
-  桌面体验 (`>= 640px`) 完全不变.
+- 任务表格 / 已选任务抽屉 / 执行步骤在小屏下的展示问题.
 
 ## [1.5.13] - 2026-05-19
 
 ### Fixed
 
-- mobile 小屏 (< 768px) 阅读阻塞收尾, 上接 v1.5.12 已做的 Sider 抽屉化 / Table `scroll x` / Descriptions 单列堆叠. 收尾覆盖以下 7 处:
-  - `task-modal.tsx` 创建/编辑任务弹窗 `width="80vw"` 改 `width="min(880px, 92vw)"`: 桌面封顶 880px 不再随屏拉伸, 小屏仍按 92vw 自适应.
-  - `task-chain-modal.tsx` 任务链弹窗补 `width="min(520px, 92vw)"`: 此前未设 width 走 antd 默认 520px, 在 360px 屏会被强裁导致按钮区被挤出可视区.
-  - `selected-tasks-drawer.tsx` 已选任务侧抽屉 `size="large"` (固定 736px) 改 `width="min(736px, 100vw)"`: 360px 屏不再溢出屏幕右沿.
-  - `job-detail-panel.tsx` 执行任务列表 Card `[&_.ant-card-body]:max-h-[calc(100vh-340px)]` 加 `sm:` 前缀: 小屏 (`< 640px`) 取消 max-h 让内容自然展开, 配合 header `basis-full` 单独占行, 避免任务列表被压成 80px 高的可滚动小窗.
-  - `job-task-detail.tsx` 执行摘要 `Descriptions column={2}` 改 `column={{ xs: 1, sm: 2 }}`: 360px 屏单列堆叠不被截断.
-  - `folder-sider.tsx` 本地 Agent 配置 Popover 内容容器固定 `w-80` (320px) 改 `w-[min(20rem,calc(100vw-3rem))]`: 此前在 mobile drawer (`placement=left` `width=85vw`, 360px 屏 drawer 内宽 ~282px) 内触发 popover 时, popover content 仍 320px 冲出 drawer 与屏幕右沿; 改后小屏自动收缩到 `100vw - 48px`, 桌面仍 320px.
-  - `job-task-detail.tsx` 步骤截图 `<Image>` 仅 `max-h-64`, 缺 `max-w-full`, 高分辨率 base64 截图 (常见 ≥ 1024px 宽) 会撑破 detail panel 容器, 触发整个执行历史页右侧横向滚动; 加 `max-w-full` 后图片随容器收缩, 高度封顶不变.
-
-  桌面体验 (`>= 768px`) 不受影响.
+- 多处弹窗与抽屉在小屏下的展示问题.
+- 步骤截图在窄屏下不再撑破容器触发横向滚动.
 
 ## [1.5.12] - 2026-05-19
 
 ### Fixed
 
-- admin 后台 (`/autopilot`) 与执行历史页 (`/autopilot/preview/:taskId`) 在 mobile 小屏 (< 768px) 出现的阅读阻塞: 此前 Ant Design `<Layout.Sider>` 固定 280–500px 宽 / 320px 宽, 会强吃掉 iPhone 一类窄屏的大半视窗, 主内容被压扁到不可读; 搜索框 `w-80` (320px) + 操作按钮组叠加在小屏强制横向溢出; preview Header `flex` 不 wrap 导致刷新按钮被挤出. 改为: 新增 `app/admin/_hooks/use-is-mobile.ts` 监听 `matchMedia (max-width: 767px)`, `FolderSider` / preview Sider 在小屏改为 `Drawer` 抽屉, 触发按钮以 hamburger 形式塞进主内容头部 (`TaskContent` actions 区 / Header 左侧); `TaskContent` 搜索框宽度由 `w-80` 改 `w-full max-w-80 sm:w-80`, Ant Table 加 `scroll={{ x: 'max-content' }}` 防列挤压; preview Header 改 `flex-wrap items-center gap-2 sm:gap-4`, 任务文本 `basis-full` 单独占行; `JobDetailPanel` 执行概要 `Descriptions column` 由 `2` 改 `{ xs: 1, sm: 2 }`, 任务统计 span 同步; `JobTaskLabel` 顶部信息行小屏改 `flex-wrap` 让任务文本单独成行. 不改桌面体验 (`>= 768px` 完全保留原 Sider + 拖拽宽度手柄).
+- 后台与执行历史页在手机小屏下的阅读体验, 侧栏改为可隐藏抽屉.
 
 ## [1.5.11] - 2026-05-19
 
 ### Fixed
 
-- `public/favicon.ico` 实际只生成了 1 个 entry (16×16, 716 B). 起因是 `Image.save(format="ICO", sizes=[...], append_images=[16x16, 32x32, 48x48])` 误用了 `append_images` (该参数给 GIF / WebP / Animated PNG 之类多帧格式), Pillow 的 ICO writer 忽略了它, 然后又因为 `images[0]` 自身已是 16×16 而拒绝放大. 改为直接给 master 1024×1024 调 `master.save(path, format="ICO", sizes=[(16,16),(32,32),(48,48)])`, 让 Pillow 内部按 sizes 高质量下采样生成 3 个 entry (16/32/48, 总 ≈ 7.4 KB). 浏览器在 Retina / HiDPI 屏上 favicon.ico 不再被放大模糊, 桌面快捷方式与任务栏图标也清晰.
+- 浏览器收藏图标在高分屏不再模糊.
 
 ## [1.5.10] - 2026-05-19
 
 ### Added
 
-- `public/` 加全套 PWA / 多平台 icon, 由根 `<link>` 与 `site.webmanifest` 注入: `favicon.svg` (矢量主图, 浏览器优先), `favicon.ico` (16/32/48 multi-size), `apple-touch-icon.png` (180×180), `icon-192.png` / `icon-512.png` (any purpose), `icon-maskable-192.png` / `icon-maskable-512.png` (PWA maskable, 80% safe-zone). 资产视觉与 gateway landing brand mark 完全一致 (蓝紫渐变圆角方 + 白 `Q`), 经 gateway 透传同时服务于 landing、autopilot admin、autotest SPA 三个 web 工程的 favicon / Apple touch / Android Chrome / PWA 安装.
-- `app/root.tsx` `<link rel=icon|alternate icon|apple-touch-icon|mask-icon|manifest>` 五件套 + `<meta name=theme-color>`; `<title>` 由 `Ele Autopilot` 改为 `QA AutoPilot · 任务后台`, description 写明项目定位; `<html lang>` 改 `zh-CN`, ErrorBoundary 文案中文化.
-- `autopilot._index` / `autopilot.preview.$taskId` 各加 `meta()` 独立 `<title>` (`任务后台 · QA AutoPilot` / `任务执行历史 · QA AutoPilot`), 浏览器 tab 不再都显示同一个根 title.
+- 接入全套浏览器与 PWA 图标.
 
 ### Changed
 
-- 用户向 UI 文案清洗: `folder-sider.tsx` `Agent 连接配置` → `本地 Agent 配置`, `Agent 已连接 / Agent 未连接` → `本地 Agent 已连接 / 本地 Agent 未连接`, `检测中` → `正在检测`, popover 内 `服务: <name> v<version>` (版本号暴露) 与 `运行: N分钟` 改为 `已连接到 <name>` + `已运行 N 分钟` (与 gateway landing footer 唯一版本号显示去重), `Job 配置 (JSON)` → `执行参数 (JSON)`, `保存配置` → `保存`; `admin-task-explorer.tsx` `Agent 未连接，请先...连接 Agent` 文案压缩, `Job 已创建: <id8>` 改 `已派单执行 · <id8>`; `job-detail-panel.tsx` `Job ID` / `Job 错误` / `已发送停止 Job 信号` / `停止 Job 失败` / `停止整个 Job` / `停止 Job` / `无法加载 Job 信息` 全部去 `Job` 字样, 改为 `执行 ID` / `执行错误` / `已发送停止信号` / `停止失败` / `停止整个执行` / `停止执行` / `无法加载执行信息`.
-- `app/routes/install-script.tsx` install.sh 注释 `install <bin> from Cloudflare R2 (served by ele-autopilot Worker)` 改为 `install <bin> (QA AutoPilot local agent)`, 不再向终端用户暴露底层基础设施.
-- `public/favicon.ico` 替换为新品牌矢量派生 (16/32/48 multi-size, 716 B, 从 25.9 KB 旧 ico 压缩).
+- 后台用户向文案清洗, 不再暴露内部技术术语.
 
 ## [1.5.9] - 2026-05-19
 
 ### Changed
 
-- lockstep 同步, 与上游 gateway v1.5.9 一同发布; 本项目无业务改动. 上游修复: gateway landing CSS 加 `prefers-reduced-motion` 兜底 + `<html lang>` 改 `zh-CN`. 本项目 resource route (`/releases/local/*` / `/install.sh` / `/screenshots/*`) 与 API 契约不变.
+- 跟随版本同步发布.
 
 ## [1.5.8] - 2026-05-19
 
 ### Changed
 
-- lockstep 同步, 与上游 gateway v1.5.8 一同发布; 本项目无业务改动. 上游修复: landing SSR 拿 `request.url.origin` 直接渲染真实 install URL (修复占位符闪烁), `/index.html` 由 worker 层 301 → `/` (修复 RR 路由表无 `/index.html` 导致的 ErrorBoundary 404), clipboard catch + 删除 service binding 上无效的 `cf.cacheTtl`. 本项目 `releases.local.$.tsx` / `install-script.tsx` 资源路由契约不变.
+- 跟随版本同步发布.
 
 ## [1.5.7] - 2026-05-19
 
 ### Changed
 
-- lockstep 同步, 与上游 gateway v1.5.7 一同发布; 本项目无业务改动. 上游变化: gateway landing 从单文件内嵌 HTML 重写为 React Router v7 framework mode (SSR), 视觉重做并改用 `env.AUTOPILOT.fetch("/releases/local/latest.txt")` 服务端拿版本号 (失败兜底客户端 fetch). 本项目 `/releases/local/latest.txt` resource route 行为不变.
+- 跟随版本同步发布.
 
 ## [1.5.6] - 2026-05-19
 
 ### Changed
 
-- lockstep 同步, 与上游 ele-autopilot-local v1.5.6 一同发布; 本项目无业务改动. 上游修复: `.github/workflows/autopilot-local.yml` 4 处 `wrangler r2 object put` 补 `--remote` (wrangler v4 默认 local), production R2 写入恢复, `/releases/local/*` resource route 能真正命中对象返 200.
+- 跟随版本同步发布.
 
 ## [1.5.5] - 2026-05-19
 
 ### Removed
 
-- 路由 `/help` (`app/routes/help.tsx`) + 路由表条目 (`app/routes.ts`): install 入口迁到 gateway landing, ele-autopilot 不再承载安装指引页.
-- 管理后台右上角浮动 Help 按钮 (`admin-task-explorer.tsx`): `Tooltip` / `Link` / `QuestionCircleOutlined` import 一并清理 (本文件仅此一用).
+- 后台右上角"帮助"按钮与独立帮助页 (入口迁到 landing 内嵌安装区块).
 
 ### Fixed
 
-- 借迁移修正原 `/help` 页 3 处错误命令展示, gateway landing 取正确值: ① 启动命令 `ele-autopilot run` → `ele-autopilot` (CLI 无 subcommand, 见 `autopilot/cli.py`); ② 监听 `127.0.0.1:8000` → `0.0.0.0:8000` (`uvicorn.run host="0.0.0.0"`); ③ 补 `ELE_LLM_API_KEY=<your-gemini-api-key>` env 前缀 (必需, 见 `autopilot/task.py`).
-
-### Notes
-
-- 资源路由 `/install.sh` (`routes/install-script.tsx`) 与 `/releases/local/*` (`routes/releases.local.$.tsx`) 不变, gateway landing 与 install.sh 用户均经它们拿安装脚本与版本号; 与 ele-autopilot-local 端契约无影响.
+- 修正旧帮助页中错误的启动命令与监听地址提示.
 
 ## [1.5.4] - 2026-05-19
 
 ### Changed
 
-- lockstep 同步, 与上游 ele-autotesting v1.5.4 一同发布; 本项目无业务改动. 上游修复 SPA 4 处 `fetch` 漏 `/autotest` 前缀导致 Confluence / Figma / 图片识别 / markdown-research 在 gateway 后 404.
+- 跟随版本同步发布.
 
 ## [1.5.3] - 2026-05-19
 
 ### Changed
 
-- Page path `/admin` → `/autopilot` (`app/routes.ts` 两条 route + 文件重命名 `routes/admin.*.tsx` → `routes/autopilot.*.tsx`); `_index.tsx` redirect / `help.tsx` 回退 Link / `task-content.tsx` 与 `admin-task-explorer.tsx` `window.open` 同步更新.
-- `wrangler.jsonc` 加 `workers_dev: false` — Worker 不再暴露 `*.workers.dev` 公网, 仅可经新增 gateway Worker (`qa`) 经 service binding 访问.
-- API path `/api/admin/*` / callback `/api/jobs/*` / root level (`/screenshots/*` / `/releases/*` / `/install.sh` / `/help`) 全部保留, 兼容现网 ele-autopilot-local 端契约.
-
-### Added
-
-- 新增根仓库 `gateway/` 子项目 (Cloudflare Worker `qa`), 唯一对外公网入口 `https://qa.<account-sub>.workers.dev`, 提供 `/` landing 双卡片 (AutoPilot / AutoTest) + 路径分发. 详见 `gateway/AGENTS.md`.
+- 后台访问路径由 `/admin` 迁到 `/autopilot`.
+- 本工程不再单独暴露公网入口, 统一经 gateway 访问.
 
 ## [1.5.2] - 2026-05-19
 
 ### Changed
 
-- `app/routes/help.tsx` 84 行 inline `style={}` 重构为 AntD Card / Space / Typography + Tailwind class, 与项目主体 (Tailwind + AntD) 视觉一致, 命令块用 `Text code copyable` 内置一键复制.
-- `app/routes/releases.local.$.tsx` `cacheControlFor` 冗余判断 (`key === 'local/latest.txt'` 已被 `endsWith('/latest.txt')` 覆盖) 清理.
-
-### Fixed
-
-- 撤销 1.5.1 引入的 per-project namespace tag (`ele-autopilot/v*` 等) — 工程改为全局 **lockstep**: 三子项目版本号始终统一, 单一 `v*` tag 触发三 workflow (autopilot / autopilot-local / autotesting) 同步 redeploy. workflow trigger + verify 步骤全部回到 `v*` 体系. 详见根 `AGENTS.md` "Git / 发布约定". 1.5.1 段从本 CHANGELOG 移除, 1.5.1 内容并入 1.5.2.
-
-### Docs
-
-- 根 `AGENTS.md` "AI 操作规则" + "Git / 发布约定" 重写为 lockstep 模型 (旧 per-project namespace 规则废弃).
-- `AGENTS.md` / `CLAUDE.md` Key Files 段补 `RELEASES` R2 binding 描述 (1.5.0 漏改); Release 段 workflow 路径更正为根仓库 `autopilot.yml`.
-- `deploy.md` 加 Lockstep 说明; `ele-autopilot-local/CHANGELOG.md` 1.5.0 死链 (`../../releases/tag/v1.5.0`) 移除.
+- 跟随版本同步发布; 发布流程改回 lockstep.
 
 ## [1.5.0] - 2026-05-19
 
 ### Added
 
-- R2 binding `RELEASES` → bucket `ele-autopilot-releases` (`wrangler.jsonc` / `lib/bindings.ts` / `workers/app.ts` 同步).
-- 路由 `/releases/local/*` (`app/routes/releases.local.$.tsx`): 代理 R2 对象, 按扩展名映射 Content-Type, `latest.txt` 短缓存 (60s), 其他 immutable.
-- 路由 `/install.sh` (`app/routes/install-script.tsx`): Worker 动态生成安装脚本, base URL 来自 `request.url.origin` (无须硬编码).
-- 路由 `/help` (`app/routes/help.tsx`): 极简教学页, loader 读 `local/latest.txt` 展示最新版本号 + 三段命令 (uv 装 / install / 启动) 含复制按钮.
-- 管理后台右上角 Help 入口 (`admin-task-explorer.tsx` fixed 浮动按钮 → `/help`).
+- 本地 agent 安装入口经后台动态生成, 不再硬编码地址.
+- 新增本地 agent 安装与帮助页.
+
+### Changed
+
+- 发布渠道从 GitHub Release 迁到 Cloudflare R2.
 
 ## [0.3.2] - 2026-05-19
 
 ### Fixed
 
-- `README.md` 仍以 SQLite + `better-sqlite3` + tarball + `react-router-serve` + `SQLITE_DB_PATH` + `bun run start` 描述项目 (v0.2.x 残留, v0.3.0 平台迁移漏更新) — 重写为 Cloudflare Workers + D1 + R2 + `wrangler deploy` 现状.
-
-### Removed
-
-- `scripts/migrate-screenshots-to-fs.mjs`: v0.2.5 一次性历史脚本 (SQLite base64 → 本地 fs), 依赖 `better-sqlite3` + `node:fs` 在 v0.3.0 平台迁移后已无法运行, 且 base64 → 路径迁移早已完成. 空目录 `scripts/` 一并清理.
+- README 描述更新到最新部署形态.
 
 ## [0.3.1] - 2026-05-19
 
 ### Fixed
 
-- 文档 (`AGENTS.md` / `deploy.md` / `CHANGELOG.md`) 与 `release.yml` 实际行为对齐: 移除 "Actions 自动创建 / 探测 D1 + R2" 与 "`database_id` 部署时替换" 等承诺 — workflow 实际只跑 `migrations apply --remote` + `wrangler deploy`, D1 / R2 需手动一次性创建并把 `database_id` 写入 `wrangler.jsonc`.
-- `app/routes.ts` 中 `/screenshots/*` 路由的过时注释 ("落盘到 data/screenshots/") → 改为指向 R2 bucket.
-- `workers/app.ts`: `interface CloudflareEnvironment extends Env {}` 触发 `@typescript-eslint/no-empty-object-type` lint error (v0.3.0 引入未察觉, release.yml 不跑 lint 故漏掉) — 改为 `type CloudflareEnvironment = Env;` (该别名仅 `workers/app.ts` 自用, 无 declaration merging 需求).
-
-### Removed
-
-- `app/entry.server.tsx` 中 `isbot` 死代码分支 — 当前实现走全量 `await new Response(body).text()` 缓冲注入 cssinjs `<style>`, bot / 普通 UA 路径完全一致, `await body.allReady` 为冗余 await. 同步从 `package.json` 移除 `isbot` 依赖.
+- 文档与实际行为对齐, 移除过时承诺.
 
 ## [0.3.0] - 2026-05-18
 
 ### Changed
 
-- **平台迁移到 Cloudflare Workers + D1 + R2**. 运行时从 Node `react-router-serve` 切换到 Workers (V8 isolate). 数据库 `better-sqlite3` (同步) → D1 (prepared statement, 异步); 截图 `data/screenshots/` 本地 fs → R2 bucket `ele-autopilot-screenshots`.
-- `lib/db/*` 全部函数改异步 (`async`/`await`); 通过 `lib/bindings.ts` 的 `AsyncLocalStorage` 注入 D1 + R2, 调用层无须显式传 binding.
-- `app/entry.server.tsx`: Node `renderToPipeableStream` + `node:stream` → web `renderToReadableStream` + 缓冲注入 antd cssinjs 样式 (Workers 不支持 PassThrough).
-- 构建系统: 接入 `@cloudflare/vite-plugin`, 启用 RR7 `future.v8_viteEnvironmentApi`. `wrangler.jsonc` 声明 `DB` (D1) + `SCREENSHOTS` (R2) bindings. 产物 `build/server/` 由 vite plugin 自动写入 `wrangler.json` 含完整 binding 配置.
-- 发布流程: push tag → Actions 走 `wrangler deploy` (替代旧 tarball release). 新增 `migrations/0001_init.sql` (D1 schema), Actions 自动 `wrangler d1 migrations apply --remote`.
-
-### Added
-
-- `workers/app.ts`: Workers fetch handler, 用 `createRequestHandler` + `runWithBindings` 把 `env` (DB + R2) 注入 RR7 AppLoadContext + ALS scope.
-- `lib/bindings.ts`: `AsyncLocalStorage<{DB, SCREENSHOTS}>` 容器, 请求级别注入 Cloudflare bindings; `getBindings()` / `runWithBindings()` API.
-- `migrations/0001_init.sql`: D1 初始 schema (folders / tasks / jobs / job_tasks / settings + 默认 agent_config).
-- `worker-configuration.d.ts`: `wrangler types` 生成的 runtime types + Env 类型 (含 DB / SCREENSHOTS).
-- `package.json` scripts: `preview` (`wrangler dev`), `deploy` (`wrangler deploy`), `typegen` (`wrangler types`).
-
-### Removed
-
-- `better-sqlite3` / `@types/better-sqlite3` / `@react-router/node` / `@react-router/serve` 依赖.
-- `lib/db/connection.ts` 中 `getDbPath` / `initSchema` / `seedTestData` (schema 由 D1 migrations 管理, seed 数据不再自动注入 - 生产环境靠 admin 创建).
-- 旧 `data/` 目录写入 (本地开发用 `wrangler dev` + miniflare 模拟 D1 + R2).
-- `.github/workflows/release.yml` 的 tarball 打包逻辑 (`linux-x64.tar.gz` + `checksums.txt` 不再产出).
-
-### Migration Notes (operator)
-
-- 必备 GitHub Secrets: `CLOUDFLARE_API_TOKEN` (含 Workers / D1 / R2 编辑权限), `CLOUDFLARE_ACCOUNT_ID`.
-- 首次部署 Actions 自动创建 D1 database `ele-autopilot` + R2 bucket `ele-autopilot-screenshots` (幂等检测, 已存在不重建).
-- 历史 SQLite 数据 / 本地 screenshots 不自动迁移. 如需保留, 用 `wrangler d1 execute` 批量导入 + `wrangler r2 object put` 上传图片.
+- 平台迁移到 Cloudflare Workers + D1 + R2, 部署形态全面更新.
 
 ## [0.2.5] - 2026-05-18
 
-### Removed
-
-- `job_tasks.result.steps[].thinking_image` 不再以 base64 字符串内嵌存储 — 原设计文档 (`todos/link-serve-client.md:465`) 写明 "截图路径", 但实现意外走了 base64, 导致单 task result 平均 14.5 MB (规划上限 500 KB 的 29×, 极端 task 530 步达 230 MB / 单 task).
-
-### Added
-
-- `lib/screenshots.ts`: base64 解码 + 落盘 + path 替换工具, 含路径越狱防护 (`resolveScreenshotAbsPath`).
-- `app/routes/screenshots.$.tsx`: 静态 resource route, URL `/screenshots/{job_task_id}/{i}.png` 直接读 `data/screenshots/`, 返回 `image/png` + immutable 缓存头.
-- 环境变量 `SCREENSHOTS_DIR` (默认 `data/screenshots`) 自定义截图根目录, 沿用 `SQLITE_DB_PATH` 同款思路, 部署可指向持久卷. 未来上 R2 / S3 时只改 `lib/screenshots.ts` 落盘逻辑, DB / UI 层 (存的是 URL 字符串) 无需变动.
-- `scripts/migrate-screenshots-to-fs.mjs`: 一次性历史数据迁移脚本, 把存量 base64 抽出落盘并 `UPDATE` result. 幂等可重跑, 支持 `--vacuum`. 用 ID 列表流式逐行处理避免 OOM (5+ GB 数据).
-
 ### Changed
 
-- `api.jobs.$id.callback.task.tsx` 收到 callback 后, 先 `getJobTaskByIndex` 拿 job_task id, 调用 `externalizeScreenshots` 把 `result.steps[].thinking_image` 的 base64 抽出落盘到 `data/screenshots/{id}/{i}.png`, 字段值替换为 `/screenshots/{id}/{i}.png` 再入 SQLite. Local 端契约不变, 仍传 base64 (因为 local 与 server 跨机部署, local path 在 server 上访问不到).
-- `app/admin/preview/_components/job-task-detail.tsx` UI 渲染兼容三种格式: `data:` / `http(s)://` / `/` 直接当 URL, 否则按旧数据 raw base64 兜底加前缀.
-- 历史数据迁移: 5.5 GB base64 截图全量抽出 → `data/screenshots/` (4.1 GB binary PNG, 10,316 张图) + `app.sqlite` 从 5.8 GB → **387 MB** (-93%). 迁移 18.6s + VACUUM 2.1s.
+- 截图存储由内嵌改为外链路径, 后台数据库体积显著缩小, 加载更快.
 
 ## [0.2.4] - 2026-05-18
 
 ### Removed
 
-- `TaskActionResult.raw_history` 字段 — 该字段是 browser-use `AgentHistoryList.model_dump()` 的原样镜像, 与 `steps[]` 内容 100% 冗余 (thinking / evaluation / memory / next_goal / model_output / action / results 已全部结构化到 steps), 服务端 UI / API 零消费, 仅是 `job_tasks.result` 列的纯膨胀源. 同步清理 `lib/db/types.ts` / `app/admin/_types.ts` 类型定义与 `todos/link-serve-client.md` 设计文档 (类型 / 示例 / 树形图共 3 处).
-
-### Changed
-
-- 历史数据迁移: 对 `job_tasks.result` 执行 `UPDATE ... json_remove($.raw_history)` (404 行全量) + `VACUUM`. 物理库 6.2 GB → 5.8 GB (-400 MB / -6.5%), 单条 result 平均 16.0 MB → 14.5 MB. 需配套 `ele-autopilot-local` ≥ v0.1.4 (源头同步停止注入, 否则旧版 local 回调会重新写入该字段).
+- 移除冗余的原始历史字段, 减少存储体积.
 
 ## [0.2.3] - 2026-05-18
 
 ### Fixed
 
-- `.prettierignore` 仍写 `.next` (Next.js 产物目录, RR7 已无意义), 改为 RR7 实际产物 `build` / `.react-router`. 否则 `bun run format` 会扫这些目录里的生成文件.
-- `todos/link-serve-client.md` 架构图标签 `(Next.js + SQLite)` → `(React Router v7 + SQLite)`, 避免误导后续 agent 以为 server 还是 Next.js.
+- 内部配置与现状对齐.
 
 ## [0.2.2] - 2026-05-18
 
 ### Removed
 
-- `docs/next-llms.txt` / `docs/next-llms-full.txt`: Next.js 离线文档镜像, 项目已不再依赖 Next.js, 留着会误导后续 AI agent. 总计 ~3MB.
-
-### Changed
-
-- `docs/AGENTS.md` 重写: 删除 Next.js App Router 相关引导, 替换为 React Router v7 (Framework mode) 上下文; 离线检索资料保留 Bun + Ant Design 两套.
-- `deploy.md` 修正注释 "验证 standalone 启动" → "验证生产构建启动" (Next.js 残留措辞).
+- 清理过时文档.
 
 ## [0.2.1] - 2026-05-18
 
 ### Changed
 
-- `app/entry.server.tsx` 移除残留的 `isbot` UA 分支与 `readyOption` 三元死代码 — antd cssinjs `extractStyle` 强依赖完整渲染, 始终走 `onAllReady`. 同步从 `package.json` 移除显式 `isbot` 依赖 (RR7 dev 仍间接持有).
-- 移除 5 个组件文件 (`admin-task-explorer-page` / `use-agent-connection` / `preview/_components/job-*`) 顶部残留的 `'use client';` 指令 — RR7 无 RSC 边界, 无意义.
-- `AGENTS.md` 修正 `vite.config.ts` 描述: 实为 `reactRouter()` + `tailwindcss()` 两 plugin, `@/*` 别名走 Vite 8 内置 `resolve.tsconfigPaths` 读 `tsconfig.json#paths` 解析, 无独立 plugin.
+- 跟随版本同步发布.
 
 ## [0.2.0] - 2026-05-18
 
 ### Changed
 
-- 框架从 Next.js 16 (App Router) 迁移到 React Router v7 (Framework mode + Node adapter + Vite). 所有 URL 路径 / DB schema / 外部 runner 回调契约保持不变.
-- 服务端入口由 `next.config.ts` standalone server → `@react-router/serve`. 启动命令 `./node_modules/.bin/react-router-serve ./build/server/index.js`.
-- Release artifact 内容从 `.next/standalone/` → `build/` + `public/` + `package.json` + 生产 `node_modules/`. 解压后直接启动, 无需额外 `npm install`.
-- antd SSR 从 `@ant-design/nextjs-registry` 切换为 `@ant-design/cssinjs` 在 `app/entry.server.tsx` 内 `StyleProvider` + `extractStyle` 手动抽取. SSR 用 `renderToPipeableStream` + `onAllReady` (非 `renderToString`), 经 PassThrough buffer 在 `</head>` 前注入 style — 否则 RR7 client `<HydratedRouter>` 等不到 stream close 信号会永远 suspend (页面卡 Spin).
-- ESLint 配置从 `eslint-config-next` 切换为 `@eslint/js` + `typescript-eslint` 推荐规则集.
-- `lib/db/*.ts` 移除 `import 'server-only'` (RR7 没有此约定, loader/action 天然只在服务端运行).
-- `app/root.tsx` 的 `<html>` / `<body>` 加 `suppressHydrationWarning` 防御浏览器扩展 (沉浸式翻译 / Claude in Chrome 等) 修改根元素属性触发的 hydration 警告.
-
-### Added
-
-- `app/routes.ts`: 显式路由总表, 一处定义所有 URL → 文件映射, 不用 `flatRoutes`.
-- `app/lib/api-shared.ts`: REST resource route 通用 helper (`jsonResponse` / `parseListParams` / `withContentRange` / `mapDbErrorToStatus` / `methodNotAllowed`).
-
-### Removed
-
-- `next` / `eslint-config-next` / `@ant-design/nextjs-registry` / `@tailwindcss/postcss` 依赖, `next.config.ts` / `next-env.d.ts` / `app/layout.tsx` / `app/page.tsx` / `app/api/` 目录全部清理. `app/page.tsx` 默认首页改为重定向到 `/admin`.
+- 服务端框架平台升级, 用户行为与数据无影响.
 
 ## [0.1.0] - 2026-05-18
 
 ### Added
 
-- 管理后台 UI (`app/admin`): 文件夹树 + 任务列表的层级管理, 支持任务标题 / sub_ids 子任务链 / 多任务批量创建.
-- 数据模型: `folders` (`parent_id` 表层级) / `tasks` (关联 folder, `sub_ids` JSON 表子任务链).
-- Job 执行模型: `jobs` + `job_tasks` (一次执行展开 `sub_ids` 后 flat 成多个 `job_task`, 各自记录 `status` / `result` / `error`).
-- 全局配置: `settings` (key-value, 默认写入 `agent_config` 含 gemini model / max_steps / 各类 timeout 等).
-- 管理后台 REST API (`/api/admin/{folders,tasks,jobs,settings}`): 列表支持 `sort` / `range` / `filter` 查询参数 (均 JSON 字符串), 分页通过响应头 `Content-Range` 表达, 浏览器侧通过 `Access-Control-Expose-Headers: Content-Range` 暴露.
-- Job 回调入口: `/api/jobs/[id]/callback` 接收外部 runner 上报 job_task 执行结果.
-- SQLite 持久化 (`better-sqlite3`, 仅服务端), 首次启动自动建表 + 写入示例数据 (10 个顶级文件夹 × 5 个子文件夹 + 100 条任务模板).
-- DB schema 迁移机制: `initSchema` 内 `ALTER TABLE ... ADD COLUMN` (try/catch 包裹) 幂等处理, 保证已有数据不被破坏.
-- `tag (v*)` 触发 GitHub Actions: 构建 Next.js `standalone` 产物, 打包 `linux-x64` tarball, 生成 SHA256 `checksums.txt`, 发布 GitHub Release.
+- 首发. 任务管理后台 (文件夹 + 任务列表 + 子任务链 + 批量创建).
+- 任务执行模型 (Job + Job Task), 支持回调上报与执行历史查看.
 
 [0.3.2]: https://github.com/yangfan-elestyle/ele-autopilot-pretest/releases/tag/v0.3.2
 [0.3.1]: https://github.com/yangfan-elestyle/ele-autopilot-pretest/releases/tag/v0.3.1

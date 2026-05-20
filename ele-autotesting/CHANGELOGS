@@ -1,545 +1,228 @@
+# 面向使用者的公开更新记录: 写可见的新功能、修复与体验变化, 不写内部实现.
+
 # 2026.05.20 (lockstep v1.10.0)
 
-## Changed
-
-1. lockstep 同步, 与 gateway / ele-autopilot / ele-autopilot-local v1.10.0 一同发布; 本项目 (`packages/{core,ui,web,server}` / `containers/markitdown`) 业务路由 / D1 schema / Static Assets `run_worker_first` / proxyGuard SSRF 防护 / `/api/sync` owner 过滤 / V1 `device:shared-owner-v1` 身份模型 / Container `MARKITDOWN` binding 全部不变. 本轮上游聚焦 gateway 把公网入口套上 Cloudflare Zero Trust Access + Google Workspace SSO: gateway `workers/app.ts` 用 `jose` 远程 JWKS 校验 `cf-access-jwt-assertion` 并把登录邮箱注入 RR context; landing 顶栏渲染 `@elestyle.jp` 员工身份 + 登出. 副作用: 浏览器访问 `/autotest*` 现在被前置 Allow App (整域兜底) 拦截走 Google SSO, gateway strip `/autotest` 后转给本 Worker 的请求体 / header / 路径行为与之前完全一致 (CF Access 在 gateway 层处理, 本 Worker 不感知 `cf-access-jwt-assertion` / `cf-access-authenticated-user-email`); web SPA hydration / `/stream-proxy` SSE / `/http-proxy` / D1 `/api/sync` owner 过滤 / Container markdown-research 调用链全部沿用 v1.9.9.
-
-[1.10.0]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.9...v1.10.0
+- 跟随版本同步发布; AutoTest 前端访问鉴权改由 gateway 统一处理.
 
 # 2026.05.20 (lockstep v1.9.9)
 
-## Changed
-
-1. lockstep 同步, 与 gateway / ele-autopilot / ele-autopilot-local v1.9.9 一同发布; 本项目 (`packages/{core,ui,web,server}` / `containers/markitdown`) 业务路由 / D1 schema / Static Assets `run_worker_first` / proxyGuard SSRF 防护 / `/api/sync` owner 过滤 全部不变. 本轮上游聚焦 AI 主动扫雷第七轮: ele-autopilot 修 `lib/screenshots.ts` `externalizeScreenshots` 的单张截图异常隔离 + `app/admin/_services/local-api.ts` 三处 fetch 显式 timeout, ele-autopilot-local 把 callback 子路径从硬编码字符串提为顶层常量并入口 normalize callback_url 尾斜杠. 三块改动都不涉及本工程的路由表 / Container binding / `assets.run_worker_first`.
-
-[1.9.9]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.8...v1.9.9
+- 跟随版本同步发布.
 
 # 2026.05.20 (lockstep v1.9.8)
 
-整体目标: AI 主动扫雷第六轮 — 补 `/markdown-research` 路由的 body size guard. 此前 handler 直接 `c.req.json()` 把整个 body 读到 memory, 没有任何 size 校验, 攻击者只要 POST 一个几十 MB 的 markdown 字段就能把 Worker 单实例 128MB 内存撑爆触发 OOM 502; 同 Worker 上的其他业务路由 (figma / confluence / sync) 都会被连锁影响. 路由背后插件链一次最多分析 50 张图, 实际业务对 markdown 文本长度需求 ≤ 2MB (Confluence 单页 / 设计稿 md 导出常见在百 KB 量级), 加一道双层 size guard 即可堵住这条放大面.
-
-## Fixed
-
-1. `packages/server/src/routes/markdownResearch.ts` 入口加 `MAX_MARKDOWN_LENGTH = 2 * 1024 * 1024` (字符串长度上限) 和 `MAX_BODY_BYTES = 4 * 1024 * 1024` (body 字节上限, 给 JSON 包装 / 转义留余量) 两道防线: handler 先读 `content-length` 请求头, 若声明值超过 `MAX_BODY_BYTES` 直接 413 返回 `{ error: 'Payload too large', limit_bytes }`, 不进 `c.req.json()` 拿不到完整 body 也不会触发 Hono 内部 buffer 累积; 进入 `c.req.json()` 之后再校验 `markdown.length > MAX_MARKDOWN_LENGTH` 兜底 413 + `limit_chars`, 防止 client 故意省 / 谎报 content-length 头. 业务路由响应字段口径不变 (`text` / `errors`), client 拿到 413 应当截断 markdown 后重试.
-2. 没动 `/figma-parse` / `/confluence-parse` / `/image-research/*` — 这三条的 payload 主要是 token + url 字符串或图片二进制, 长度本就受上游 API 限制 (Figma node_id 列表 / Confluence page_id / vision API 入参), 真正的放大面只在 `/markdown-research` 的 markdown 字段. proxy (`/stream-proxy` / `/http-proxy`) body 受 LLM provider 上限管控同理不动. 若后续 figma / confluence 出现类似 abuse pattern 再单独补.
-
-[1.9.8]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.7...v1.9.8
+- 限制 markdown 解析请求体积上限, 防止异常上传影响服务稳定性.
 
 # 2026.05.20 (lockstep v1.9.7)
 
-整体目标: AI 主动扫雷第五轮 — 把外部依赖 (Figma API / Atlassian Cloud) 的 fetch 调用全部加上显式 AbortSignal 超时. 此前裸 fetch 仅靠 CF 平台层 subrequest 30s 兜底超时, 命中后 Worker 进入"待回收"状态收到的客户端响应是无文案 524, 排查难; 同时若 client 已断开但 Worker 仍在 await 上游响应, 那个 invocation slot 是被无端占用的, 对 free / paid 配额都是浪费.
-
-## Fixed
-
-1. `packages/server/src/routes/figmaParse.ts` 三处对外 fetch (Figma `v1/files`, Figma `v1/images`, SVG 静态 CDN 下载) 统一加 `signal: AbortSignal.timeout(FIGMA_FETCH_TIMEOUT_MS)` (25s, 留 5s 给 Worker 自身 IO + 平台层 30s 上限). catch 分支用 `err.name === 'TimeoutError' || 'AbortError'` 区分超时 vs 普通失败, 命中超时返回 504 + 文案 `Figma file/images request timed out`, 普通失败保持原 502; SVG download 走 `fetchSvgAndConvertToBase64Png` 内部 throw, 被外层 image research loop 的 try/catch 捕获后写到 `analyses[i].error`, 不需要单独 504 路径 — Figma 单 node 失败不阻塞其他 node 分析.
-2. `packages/server/src/routes/confluenceParse.ts` 新增 `CONFLUENCE_FETCH_TIMEOUT_MS = 25_000` 常量, 唯一对 Atlassian Cloud 的 fetch 加 `signal: AbortSignal.timeout(...)`. catch 分支同样 `err.name === 'TimeoutError' || 'AbortError'` 走 504 + 文案 `Confluence request timed out`, 其余仍 500; 与 figmaParse 保持响应口径一致. 没改 LLM proxy (`/stream-proxy` / `/http-proxy`) — 那些路由由 LLM SDK 内部 fetch 发起, SDK 自带 streaming + 业务侧 600s 超时, 跟 page parsing 的同步语义不一样.
-
-[1.9.7]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.6...v1.9.7
+- Figma / Confluence 解析请求加超时保护, 避免上游卡死拖垮整体响应.
 
 # 2026.05.20 (lockstep v1.9.6)
 
-整体目标: AI 主动扫雷第四轮 — 把"靠服务端凭据 / LLM API key 跑外部资源"的四条业务路由从全裸奔状态收回到 V1 身份模型背后, 顺手把 figmaParse 上游错误响应体的信息泄漏点跟 confluenceParse 拉齐, 给后端排查留 ownerId 维度.
-
-## Fixed
-
-1. `packages/server/src/app.ts` 给四条服务端资源敏感路由统一挂 `resolveOwner` 中间件: `/confluence-parse` / `/figma-parse` / `/markdown-research` / `/image-research/*`. 此前这些路由全裸奔 — 任意访客 GET `/autotest/confluence-parse?page_id=12345` 就能让 Worker 用服务端配置的 `QA_ALTASSIAN_API_KEY` 拉 elestyle Confluence 任意 page (page_id 是顺序数字, 可枚举), 直接外泄全公司 wiki; `/image-research/analyze` / `/markdown-research` 消耗服务端 `QA_IMAGE_RESEARCH_OPENAI_API_KEY` / `QA_IMAGE_RESEARCH_GEMINI_API_KEY` 跑视觉 / 文本任务, 没人挡; `/figma-parse` 虽然 token 是 client 自带, 但内部调用 LLM 分析也是服务端 key. 现统一收回到 V1 owner 模型背后 (V1 仍是 shared-owner, 没做横向隔离, 但至少给后端日志 / 限流 / 滥用排查留出 ownerId 维度, V2 接入 Google id_token 后自动按用户隔离). 注意: `/stream-proxy` / `/http-proxy` 由 LLM SDK 内部 fetch 发起, SDK 无法注入业务自定义头, 这两个路径继续 open + 走 `proxyGuard` SSRF 黑名单兜底; `/mcps/markitdown/*` 同理保留 open (MCP 协议跨 auth header 不友好).
-2. `packages/core/src/utils/environment.ts` 新增 `setAuthHeaders(headers)` / `getAuthHeaders()` 二人组, `packages/core/src/index.ts` 与 `packages/ui/src/index.ts` 同步 re-export. 与 `setProxyBasePath` 一样的 module-level 注入模式, web 端在 `useAppInitializer` 同一处统一注入 `{ 'X-Device-Id': SHARED_OWNER_ID }`, UI 组件 fetch 业务路由时 `headers: { ..., ...getAuthHeaders() }` 即可拿到, 不需要每个调用点重复硬编码 device id. V2 接入 Google 登录时把这里改成动态返回 `Authorization: Bearer <id_token>`, UI 调用方零改动.
-3. `packages/ui/src/composables/useAppInitializer.ts` 早期 setup 阶段同步调 `setAuthHeaders({ 'X-Device-Id': SHARED_OWNER_ID })`, 与 `setProxyBasePath` 并列. 紧跟在 `setProxyBasePath` 后面是有意为之 — UI 组件 fetch 时机不一定保证 onMounted 之后, module-level 状态在 setup 同步段落落定可避免竞态.
-4. `packages/ui/src/components/PromptTypeSelector.vue` 4 处直接 fetch 业务路由的调用点 (`/confluence-parse`, `/markdown-research`, `/figma-parse`, `/image-research/analyze`) 全部接入 `getAuthHeaders()`, 头部 `{ 'Content-Type': 'application/json', ...getAuthHeaders() }`. 这是新 auth middleware 落地后浏览器侧能继续工作的前提.
-5. `packages/server/src/routes/figmaParse.ts` 拉齐 confluenceParse 的信息泄漏防线: 此前 Figma 上游 4xx / 5xx 响应体 (`fileResponse.text()` / `imagesResponse.text()`) 直接 slice(0, 2000) 塞进 client 的 `details` 字段, Figma API 错误响应可能含 token hint / 请求 ID / 用户上下文, 暴露给浏览器 console 不可控. 现 errorText 仅写 Worker 日志 (前 2000 字便于运维查), client 只看到 `Failed to fetch Figma file/images: HTTP <status>`; catch 分支同步收紧不再回 `details: error.message`; `imagesJson.err` 业务层错误也改为只写日志.
-6. `packages/server/scripts/smoke.mjs` 新增 BUSINESS_DEVICE_ID 复用常量, 4 个原 validation 测试改为先验证 "auth missing → 401" 再用带 X-Device-Id 头测 "validation 400", 把新 middleware 与原 handler 校验同时覆盖在 smoke 上.
-
-[1.9.6]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.5...v1.9.6
+- Confluence / Figma / 图片识别 / markdown 解析等接口接入身份校验, 不再公开调用.
 
 # 2026.05.20 (lockstep v1.9.5)
 
-整体目标: 收一处对外响应里上游 errorText 直接回传的信息泄漏点; 与 ele-autopilot 本轮 callback / 状态机加固一并 lockstep 发布.
-
-## Fixed
-
-1. `packages/server/src/routes/confluenceParse.ts` 把上游 Atlassian HTTP 失败响应体从 client 响应里剥离: 此前 `errorText.slice(0, 4000)` 直接塞进 client 的 `details` 字段, Atlassian 4xx / 5xx 时上游响应体可能含内部错误堆栈 / 请求 id / token 提示, 暴露给 web 端等于把后端日志直接喂给浏览器 console. 现 errorText 仅写到 Worker 日志 (前 2000 字便于运维查), client 只看到 `Failed to fetch Confluence page: HTTP <status>` — 同步收紧 catch 分支的 `details: error.message` 字段, 避免 fetch 异常消息把内部 hostname / 解析栈泄漏给客户端.
-
-[1.9.5]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.4...v1.9.5
+- Confluence 解析失败时, 浏览器只显示简短错误, 不再回显上游内部信息.
 
 # 2026.05.20 (lockstep v1.9.4)
 
-整体目标: AI 主动扫雷第二轮 — 把 LLM 代理链路 (http-proxy / stream-proxy) 从开放 SSRF 跳板收回到可控边界, 同时切断上游敏感响应头对客户端 cookie / 凭据空间的污染.
-
-## Fixed
-
-1. `packages/server/src/utils/proxyGuard.ts` 新增 `validateProxyTarget(raw)` + `shouldStripResponseHeader(name)` 两个共享辅助, 给 `/http-proxy` 与 `/stream-proxy` 复用. 之前两个 proxy 直接 `new URL(decodeURIComponent(targetUrl)).toString()` 就 fetch, 等于让 Worker 当开放跳板, 攻击者可探测 cloud metadata (`169.254.169.254`) / Worker 内网 / `127.0.0.1` 段 / `file:` 等非 http(s) scheme. `validateProxyTarget` 强制 protocol ∈ {http, https}, 黑名单 hostname 命中 `localhost` / `127.0.0.0/8` / `10.0.0.0/8` / `172.16.0.0/12` / `192.168.0.0/16` / `169.254.0.0/16` / `0.0.0.0` / IPv6 环回 + ULA + link-local + mapped + `.internal` / `.local` / `metadata.google.internal` 一律 400. 字符串级校验拦不住 DNS rebind, 但配合 CF Worker 平台层对内网 IP 的拒绝, 99% 的探测请求会在 Worker 内被驳回, 不再进 fetch.
-2. `packages/server/src/routes/httpProxy.ts` 接入 `validateProxyTarget`, 同时响应头过滤改为 `shouldStripResponseHeader` — 在原本的 `content-encoding/transfer-encoding/content-length` 之外加 `set-cookie/set-cookie2/authorization/proxy-authenticate/www-authenticate` 黑名单. 之前上游 set-cookie 会原样回传到客户端, 等于让 proxy 给 gateway domain (qa.\*.workers.dev) 注入跨源 cookie, 攻击者可用恶意 LLM endpoint 给浏览器塞任意 cookie; authorization / WWW-Authenticate 会把上游凭据 / 认证挑战暴露给客户端. 现敏感头一律剥离.
-3. `packages/server/src/routes/streamProxy.ts` 同步接入 `validateProxyTarget` + `shouldStripResponseHeader`. SSE 长连接路径上的 reader.cancel() finally 保护沿用 v1.9.3 修复; 本轮只补 SSRF + 响应头黑名单, 不动 stream 生命周期管理.
-
-[1.9.4]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.3...v1.9.4
+- 收紧 LLM 代理: 拦截内网探测, 屏蔽上游 cookie / 凭据回写.
 
 # 2026.05.20 (lockstep v1.9.3)
 
-整体目标: 主动扫雷 — 对 LLM 代理链路与外网代理链路两条核心数据流做后端缺陷专项排查, 修掉流式连接资源泄漏 / 代理 OOM 两类问题, 顺手抛 Toast 与 FullscreenDialog 两个组件的视觉.
-
-## Fixed
-
-1. `packages/server/src/routes/streamProxy.ts` SSE 流式代理 reader 资源回收: 之前 try/catch 包 `reader.read()` 抛错时仅 throw, 上游 fetchResponse.body 的 ReadableStream 仍处于 reading 状态, Hono stream() 返回后这个 reader 没人释放; 在长连接被客户端断开 + LLM provider 响应 stuck 的场景下, Worker 实例里会堆积半开连接, 跑久了耗尽 fetch outbound 配额触发 502. 改为 try / catch / finally 三段, finally 内强制 `reader.cancel()` 并 swallow cancel 自身可能的 throw — reader 已结束时 cancel 是 noop, 不会破坏正常路径.
-2. `packages/server/src/routes/httpProxy.ts` HTTP 代理改流式转发: 原实现 `const data = await fetchResponse.text()` 把整个上游响应 body 缓存到 Worker 内存再 `new Response(data, ...)`, 上游返回大附件 (PDF / 图床原图 / 大 JSON dump) 时直接撞 Cloudflare Workers 单实例 128MB 上限, 表现为 502 而不是预期的"原样回传". 改为 `new Response(fetchResponse.body, ...)` 直接把 ReadableStream 透传给客户端, 内存占用 O(chunk) 不再 O(total). 删除非 SSE 路径上的全量缓存.
-
-## Changed
-
-3. `packages/ui/src/components/Toast.vue` 视觉重构:
-   - 容器从 inline `flex items-start gap-2.5 px-3.5 py-2.5 rounded-lg shadow-lg backdrop-blur-md` 改完整 `.ds-toast` scoped style: position relative + min-width 240px + overflow hidden + `var(--ds-radius-lg)` + `var(--ds-shadow-md)` + `blur(12px) saturate(180%)` 双层背景.
-   - icon 从 `inline-flex h-4 w-4 mt-0.5 shrink-0` 改 `.ds-toast-icon` (22x22 + currentColor 14% 软底圆 + flex center 居中), 视觉权重从"裸图标"拉到"软底徽章".
-   - 关闭按钮从 `opacity-60 hover:opacity-100 -mt-0.5 -mr-0.5` 改 `.ds-toast-close` 完整态机 (22x22 圆角 + currentColor opacity 0.55 → 1 + hover currentColor 16% 软底 + focus-visible 双 ring + transition motion-fast).
-   - 新增 `.ds-toast-progress` 4s linear scaleX(1→0) 倒计时条 + role=status + aria-live=polite + aria-hidden 装饰元素, 与 useToast 默认 4s 自动关闭契合.
-   - success / error / warning / info 4 变体背景改 `color-mix(in srgb, var(--ds-*-soft) 92%, transparent)`, 透出 backdrop blur 层, 替代原本满底色.
-4. `packages/ui/src/components/FullscreenDialog.vue` 头部对齐 ds-modal-* 设计语言:
-   - 头部从 `p-4 border-b + h3 text-lg + 裸 × 按钮` 改 `.ds-modal-head` + `.ds-modal-head-left/-right` + `.ds-modal-title` + `.ds-modal-title-icon` (8 方向箭头 svg 表全屏) + `.ds-modal-subtitle` "Esc 关闭" hint + `.ds-icon-btn-sm` 关闭按钮, 与 Manager 弹窗一致.
-   - 容器外加 `overflow-hidden`, 内容区从 `flex-1 min-h-0 p-4` 加 `overflow-auto`, 解决长内容时整窗滚动而非内容区滚动的体验问题.
-   - title 默认值兜底 "全屏编辑", title 没传时也有正常显示.
-
-[1.9.3]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.2...v1.9.3
+- 修复长连接断开时的资源残留, 长时间使用更稳定.
+- 大附件代理改为流式转发, 不再因为单次请求过大触发服务端 OOM.
+- Toast 提示与全屏弹窗视觉对齐.
 
 # 2026.05.20 (lockstep v1.9.2)
 
-整体目标: 接 v1.9.1 "硌手细节抛光" Phase 1, 进入 Phase 2 —— 把 AutoTest 工作台的 3 个 Manager 弹窗 (模型 / 模板 / 数据) 与 TextDiff 视觉打磨, 让管理后台从"功能可用"拉到"高科技公司管理后台"层级.
-
-1. `packages/ui/src/styles/theme.css` 新增 30+ 组 utility 类, 全部使用 `--ds-*` token:
-   - `.ds-modal-head` + `-head-left` + `-head-right` + `.ds-modal-title` + `.ds-modal-title-icon` + `.ds-modal-subtitle` 一组弹窗头: head 自带 `.ds-panel-head` 同款渐变背景 + 1px 软分隔, icon 自带 28x28 brand-50 软底 + brand-600 svg, 标题主 (15px primary -0.01em) + 副 (12px tertiary), 替代之前 ModelManager / TemplateManager / DataManager 三处各自手写的 `p-6 border-b + text-xl ×` 不一致头部.
-   - `.ds-modal-body` (20px padding + flex-1 overflow-auto), `.ds-modal-section-title` + `-dot` + `-desc` 一组弹窗内段落标题: 13px primary + brand dot + 3px brand glow, 替代散写的 `text-lg font-semibold`.
-   - `.ds-pill-btn` + 5 个变体 (`--primary` / `--ghost` / `--success` / `--warning` / `--danger`): 28px 高 + 8px 圆角 + 13px font icon 等宽控制, 收敛 3 个 Manager 大量散写的 `text-sm theme-manager-button-*` 与 inline padding.
-   - `.ds-manager-item` + `-head` + `-title` + `-meta` + `-actions` + `-footer` + `-accent` (brand/success 2 个 accent 变体): 列表 item 卡片标准化, 替代 inline `p-4 rounded-xl border` 散写.
-   - `.ds-dropzone` + `-icon` + `-title` + `-hint` + `-selected*` + `is-over` 状态: DataManager 拖拽区从 `border-2 border-dashed` 改成"44x44 brand icon container + brand-50 hover + is-over 切实线 brand-500 + 内 3px brand-12% ring"完整状态机.
-   - `.ds-spinner` (14x14 等宽通用 spinner, currentColor 自适应) 替代 3 个 Manager 各自手写的 spin SVG.
-   - `.ds-diff-shell` + `-header` + `-stat--added/--removed/--unchanged` + `-body` + `-fragment--added/--removed`: TextDiff 全套样式, header 用 panel-head 同款渐变, fragment 用 12-16% 半透明底 + 22-28% 1px ring, removed 自带 1.5px 红色删除线.
-
-2. `packages/ui/src/components/ModelManager.vue` 视觉重构:
-   - 头部从 `flex justify-between p-6 border-b` + `text-xl × button` 改 `.ds-modal-head` + `.ds-modal-title-icon` (4 方格 svg) + `.ds-modal-title` 主标题 + `.ds-modal-subtitle` 副标题 + `.ds-icon-btn-sm` 关闭按钮.
-   - "模型列表" 标题改 `.ds-modal-section-title` + `.ds-chip ds-chip-neutral` 显示总数, "添加" 按钮 icon 从 "文件 + 新增" 错用图标改 plus svg + 改 `.ds-pill-btn--primary` "添加模型".
-   - 编辑 / 添加弹窗 backdrop 从 `bg-black/60 backdrop-blur-sm` 改 `.theme-mask`, 弹窗头 h3 全部改 `.ds-modal-title` + `.ds-modal-title-icon` (edit pencil svg / plus svg), 关闭 × 改 `.ds-icon-btn-sm`.
-   - 高级参数面板 inline `text-purple-600 / text-yellow-600 / text-red-500` 改 `style="color: var(--ds-brand-700 / warning / danger)"`, checkbox `focus:ring-purple-500` 改 `accent-color: var(--ds-brand-600)`; 参数删除按钮 `w-6 h-6 text-red-500 hover:text-white hover:bg-red-500` 改 `.ds-pill-btn ds-pill-btn--danger !h-6 !w-6 !p-0`.
-
-3. `packages/ui/src/components/TemplateManager.vue` 视觉重构:
-   - 头部改 `.ds-modal-head` 同款 + 文件 svg icon + 副标题 "优化与迭代模板管理", 关闭 × 改 `.ds-icon-btn-sm`, "语法指南" 按钮改 `.ds-pill-btn--ghost` + circle help svg icon.
-   - 类型切换 (内容生成 / 提示词优化) 从手写 `theme-manager-button-primary/secondary` 双按钮改 `.ds-segmented` 段控件 (与 OutputDisplayCore 视图切换同款), 内容生成切到 target/dartboard svg, 提示词优化切到 history clock svg, 替代 "🎯 / 🔄" emoji.
-   - 列表内模板格式 chip "📝 简单模板 / ⚡ 高级模板" 改 `.ds-chip ds-chip-info / ds-chip-brand` 纯文字 (与 ele-autopilot 表格 chip 视觉契约一致).
-   - 编辑/添加/查看弹窗 backdrop 改 `.theme-mask`, head h3 全部 `.ds-modal-title` + `.ds-modal-title-icon` (eye / pencil / plus 三态), 关闭 × 改 `.ds-icon-btn-sm`; 类型 chip 同步改 `.ds-chip-info / ds-chip-brand`.
-   - 模板格式选择器 (新建时切简单/高级) 内 "📝 / ⚡" emoji 改 svg (text-lines / lightning bolt), 文字保留.
-   - 语法指南弹窗 + 迁移弹窗的 head 全部统一改 `.ds-modal-title` + icon + `.ds-icon-btn-sm` 关闭.
-
-4. `packages/ui/src/components/DataManager.vue` 视觉重构:
-   - 头部改 `.ds-modal-head` + 数据柱状图 svg icon + 副标题, 关闭按钮从 6x6 大尺寸 svg 改 `.ds-icon-btn-sm` (32x32 容器内 14x14 cross).
-   - 导出 / 导入两个 section 标题改 `.ds-modal-section-title` + brand dot, 描述用 `.ds-modal-section-desc`.
-   - 导出按钮内 "📥 导出数据" emoji 改 svg arrow-down 图标, loading spinner 从手写 svg animate-spin 改 `.ds-spinner` (14x14 brand-spin), 同款修复导入按钮 "📤 导入数据" emoji.
-   - 文件拖拽区从 `border-2 border-dashed + theme-manager-border-active` 改 `.ds-dropzone` + `is-over` 状态机, 默认态显示 file-upload svg icon container + "点击选择 .json 文件" 主标 + "或将文件拖拽至此处" hint 三层; 选中态显示 success-color check svg icon + 文件名 (mono size) + ds-pill-btn 双按钮 (更换文件 / 清空 danger).
-
-5. `packages/ui/src/components/TextDiff.vue` 完全重写视觉:
-   - 模板从 `.text-diff theme-textdiff` + 90 行 scoped style 改 `.ds-diff-shell` (4 个 ds-diff-* class), 删除 scoped style 整块 (现 0 行).
-   - 切换按钮从 `.diff-toggle-btn theme-textdiff-toggle` 改 `.ds-pill-btn` + 关闭对比时切 `--primary` 实底 + 双向 chevron svg icon, 文字 "开启对比 / 关闭对比".
-   - diff stats `+N / -N` 从 `theme-textdiff-stat-added/-removed` 实色块改 `.ds-diff-stat--added/--removed/--unchanged` 半透明 pill + 1px ring + mono font, 增加 "无差异" 中性态.
-   - 内容区 `.diff-text / .normal-text` (16px line-height 1.6 + 3rem 底 padding) 改 `.ds-diff-body` (12.5px mono + 1.65 行高 + 32px 底 padding).
-   - fragment 从 `theme-textdiff-added/-removed` (success-soft / danger-soft 满底色) 改 `.ds-diff-fragment--added/--removed` (color-mix 16% / 12% 半透明 + 1px 22-28% ring), removed 自带 1.5px 45% 红色删除线, 视觉密度从"满地红绿"改"语义清晰锚点".
-   - 移除内嵌响应式 `@media (max-width: 768px)` 控制行翻转 (现在 header 已经 flex-wrap, 不需要单独 query).
-
-6. **零功能改动**: ele-autotesting 服务端 / D1 / Container / API 路由 / 业务逻辑完全不变. 仅 UI 视觉与样式系统层抛光.
+- 模型 / 模板 / 数据三个管理弹窗视觉统一.
+- 文本对比视图重写, 字体更紧凑, 增删标记更清晰.
+- 数据导入区从虚线框升级为完整拖拽态机.
 
 # 2026.05.20 (lockstep v1.9.1)
 
-整体目标: 接 v1.9.0 工作台框架抬升, 进入"硌手细节抛光" Phase 1, 把 AutoTest 工作台高频接触点 (输出展示工具栏 / 测试数据源 / 历史抽屉 / 模态框关闭) 的视觉硬编码与不一致整体清理, 全部回归 design token 体系.
-
-1. `packages/ui/src/components/OutputDisplayCore.vue` 顶层工具栏重构:
-   - 左侧"渲染 / 原文 / 对比"按钮组从手工组装的 `px-3 py-1.5 + rounded-r-none border-r` 多按钮拼接改 `.ds-segmented` 段控件 (与 ele-autopilot 任务状态筛选 segmented 视觉契约一致), 移除 `:disabled` 阻断键盘 tab.
-   - 右侧 Excel / 复制 / 全屏 三个 icon button 从 `.theme-icon-button` (36px 高 + 1px border) 改 `.ds-icon-btn-sm` (32x32 无边框 hover surface-subtle), 与左侧 segmented 视觉密度对齐, 标题改"导出 Excel" / "复制内容" / "全屏查看" 显式动词.
-   - 整条工具栏背景从 `theme-toolbar-bg` 改 `.ds-output-toolbar` 渐变 (surface-elevated → 45% subtle), 与 `.ds-panel-head` 同款节奏; min-height 44 + 8/12 padding + flex-wrap.
-2. `packages/ui/src/components/OutputDisplayCore.vue` 推理区 (reasoning) 重构:
-   - 标题栏改 `<button>` 元素 + `.ds-reasoning-header` (brand-50 70% 软底, hover 切 brand-100 50%, 展开时 brand-700 文字), 自带 brand-tint 圆形 clock icon (强调"思考"语义).
-   - "生成中..." 文本改 `.ds-reasoning-streaming` + `.ds-reasoning-streaming-dot` (brand-500 7x7 圆点 + 1.2s pulse animation + uppercase 0.08em letter-spacing).
-   - chevron `.ds-reasoning-chevron` 默认 tertiary 灰, 展开旋转 180° 切 brand-600.
-   - 等待态文本 `text-gray-500 text-sm italic` 改 `.ds-reasoning-pending` 用 token 色.
-3. `packages/ui/src/components/OutputDisplayCore.vue` 空 / 加载占位:
-   - `loading-placeholder` / `empty-placeholder` 内 `text-gray-500` 改 `.ds-output-placeholder` (text-tertiary, min-height 120px), 加载态额外配 6x6 brand-500 圆点 + 1.4s scale pulse, 替代 "加载中..." 纯文本.
-4. `packages/ui/src/components/TestPanel.vue` 数据源 chip + 添加按钮重构:
-   - "已添加" tag 容器从 `bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200` (模板) / `bg-green-100 text-green-800` (上下文) 这种硬编码色改 `.ds-source-chip` + `--template` (brand-50 brand-700) / `--history` (success-soft, 22 163 74 文字色) 双变体, chip 内嵌 uppercase 类型前缀 "模板 / 上下文" + 右侧 18x18 圆形 × close 按钮, hover 切 8% 黑底 (深色 12% 白底).
-   - "添加数据源" 按钮从 `.theme-button-secondary + px-2 py-1` 硬覆盖改 `.ds-add-source-btn` 虚线 dashed pill (30px 高 999 圆角 elevated 底), hover 切 brand-50 软底 + 实线 brand-45% ring; 展开态 (`.is-open`) brand-500 实线 ring + brand-700 文字.
-   - 下拉菜单 `<div class="theme-dropdown">` 加 `.ds-add-source-menu` 重定位 (top 100% + 6px gap + 220px 宽), item 改 `.ds-add-source-menu-item` 9/12 padding + 13px primary, marker 圆点改 `.ds-add-source-menu-marker--template` (brand-500 + 3px brand-18% glow) / `--history` (success + 3px 22 163 74-18% glow), 替代 inline `bg-blue-500` / `bg-green-500`.
-   - 主标题 `生成结果` 从普通 h3 改 `.ds-panel-subtitle-strong` (uppercase 0.02em + brand 圆点 dot).
-5. `packages/ui/src/components/HistoryDrawer.vue` 历史抽屉视觉一致性:
-   - 头部 `<h2>上下文</h2>` 重写为 `.ds-drawer-title` + brand dot + 标题 + 条数 `.ds-chip-neutral`, 关闭 `×` 按钮 (硬编码灰文 + 大字号 ×) 改 `.ds-icon-btn-sm` + 4px svg cross 图标.
-   - 历史卡 header 内紫色 tag `bg-purple-100 text-purple-800 dark:bg-purple-900` 改 `.ds-chip-brand` (brand-50 brand-700 token), 时间从 14px secondary 改 11px secondary mono.
-   - 链接 `text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300` 改 `.ds-text-link` (brand 色 + 32% underline + offset 2px), 替代 5 处硬编码.
-   - "删除"整链按钮从 `text-xs theme-manager-button-secondary hover:text-red-500` 灰按钮改 `.ds-text-link-danger` (默认透明 tertiary 灰文, hover 切 danger-soft + danger 文字 + 1px 24% danger ring), 误触面缩小, 危险动作语义明确.
-   - 版本标题行从 `p-3 + hover:bg-gray-100/5` 改 `.ds-history-version-row` (brand-50 60% 软底 hover, 10/14 padding), V 号从 `text-sm font-medium` 文字改 `.ds-history-version-tag` (brand-50 brand-700 22px mono 方块 min-w 36px).
-   - "使用 / 展开 / 收起 / 使用此版本" 按钮从 `text-xs theme-manager-button-secondary` 多处复用改 `.ds-history-pill-btn` + `--primary` 变体 (26px 高 999 圆角, 主操作切 brand-600 实底 + on-brand 文字).
-   - 空态从 emoji `📜` + 单行灰文 改 `.ds-history-empty` 三层结构: brand-50 圆形 56px container 包 brand-600 svg clock-history icon + secondary 标题 + tertiary hint "完成一次提示词优化后, 记录会自动出现在这里".
-6. `packages/ui/src/components/Modal.vue` 关闭按钮 stone/slate 硬编码颜色改 `.ds-icon-btn-sm`, 4 处深浅色 hover 状态 (`text-stone-500 hover:bg-stone-200/60 dark:text-slate-400 dark:hover:bg-slate-700/60`) 全部回归 design token (4 个属性 → 0 个).
-7. `packages/ui/src/styles/theme.css` 新增 10+ 组共享 utility, 全部使用 `--ds-*` token, 与 ele-autopilot `globals.css` 视觉契约对仗:
-   - 控件: `.ds-segmented` + `.ds-segmented-btn` + `.ds-segmented-btn--active` (复用 ele-autopilot 同名实现).
-   - 输出区: `.ds-output-toolbar` (面板头同款渐变) + `.ds-output-placeholder` + `.ds-output-placeholder-dot`.
-   - 推理区: `.ds-reasoning` + `-header` + `-title` + `-icon` + `-meta` + `-streaming` + `-streaming-dot` + `-chevron` + `-pending` 子系统.
-   - 数据源 chip: `.ds-source-chip` + `--template` + `--history` + `-type` + `-name` + `-close`.
-   - 添加按钮: `.ds-add-source-btn` + `.is-open` 态 + `-icon` + `-menu` + `-menu-item` + `-menu-marker` + `--template` / `--history` + `-menu-label`.
-   - 排版辅助: `.ds-panel-subtitle-strong` (uppercase 节略小标题).
-   - 文本链接: `.ds-text-link` (brand underline) + `.ds-text-link-danger` (默认透明灰文, hover danger-soft).
-   - 抽屉 / 历史: `.ds-drawer-title` (15px primary + brand dot) + `.ds-history-version-row` + `.ds-history-version-tag` + `.ds-history-pill-btn` + `--primary` + `.ds-history-empty` + `-icon` + `-title` + `-hint`.
-
-8. **零 API 改动**: 服务端 Hono / D1 / Container / 路由 / Static Assets 行为完全不变. 仅 web 端 UI 视觉与交互层抛光.
+- 输出区工具栏 / 数据源标签 / 历史抽屉视觉统一, 不再使用硬编码颜色.
+- 历史抽屉的"删除"按钮改为低权重危险动作, 减少误触.
 
 # 2026.05.20 (lockstep v1.9.0)
 
-1. lockstep 同步至 v1.9.0, 与 gateway / ele-autopilot / ele-autopilot-local 一同发布. 本端 AutoTest 工作台本轮**有实质 UX 升级**, 同步 ele-autopilot 的"工作台拔升"动作, 让两个工作台体感统一到"成熟科技公司管理后台" 层级.
-
-2. `packages/ui/src/styles/theme.css` 新增 7 组工作台级共享 utility class (与 ele-autopilot 同名 / 同语义):
-   - `.ds-kbd`: macOS 风格键盘按键徽 (mono + inset 双层阴影底边 + 1px 描边).
-   - `.ds-panel` + `.ds-panel-head` + `.ds-panel-head-left` + `.ds-panel-head-right` + `.ds-panel-title` + `.ds-panel-title-dot` + `.ds-panel-subtitle` + `.ds-panel-body` + `.ds-panel-body--flush`: 双段 section 结构, head 自带 gradient 底色 + 1px soft 分隔, title 自带 brand-500 圆点 + 18% 软光晕, 与 ele-autopilot `.ds-section*` 视觉契约一致.
-   - `.ds-toolbar-divider`: 18px vertical 1px 分隔条, 用于 toolbar 视觉分组.
-   - `.ds-eyebrow`: 标题上方 11px uppercase / 0.04em letter-spacing brand-50 软底 pill (用于强调 section 类别).
-   - `.ds-icon-btn-sm`: 32x32 头部辅助 icon button (区别于 toolbar `.theme-icon-button` 36x?), hover surface-subtle + active brand-50 + 1px ring.
-   - `.ds-workspace-row`: 工作区横向并排容器, lg 下 row + 16px gap, 默认 column + 12px gap (代替 MainLayout main `flex flex-col lg:flex-row` 手写).
-
-3. `packages/ui/src/components/MainLayout.vue` 顶栏重构:
-   - brand mark + 标题 + sub 改为 `<a href="/" class="ds-brand-link">` link 形态 (text-decoration: none + hover surface-subtle + focus-visible 4px brand ring), 与 ele-autopilot AppHeader brand link 行为一致.
-   - 旁追加 `AutoTest` env-pill (uppercase + 0.08em letter-spacing + brand-500 1.5px 圆点 + surface-subtle + 1px ring), 与 ele-autopilot AppHeader `AutoPilot` env-pill 对仗, 明确多工作台身份. `Studio 就绪` status-pill 显示阈值从 md (768px) 提到 lg (1024px), 避免中等屏挤压.
-   - main flex 改用 `.ds-workspace-row` token 类, padding 从 `px-2 py-2 sm:px-4 sm:py-4` 改 `px-3 py-3 sm:px-4 sm:py-4` (移动端不再过窄).
-
-4. `packages/web/src/App.vue` 顶栏 actions slot 重排, 7 个 button 从平铺改两组:
-   - 工作流主操作组: `历史` / `模板` / `模型` (按工作流序: 加载历史 → 选模板 → 选模型). 文案从"上下文 / 功能提示词 / 模型管理"统一缩短到 2 字, 减少视觉噪声.
-   - 设置组 (`ds-vrule` 分隔): `数据` / `主题切换` / `首页` (返回 gateway). 文案"数据管理 → 数据".
-   - 改前: `首页 / 主题 | 功能提示词 / 上下文 / 模型管理 / 数据管理` 6 个混排; 改后两组语义清晰, 主操作组在前 + 设置组在后.
-
-5. `packages/ui/src/components/ContentCard.vue` 移除内层 `p-3 sm:p-4 space-y-3 sm:space-y-4`, 让内嵌 InputPanel + PromptPanel 各自走 panel-head + body 自管 padding (替代原本"白卡 + 内边距 + 子组件无 head" 的扁平节奏).
-
-6. `packages/ui/src/components/InputPanel.vue` 完全重写:
-   - 顶部加 `.ds-panel-head`: 左侧 brand-dot 标题 + `OptimizationModeSelector` 段控件; 右侧全屏 icon-btn-sm (替代原本主按钮组里的全屏按钮).
-   - body 加 `.ds-input-body` (14/16 padding + 10px gap): context 模式专属"上下文别名 + PromptTypeSelector"独占一行 (`min-w-150 + flex-1`), 错误态加 `.ds-input-error` (danger border + 3px ring) 替代原本 inline `border-red-400`.
-   - 控制行重排为 `.ds-input-controls` (flex-end gap-10): 模型 select 字段 + 模板 select 字段 (basis 各占一份) + 控制按钮 slot + 提交按钮.
-   - 提交按钮加 right arrow icon (`m12 5 7 7-7 7` chevron), 与"开始优化"语义对齐, 与 hero CTA 同款视觉.
-
-7. `packages/ui/src/components/PromptPanel.vue`:
-   - 把组件级 scoped `.ds-panel-head` / `.ds-panel-head-left` / `.ds-panel-head-right` / `.ds-panel-title` / `.ds-panel-title-dot` 5 个类删除, 直接使用全局 theme.css 等价 class, 与 InputPanel / TestPanel 三组面板视觉契约一致.
-   - 主标题文案 "优化后" 改 "优化结果", 强化"结果区" 语义.
-   - "继续优化" 按钮加 title "基于当前结果迭代下一版".
-   - body 加 `.ds-output-body` (14/16 padding) 与 InputPanel `.ds-input-body` 节奏一致.
-   - 移动端 `.ds-panel-head` 改 flex-direction column 等响应式样式由全局类处理.
-
-8. `packages/ui/src/components/TestPanel.vue`:
-   - 顶部从 `<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><h3>内容生成</h3><模型+按钮></div>` 改 `.ds-panel-head` 段, 左侧 brand-dot 标题 + 13px subtitle "将左侧优化结果应用到具体提示, 检查输出", 右侧 ModelSelect + 开始生成按钮 (带右箭头 icon).
-   - body 加 `.ds-test-body` (14/16 padding) 与 InputPanel / PromptPanel 节奏一致.
-   - 子标题"生成结果" 从 lg 字号改 13px + 1.5px tertiary 圆点前缀, 区分主面板标题与子区域标题层级.
-
-9. 视觉一致性总目标达成: ele-autopilot AppHeader + page header + section + KPI strip + segmented filter 与 ele-autotesting MainLayout + panel-head + body 同一套节奏、同一套圆点 brand dot、同一套 env-pill, 两个工作台第一眼像一个产品的两面.
-
-
+- AutoTest 工作台 UX 整体提级, 顶栏增加 "Studio 就绪" 状态徽章.
+- 输入 / 提示词 / 测试三块面板视觉统一, 主操作按钮带方向指示.
+- 顶栏 actions 重排为"历史 / 模板 / 模型 | 数据 / 主题 / 首页"两组.
 
 # 2026.05.20 (lockstep v1.8.6)
 
-1. lockstep 同步至 v1.8.6, 与 gateway / ele-autopilot / ele-autopilot-local 一同发布. AutoTest 前端本轮跟随上游持续扩充 utility 类系统, 视觉契约本端 (`packages/ui/src/styles/theme.css`) 同步引入 3 组等价 class.
+- 跟随版本同步发布.
 
-2. `packages/ui/src/styles/theme.css` 增量同步与 ele-autopilot 同名 / 同语义 utility 类 (跨产品视觉契约):
-   - `.ds-skeleton` + `@keyframes ds-skeleton-shimmer`: 通用 shimmer 骨架条 (200% background gradient + 1.6s ease 循环), 替代未来 boot skeleton inline `<style>` 注入.
-   - `.ds-num-square` + `ds-num-square-{neutral / brand}` 2 变体: 24x24 圆角方块, mono 11px 等宽数字索引块.
-   - `.ds-banner` + `ds-banner-{info / success / warning / danger}` 4 变体: 12px 字号行内提示横幅 (inset 1px ring + 软底).
-   - `.ds-dnd-item` + `.ds-dnd-item-over` + `.ds-dnd-item-dragging` 拖拽卡片 3 态: default / over (brand-500 边 + 4px brand-soft ring) / dragging (0.6 opacity + scale(0.99)).
+# 2026.05.20 (lockstep v1.8.5)
 
-3. AutoTest 前端无业务改动; 等价 utility 已就绪, 任何未来涉及序号 / 提示 / 拖拽场景都可直接复用, 与 ele-autopilot 视觉完全一致.
+- 跟随版本同步发布.
 
+# 2026.05.20 (lockstep v1.8.4)
 
+- 顶栏品牌方块、状态徽章、分隔线视觉统一, 与 AutoPilot 一致.
 
-1. lockstep 同步至 v1.8.5, 与 gateway / ele-autopilot / ele-autopilot-local 一同发布; AutoTest 前端本轮无业务改动.
+# 2026.05.20 (lockstep v1.8.3)
 
-2. 上游 ele-autopilot 主要内容: globals.css 提取通用 `.ds-skeleton` shimmer 骨架 + `.ds-job-card / .ds-job-card-selected / .ds-job-card-accent` 执行历史卡片完整状态机, ConsoleBootSkeleton / PreviewBootSkeleton 删除组件内 inline `<style>` 注入与重复 keyframes / class 定义, preview workspace 执行历史 button 从 22 行 inline 三元判断收敛到 className 组合. 视觉契约本端 (`packages/ui/src/styles/theme.css`) 已在 v1.8.4 同步过等价 utility 类.
+- 全工程动画时长 / 缓动统一.
 
+# 2026.05.20 (lockstep v1.8.2)
 
-
-1. lockstep 同步至 v1.8.4, 与 gateway / ele-autopilot / ele-autopilot-local 一同发布. AutoTest 工作台首次引入与 ele-autopilot 等价的共享 utility 类系统.
-
-2. `packages/ui/src/styles/theme.css` 新增 4 组复用 utility class (与 ele-autopilot `globals.css` 同名 / 同语义, 跨产品视觉契约):
-   - `.ds-status-pill` + 5 variant (`success` / `info` / `danger` / `warning` / `neutral`): 12px 字号胶囊式状态徽章, `4px 10px` padding + 9999px 圆角 + inset 1px ring 边框, 动效 token 化.
-   - `.ds-chip` + 6 variant (`neutral` / `brand` / `success` / `danger` / `info` / `warning`): 11px 数字 / 标签胶囊, 启用 `tnum` 等宽数字.
-   - `.ds-vrule` (20px 垂直 1px 分隔条) + `.ds-divider-h` (横向 1px).
-   - `.ds-brand-mark`: 通用品牌方块 (indigo 渐变 + 0.35 透明品牌阴影 + 1px inner white ring).
-   - `.ds-status-dot-pulse`: 8px 状态点 + 2.4s 脉冲扩散 (`::after` scale + opacity), 替代静态 `.ds-status-dot`.
-
-3. `packages/ui/src/components/MainLayout.vue` 顶栏内联样式全部抽出:
-   - brand 方块从 inline `linear-gradient(135deg, ...) + 0.32 透明品牌阴影` 收敛到 `.ds-brand-mark` class.
-   - "Studio 就绪" 徽章从 inline `rgba(22, 163, 74, 0.12) bg + inset 1px ring` + 静态 `.ds-status-dot` 收敛到 `.ds-status-pill ds-status-pill-success` + `.ds-status-dot-pulse` (2.4s 脉冲扩散), 与 ele-autopilot AppHeader "本地 Agent · 已连接" 徽章视觉完全对称.
-
-4. `packages/web/src/App.vue` 顶栏 actions slot 6 个 button 之间加 `.ds-vrule` 分组隔断:
-   - 组 1 (导航 / 外观): 返回首页, 主题切换.
-   - 组 2 (工作流): 功能提示词, 上下文, 模型管理, 数据管理.
-   - 替代原本 6 个 ActionButton 一字排开缺视觉层级的草稿感.
-
-
-
-1. lockstep 同步至 v1.8.3, 与 gateway / ele-autopilot / ele-autopilot-local 一同发布.
-
-2. `packages/ui/src/styles/theme.css` 引入 motion token 子系统:
-   - `--ds-motion-fast` (0.14s) / `--ds-motion-base` (0.18s) / `--ds-motion-slow` (0.28s).
-   - `--ds-ease-standard` (0.4, 0, 0.2, 1) / `--ds-ease-decelerate` / `--ds-ease-accelerate` / `--ds-ease-spring` (0.34, 1.56, 0.64, 1).
-   - 与 gateway `app.css` / ele-autopilot `globals.css` 同名 token 完全对齐, 三产品 transition 时长 / 缓动统一.
-   - 后续 AutoTest 工作台所有自定义 transition 应消费这些 token, 不再硬编码 0.15s / 0.18s / 0.22s / 0.25s 等散值.
-
-3. AutoTest 前端无业务改动; gateway 完成品牌色从 `#0969da` 到 indigo `#4f46e5` 的迁移后, 用户首屏 landing 与本工作台视觉语言完整闭环.
-
-
-
-1. AutoTest 前端工作台 UX 提级, 与 v1.8.1 autopilot 的提级形成对称.
-
-2. `packages/web/src/App.vue` 初始化状态从单个 `<spinner>` + "正在初始化..." 文案升级为完整布局骨架 (`.boot-skeleton`):
-   - 60px 顶栏 (品牌 mark + 文字占位 + 4 个 action pill 占位).
-   - 双卡片 grid 主体 (输入卡 head + textarea + footer 3 元素占位 / 提示词卡 head + textarea + 实时 status 行).
-   - status 行带 `.boot-dot` brand 色脉冲, 文案 "正在加载 AutoTest 工作台…", 替代单点旋转的草稿感.
-   - 全部用 `--ds-*` token 渲染 (surface / border / shadow / brand), light / dark 自动适配.
-
-3. `packages/ui/src/components/OptimizationModeSelector.vue` 完整重写: 从 `px-2.5 py-0.5` 简易双 button 切换器 (text-base + rounded + 灰底分割线) 升级到 ds-mode-segment 段控件:
-   - 外层 ds-mode-segment 容器: 4px padding + 10px radius + surface subtle bg + border soft, 形成 segmented 容器.
-   - 每段 44 px 高 (移动 40 px), 14 px / 8 px padding, 8 px radius, 选中态 elevated 白底 + 1px brand-soft ring + xs shadow + brand-700 文字.
-   - 每段含 icon (20 px Lucide-style stroke SVG, 上下文模式用文档 + 表头 icon, 内容生成模式用对话 icon, 未选中 tertiary 色 / 选中 brand-600).
-   - 文本两行 (label 13px 600 + hint 11px 500, hint 在 ≤ 640 px 隐藏).
-   - 添加 ARIA role / tablist / tab + aria-selected; focus-visible 4px brand ring; click 微 scale 0.98 反馈.
-
-4. `packages/ui/src/components/PromptPanel.vue` 标题与版本切换区重写:
-   - 新增 `.ds-panel-title` 15 px primary + 6 px brand dot (3 px brand-soft ring) 作 indicator, 不再用大号 lg 文字孤立.
-   - 版本切换从原一行裸 button (text-xs px-2 py-1) 升级到 `.ds-version-pills` 段控件: 3 px padding + 8 px radius + surface subtle 外层, 内含「版本」label (11 px uppercase tertiary) + 每版 V{n} pill (mono 11 px, 选中态 elevated 白底 + 1px brand-soft ring + brand-700, hover 浮起) + 「共 N 版」计数尾标.
-   - 「继续优化」按钮从 `.theme-button-secondary` 升级到独立 `.ds-iterate-btn` (icon 14 px refresh + 文字, hover brand-50 软底 + brand-700 文字 + brand-soft border; 加载态切 spinner + "优化中…" 文案 + brand-50 持久软底).
-
-5. `packages/ui/src/components/MainLayout.vue` 顶栏新增「Studio 就绪」状态徽章 (md 以上显示, ≤ md 隐藏): success soft 软底 + inset success ring + 6 px success dot + "Studio 就绪" 文字 + 2.4 s 脉冲扩散动画 (使用 `color-mix(in srgb, currentColor)` 让脉冲色与文字色自动同色, light / dark 自动同步), 与 autopilot 的 "本地 Agent · 已连接" 徽章一致.
-
-6. 视觉一致性: 所有新组件直接读 `--ds-brand-*` / `--ds-surface-*` / `--ds-text-*` / `--ds-shadow-*` / `--ds-radius-*` / `--ds-focus-ring` CSS variables, 0 硬编码颜色 / 阴影, dark 模式经 `:root.dark` 自动适配; 通过 `@media (max-width: 640px)` 在移动端切单列 / 全宽 / 隐藏 hint, 保持触屏可点性.
-
-7. D1 schema / containers / Hono Worker / `/stream-proxy` / `/http-proxy` 路径前缀 / V1 device:shared-owner-v1 身份模型 / `useAppInitializer(apiBase)` / 工作台业务流 (优化 / 迭代 / 测试 / 模板管理 / 历史 / 数据管理) 全部不变.
+- 首屏改为完整布局骨架, 替代单 spinner.
+- 优化模式切换器升级为段控件, 含 icon + 主副标签.
+- 版本切换区改为 V 标签段控件, 替代裸文字 button.
 
 # 2026.05.20 (lockstep v1.8.1)
 
-1. lockstep 同步, 与上游 ele-autopilot v1.8.1 一同发布; 本项目无业务改动.
-
-2. 上游 ele-autopilot 后台工作台 UX 提级:
-   - 新增 `MetricTile` / `EmptyState` / `TableSkeleton` 三个跨页面共享组件.
-   - 任务列表顶部新增 5 列 KPI strip (任务数 / 累计执行 / 成功率 / 进行中 / 失败累计), 跨当前路径下任务聚合统计, 成功率按 80/50 阈值切 tone.
-   - 执行概要从 `StatBlock` 简易块升级 5 个 `MetricTile` + h-1.5 渐变进度条 (含 failed 时切 success → danger 双段渐变), Descriptions 下沉到指标块之下.
-   - 执行历史卡片左侧新增 3px 状态色 vertical bar, 时间改相对时间, 第二行加 Calendar + Clock 双 chip 显示开始时间 / 耗时.
-   - 首屏挂载前从单 `<Spin>` 改完整布局骨架 (admin + preview 两条入口都改).
-   - Sider 空 tree / 无 job 选中空态全部从 emoji + 单行文字升级到 `EmptyState` 4 段结构.
-
-3. autotesting 前端 (`packages/{core,ui,server,web}` / D1 schema / Hono Worker / `/stream-proxy` / `/http-proxy` 路径前缀 / V1 device:shared-owner-v1 身份模型 / containers/markitdown) 全部不变.
+- 跟随版本同步发布.
 
 # 2026.05.20 (lockstep v1.8.0)
 
-1. lockstep 同步, 与上游 ele-autopilot v1.8.1 一同发布; 本项目无业务改动.
-
-2. 上游 ele-autopilot 后台工作台 UX 提级:
-   - 新增 `MetricTile` / `EmptyState` / `TableSkeleton` 三个跨页面共享组件.
-   - 任务列表顶部新增 5 列 KPI strip (任务数 / 累计执行 / 成功率 / 进行中 / 失败累计), 跨当前路径下任务聚合统计, 成功率按 80/50 阈值切 tone.
-   - 执行概要从 `StatBlock` 简易块升级 5 个 `MetricTile` + h-1.5 渐变进度条 (含 failed 时切 success → danger 双段渐变), Descriptions 下沉到指标块之下.
-   - 执行历史卡片左侧新增 3px 状态色 vertical bar, 时间改相对时间, 第二行加 Calendar + Clock 双 chip 显示开始时间 / 耗时.
-   - 首屏挂载前从单 `<Spin>` 改完整布局骨架 (admin + preview 两条入口都改).
-   - Sider 空 tree / 无 job 选中空态全部从 emoji + 单行文字升级到 `EmptyState` 4 段结构.
-
-3. autotesting 前端 (`packages/{core,ui,server,web}` / D1 schema / Hono Worker / `/stream-proxy` / `/http-proxy` 路径前缀 / V1 device:shared-owner-v1 身份模型 / containers/markitdown) 全部不变.
-
-# 2026.05.20 (lockstep v1.8.0)
-
-1. AutoTest 前端工作台 UI 整体重塑, 对齐 v1.7.0 上游 ele-autopilot 的设计语言, 形成统一品牌 ("成熟科技公司管理后台"风格).
-
-2. `packages/ui/src/styles/theme.css` 完整重写 (988 → ~640 行, 行数 -35%):
-   - 引入 CSS variables design tokens (`--ds-brand-50..800` indigo, `--ds-surface-canvas/elevated/subtle/muted`, `--ds-text-primary/secondary/tertiary/on-brand`, `--ds-success/warning/danger/info` + soft 变体, `--ds-border-soft/default/strong`, `--ds-radius-xs/sm/md/lg/xl`, `--ds-shadow-xs/sm/md/lg`, `--ds-focus-ring` 4px, `--ds-font-sans` Inter 优先 + 中文 fallback 链, `--ds-font-mono` JetBrains Mono); dark mode 用 `:root.dark` 覆盖 CSS variables 自动生效, 无需重复声明每个类.
-   - 全局字体切换到 Inter; `font-feature-settings: cv02/cv03/cv04/cv11/ss01` + antialiased.
-   - `body::before` 加 subtle radial gradient (indigo + sky 双源, light/dark 自动适配), 形成产品级 ambient 背景.
-   - 自定义滚动条 10px 圆角带 padding-box, hover 加深.
-   - 全部 `.theme-*` 类名保留 (~70 个), 25+ 个 Vue 组件零改动即继承新视觉. 主色从 stone (灰棕) → indigo, 焦点环统一 4px ring, 圆角 6→8/12px 三档, 阴影柔和分级.
-   - 按钮统一规范: `.theme-button` 基础 (36px height + 8px gap + 6px radius), `.theme-button-primary` indigo 实色, `.theme-button-secondary` 描边样式, `.theme-button-on/off` indigo soft / surface soft, `.theme-icon-button` (header 用) 36px + brand hover, 全部带 `:focus-visible` 4px focus ring.
-   - Dropdown / Modal / History / Manager / Markdown / TextDiff / Toolbar 全套主题块 token 化, 内边距 / 圆角 / 阴影 / 边框对齐 design system.
-   - Markdown 表格加 row hover indigo soft + 单元格 padding 8/12px; blockquote 改 indigo brand-50 + indigo-400 左边线.
-
-3. `packages/ui/src/components/MainLayout.vue` 重写 header: 60px 高 + sticky + `backdrop-filter: blur(12px) saturate(180%)` + 半透明白底; 左侧 brand mark 渐变 indigo 9x9 圆角容器 + logo + 产品名 `QA AutoPilot · AutoTest` + 副标题 `Prompt Engineering Studio`; main 容器收紧到 px-4 py-4, gap 2/4 响应式.
-
-4. `packages/ui/src/components/ActionButton.vue` 加 `<slot name="icon">` 支持 SVG icon, 优先 slot > emoji icon prop (向后兼容). 文字字号 13px font-medium.
-
-5. `packages/web/src/App.vue`: 五个 header ActionButton 全部从 emoji (🏠 📝 📜 ⚙️ 💾) 改 Lucide-style stroke SVG icon (Home / FileText / RotateCcw clockwise / Settings gear / Database 圆柱). 初始加载 spinner 改 indigo brand 描边 + 0.8s linear 单边旋转 (替代原 4px 灰色边 + 1s ease infinite + 紫色单边).
-
-6. `packages/ui/src/components/ThemeToggleUI.vue`: emoji 太阳/月亮 → Lucide-style SVG sun (amber-500) / moon (indigo brand); 文字精修 "日间模式" / "夜间模式" 智能切换.
-
-7. `packages/ui/src/components/Modal.vue`: 加 `size` prop (sm/md/lg/xl 对应 max-w-md/lg/2xl/4xl), 关闭按钮改 32x32 圆角 hover bg, 含 dark mode 适配; header padding 18/14, footer padding 14/18 + gap 10px.
-
-8. `packages/ui/src/components/Toast.vue`: 4 种 type (success/error/warning/info) 改 token 化软背景 + 1px 同色边框 + icon SVG; dark mode 通过 `:root.dark` 覆盖. 关闭按钮改 SVG x.
-
-9. `packages/web/index.html`: theme-color light `#0969da → #4f46e5` indigo; dark `#0d1117 → #0b1020` 对齐 dark token; mask-icon color 同步.
-
-10. 版本号 lockstep 同步 1.7.0 → 1.8.0. autotesting SPA `base=/autotest/` 经 gateway `/autotest/*` strip 转发的契约不变, D1 schema / containers / Hono Worker / `/stream-proxy` / `/http-proxy` 路径前缀 / V1 device:shared-owner-v1 身份模型不变.
+- AutoTest 前端整体重塑: 设计语言、字体、主色全部与 AutoPilot 对齐.
+- 顶栏 ActionButton 全部从 emoji 改 SVG 图标.
 
 # 2026.05.20 (lockstep v1.7.0)
 
-1. lockstep 同步, 与上游 ele-autopilot v1.7.0 一同发布; 本项目无业务改动. 上游 ele-autopilot 后台工作台 UI 整体重塑: 新增 `app/admin/_components/app-header.tsx` (品牌栏 + Agent 状态徽章 + 设置 Popover) + `app/admin/_components/status-pill.tsx` (统一 JobStatus 徽章) + `app/admin/preview/_components/preview-workspace.tsx` (preview 页主工作区抽离); 重写 `app/globals.css` 引入 CSS variables design tokens (indigo 主色 / Inter 字体 / soft 阴影 / 8/12px 圆角 / 软滚动条) + `@layer antd` 精修; 重写 `app/admin/_theme/antd-theme.ts` 主色 `#1677ff → #4f46e5`, 圆角 6→8, 全组件 token 表精细化; 改造 admin-task-explorer / folder-sider (移除底部 Agent Popover, 迁到 header) / task-content (breadcrumb + h1 + 卡片化表格 + StatChip) / task-modal (宽度 + autoSize) / selected-tasks-drawer (卡片化拖拽项) / preview 页全套. `meta theme-color` `#0969da → #4f46e5`.
-
-2. 版本号 lockstep 同步 1.6.9 → 1.7.0. autotesting SPA `base=/autotest/` 经 gateway `/autotest/*` strip 转发的契约不变, D1 schema / containers / Hono Worker / `/stream-proxy` / `/http-proxy` 路径前缀 / V1 device:shared-owner-v1 身份模型不变.
+- 跟随版本同步发布.
 
 # 2026.05.19 (lockstep v1.6.9)
 
-1. 回滚 `.github/workflows/autotesting.yml` 全部 cache 优化改动, 还原到 v1.5.2 (commit b213aa8) 干净状态 (66 行). 删除范围:
-   - v1.6.3 引入: `docker/setup-buildx-action@v3` 的 `with: install: true` 选项; `Restore buildx layer cache` step (actions/cache@v4, key `buildx-markitdown-${hashFiles}`, restore-keys 兜底); `Warm buildkit cache` step (`docker buildx build --cache-from type=local --load`); `Persist buildx layer cache` step (`if: always()`, `docker buildx build --cache-to type=local,mode=max --output type=cacheonly`).
-   - v1.6.6 引入: `on.push.branches: [main]` trigger; 各 step 的 `if: startsWith(github.ref, 'refs/tags/')` condition; Persist step 加的 `--cache-from`.
-   - v1.6.8 引入: `actions/checkout@v5` 的 `fetch-depth: 0`; `Detect markitdown changes since last release tag` step (git diff prev_tag..HEAD); `Cache last-deployed markitdown image URI` step (actions/cache@v4 + URI file); `Patch wrangler.jsonc to reuse cached image` step (jq patch `containers[0].image` 为 registry URI); `Capture deployed image URI (rebuild path only)` step (从 deploy log grep tag + 拼 URI + 写 cache file); 各步骤的 `if: steps.patch.outputs.patched != 'true'` condition.
-
-2. 还原后 autotesting workflow 流程简化为: `actions/checkout@v5` → `Verify tag matches package.json version` → `pnpm/action-setup@v4` → `actions/setup-node@v4` → `Install` (pnpm install --frozen-lockfile) → `Build (core + ui + web)` (pnpm run build:cf) → `docker/setup-buildx-action@v3` (默认无 install) → `Apply D1 migrations (remote)` → `Deploy Worker + Container` (wrangler deploy). 每次 release tag push 完整 cold build markitdown container + push image, 不复用任何 layer cache, 不跳过任何步骤. autotesting tag run 耗时回到 cache 优化前的 baseline (~130-200 s 区间, 取决于 Cloudflare Containers registry layer push 时长波动).
-
-3. cache 方案被用户明确叫停的原因汇总 (供未来参考): (a) v1.6.6 buildx layer cache 加 main scope fallback 后, v1.6.6 vs 历史 cache miss baseline 节省仅 ~30-50 s, 在 130-200 s 自然波动区间内难以感知 — 我前期对比口径不公平 (拿 v1.6.5 的 180 s 慢路径对比 v1.6.6 的 133 s 快路径, 实际历史 v1.6.0 116 s / v1.6.3 第二次 125 s 都比 v1.6.6 还快). (b) v1.6.8 image URI cache 方案设计上有 GitHub Actions cache ref scope 隔离的根本缺陷: cache 写到 tag scope 后, 下一个 tag 的 workflow 看不到 (只能 fallback 读 default branch main scope, 但 main 上 workflow 不 deploy 也不 capture URI). 要绕过得引入 R2 / git auto commit 持久化, 复杂度跳级 + 还需要 1-2 次发版验证, ROI 已经倒挂. (c) v1.6.7 / v1.6.8 / v1.6.9 三次 lockstep 占位发版用于实验 cache 路径, 浪费版本号资源, 开发体验差.
-
-4. 版本号 lockstep 同步 1.6.8 → 1.6.9. SPA `base=/autotest/` 经 gateway `/autotest/*` strip 转发的契约不变.
+- 部署链路回滚到稳定基线.
 
 # 2026.05.19 (lockstep v1.6.8)
 
-1. 修复 v1.6.7 引入的 `Capture deployed image URI (rebuild path only)` step condition bug: 原版 `if: startsWith(github.ref, 'refs/tags/') && steps.markitdown.outputs.changed != 'false'`, markitdown/ 未改 (changed=false) 但 image URI cache 首次出现该 hash key (miss) 走 rebuild path 时, 此 step 被错误 skipped, `/tmp/markitdown-image-uri.txt` 从未写入, actions/cache@v4 post-step 报 `Path Validation Error: Path(s) specified in the action for caching do(es) not exist, hence no cache is being saved.` (warning, 不 fail workflow). 因此 v1.6.7 autotesting tag run 表面 success 但实际 URI cache 是空的, 下次发版照样 cache miss + rebuild path. 修正为 `if: steps.patch.outputs.patched != 'true'`, 与 setup-buildx / Restore / Warm / Persist 四步对齐: 凡是走 rebuild path (patch step 未跑成功 = 没走 reuse), 就 capture URI 给下次复用. 与 markitdown changed 状态解耦.
-
-2. 同时去掉 v1.6.6 引入的 `on.push.branches: [main]` trigger 及其相关 condition (Verify tag / Detect / D1 migrations / Deploy 几步原本要 `if: startsWith(github.ref, 'refs/tags/')` 防 main run 误触, 现 main trigger 没了, 这些 if 全删掉简化 yaml). 设计回顾: main trigger 当初是为了把 buildx layer cache 写到 `refs/heads/main` scope 给 tag push 走 fallback restore (实测 v1.6.6 主键 hit / v1.6.7 主键 hit 都通过这条路径), 但 image URI cache 上线后, markitdown 未改时 wrangler 直接复用 image, 整段 docker 步骤 (setup-buildx / Restore / Warm / Persist) 都 skip, buildx layer cache 完全不参与; 仅在 markitdown 真改 + rebuild path 时 buildx layer cache 才有边际价值 (从其他 ref scope 部分 fallback), 而 main trigger 每次 push main 后台跑 ~80 s 的成本远高于这点边际收益, 删除.
-
-3. 版本号 lockstep 同步 1.6.7 → 1.6.8. v1.6.8 autotesting tag run 期望: markitdown/ 未改 (changed=false), image URI cache key `markitdown-image-uri-c4f421443f...` 在 `refs/heads/refs/tags/v1.6.8` scope 首次出现 (miss, restore-keys 也无, 因为 v1.6.7 那次没写成功), patch step skip (cache-hit=false) → 走 rebuild path → setup-buildx / Restore / Warm / Deploy (cold push image) / Capture URI (修正后正常 grep tag 写 file) / Persist 全跑, 总耗时仍 ~130-160 s, 与 v1.6.6 / v1.6.7 持平. **关键差异**: 这次 actions/cache@v4 post-step 找到 `/tmp/markitdown-image-uri.txt` 实际存在并上传到 cache scope. v1.6.9 起 lockstep 占位发版 (markitdown 未改) image URI cache 主键 hit, jq patch wrangler.jsonc 为 URI, wrangler deploy 跳过 docker build + image push (Building image step skip, push image step skip), autotesting tag run 预期 ~30-50 s 完成. SPA `base=/autotest/` 经 gateway `/autotest/*` strip 转发的契约不变.
+- 跟随版本同步发布.
 
 # 2026.05.19 (lockstep v1.6.7)
 
-1. 版本号 lockstep 同步 1.6.6 → 1.6.7. 触发 `4df99e9` (`fix(ci/autotesting): skip container build/push when markitdown unchanged`) 的 rebuild path 跑一次, seed 新的 markitdown image URI cache. 改动复述: workflow `actions/checkout@v5` 加 `fetch-depth: 0` 拉 full history + tags; 新 step `Detect markitdown changes since last release tag` 用 `git diff --name-only "$prev..HEAD" -- ele-autotesting/containers/markitdown/` 判断 changed; 新 step `Cache last-deployed markitdown image URI` 用 actions/cache@v4 (key 含 `hashFiles('ele-autotesting/containers/markitdown/**')`, path `/tmp/markitdown-image-uri.txt`); 新 step `Patch wrangler.jsonc to reuse cached image` 仅 changed=false + cache hit 时 jq 把 `packages/server/wrangler.jsonc` 的 `containers[0].image` 从 Dockerfile 路径换成 URI (wrangler config-schema: "The path to a Dockerfile, or an image URI for the Cloudflare registry."); `setup-buildx` / `Restore buildx layer cache` / `Warm buildkit cache` / `Persist buildx layer cache` 四步加 `if: steps.patch.outputs.patched != 'true'` 在 reuse path 整段跳过; 新 step `Capture deployed image URI (rebuild path only)` 从 `/tmp/deploy.log` grep `Building image .+:<tag>` 解析 tag, 用 `${{ secrets.CLOUDFLARE_ACCOUNT_ID }}` 拼完整 URI 写入 cache file (deploy log 里 account id 被 Actions 自动 mask 成 `***`, tag 不被 mask).
-
-2. 本次 v1.6.7 markitdown/ 内容未改, 但 image URI cache key 是首次出现 (上次 deploy 是 v1.6.6 时此 cache 还不存在), Restore 步骤 cache miss → 走 rebuild path: 正常 setup-buildx + Restore buildx layer cache (fallback hit main scope) + Warm buildkit cache (`#7 #8 CACHED`) + wrangler deploy 正常 build + push image, deploy 后 `Capture deployed image URI` step 写入 URI cache. 总耗时与 v1.6.6 (133 s) 大致持平. v1.6.8 起 lockstep 占位发版 (markitdown 未改) image URI cache 主键 hit, 走 reuse path, wrangler.jsonc 被 patch 为 URI, wrangler deploy 跳过 docker build + image push (Building image 步骤直接 skip, push image 步骤 skip), autotesting tag run 预期 ~30-50 s 完成. 若 markitdown/ 真实改动 (Dockerfile / 子文件改动), `hashFiles` 主键变 → cache miss → 自动回到 rebuild path 重新 build + push + seed 新 URI, 下次未改时再 reuse. SPA `base=/autotest/` 经 gateway `/autotest/*` strip 转发的契约不变.
+- 跟随版本同步发布.
 
 # 2026.05.19 (lockstep v1.6.6)
 
-1. 版本号 lockstep 同步 1.6.5 → 1.6.6 验证 `d72763e` (`fix(ci/autotesting): share buildx cache via main branch scope`) 在 tag push 流程下生效. 改动回顾: workflow trigger 加 `push.branches: [main]`, `Verify tag matches package.json version` / `Apply D1 migrations (remote)` / `Deploy Worker + Container` 三步加 `if: startsWith(github.ref, 'refs/tags/')` 让 main run 跳过 prod 影响, `Persist buildx layer cache` step 加 `--cache-from type=local,src=/tmp/.buildx-cache` 让 export 复用 Warm 加载的内容. 该 commit push 到 main 已触发首次 main scope cache warm-up (run 26101456149, 2 min 完成, `refs/heads/main` scope 现持 `buildx-markitdown-c4f421443f35f97c31b35afc85faa11e88d17fb1ecee4cb0605d7f23e11fe1f1` key, 386 477 810 bytes, 与之前四个 tag scope `refs/heads/refs/tags/v1.6.2..v1.6.5` 同 hash). 本次 v1.6.6 tag run 期望: Restore step 在 `refs/heads/refs/tags/v1.6.6` scope miss → `restore-keys: buildx-markitdown-` 兜底 fallback 到 `refs/heads/main` scope 命中, Warm step 把 386 MB layer 喂进 buildkitd, wrangler deploy 阶段 wrangler 调 `docker build` (经 buildx shim) 时按 Dockerfile instruction hash 命中已加载 layer, `RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg exiftool ca-certificates ...` (18s in v1.6.5) 和 `RUN pip install --no-cache-dir "markitdown-mcp==0.0.1a4" && pip install --no-cache-dir "markitdown[all]==0.1.5"` (含 onnxruntime / pandas / lxml / azure-* / pdfminer / pdfplumber / mammoth / openpyxl / speechrecognition / youtube-transcript-api 等约 30 个大依赖, 在 v1.6.5 占主要构建时间) 标 CACHED 跳过. 对照基线 v1.6.5 autotesting tag run 26100886395 主要时间卡在 cold markitdown build ~4 min, v1.6.6 期望总时长 ~1-2 min. SPA `base=/autotest/` 经 gateway `/autotest/*` strip 转发的契约不变.
+- 跟随版本同步发布.
 
 # 2026.05.19 (lockstep v1.6.5)
 
-1. `packages/web/src/App.vue` header `#actions` slot 首位 (`<ThemeToggleUI />` 前) 插入 `<ActionButtonUI icon="🏠" text="返回首页" @click="goHome" />`, `<script setup>` 新增 `const goHome = () => { window.location.href = '/' }`. 用 `window.location.href` 而不是 vue-router 或 SPA 内部跳转: 本项目 SPA 生产 `base=/autotest/` (vite base), 任何 router/path 都会被自动 prefix `/autotest/`, 必须用 `window.location.href = '/'` 让浏览器跳出当前 base 回 gateway 根 (`/`), 由 gateway `home.tsx` 接管渲染 landing. 用 `ActionButtonUI` 复用现有 emoji icon + text 样式 (与 `📝 功能提示词` / `📜 上下文` / `⚙️ 模型管理` / `💾 数据管理` 一致), 不破坏 actions row 视觉. 不动 `MainLayout.vue` (在 `packages/ui` 共享组件, 避免其它消费者被波及). 用户反馈"两个子工程 (AutoPilot + AutoTest) 没有返回按钮, 返回不回来".
-
-2. 版本号 lockstep 同步 1.6.4 → 1.6.5. 上游 gateway 友情链接重做: host 前缀 `agentic-loop-ui` → `harness`, 入口位置从 v1.6.4 footer 末行小字 (`.footer-friend`) 提升为与 AutoPilot / AutoTest 并列的第三张卡片 (`section .cards` 改 `grid-template-columns: repeat(3, 1fr)` + `<= 900px` 2 列 + `<= 640px` 1 列 fallback, 新增 `.card-tag` 11px subtle 圆角小标签嵌在 `<h2>`, 删 `.footer-friend`). 上游 ele-autopilot `app/admin/_components/task-content.tsx` topbar 左侧 `<Space>` 最前面加 `<Button icon={<HomeOutlined />} href="/">返回首页</Button>` (与本项目改动同目的, 互为对照入口). SPA `base=/autotest/` 经 gateway `/autotest/*` strip 转发的契约不变.
+- 顶栏新增"返回首页"按钮.
 
 # 2026.05.19 (lockstep v1.6.4)
 
-1. 版本号 lockstep 同步 1.6.3 → 1.6.4, 与上游 gateway / ele-autopilot / ele-autopilot-local v1.6.4 一同发布; 本项目无业务改动. 上游 gateway landing footer 新增动态后缀友情链接 `agentic-loop-ui`: `app/routes/home.tsx` loader 加 `deriveFriendLink(origin)` 用 `new URL(request.url).origin` 取当前 host, 把首个 `.` 之前的 label 替换为 `agentic-loop-ui` 保留剩余 host (含端口与后续 label); host 不含 `.` (e.g. `localhost:5173`) 或匹配 IPv4 `/^\d+\.\d+\.\d+\.\d+(:\d+)?$/` 时返回 `null` 短路不渲染, 避免开发态错链 (e.g. `agentic-loop-ui.0.0.1:5173`); 配 `app/app.css` `.footer-friend` (`flex-basis: 100%` 配合 `.footer flex-wrap: wrap` 独占第二行, `font-size: 11px` 低于主行 12px, `color: var(--fg-subtle)`, `<a>` underline `text-decoration-color: var(--border)` + `text-underline-offset: 2px`, hover 切 `var(--accent)`) 渲染在 footer 末行, `<a>` 带 `target="_blank"` + `rel="noopener noreferrer"`. 实际访问 host 为 `ele-qa-autopilot.<domain>` 时友链指向 `https://agentic-loop-ui.<domain>` (后缀实时跟随当前域名, 不写死). SPA `base=/autotest/` 经 gateway `/autotest/*` strip 转发的契约不变.
+- 跟随版本同步发布.
 
 # 2026.05.19 (lockstep v1.6.3)
 
-1. `.github/workflows/autotesting.yml` 接入 buildx layer cache 跨 workflow run 持久化, 削掉 `MarkitdownContainer` 镜像每次 deploy 重跑 `apt-get install` / `pip install` 的耗时. 改动要点: (a) `docker/setup-buildx-action@v3` 加 `with: install: true`, 让 `docker build` shim 到 `docker buildx build`, 这样 wrangler 4 内部走 `docker build` 推 Cloudflare Containers 时也自动走 BuildKit, 才能命中 daemon 内的 layer cache (wrangler 自己不传 `--cache-from` / `--cache-to`, 必须靠 shim 介入). (b) 新增 `Restore buildx layer cache` 步骤, 用 `actions/cache@v4` 把 `/tmp/.buildx-cache` 跨 run 拉回; cache key `buildx-markitdown-${{ hashFiles('ele-autotesting/containers/markitdown/**') }}`, 精确未命中时 `restore-keys: buildx-markitdown-` 回退到任意前一份, 仍可部分复用 layer. (c) 新增 `Warm buildkit cache` 步骤, 在 wrangler deploy 前手动跑一次 `docker buildx build --cache-from type=local,src=/tmp/.buildx-cache -t markitdown:warmup --load containers/markitdown`, 把磁盘 cache 喂进 buildkitd 内部 state, 保证 wrangler 后续调 `docker build` 时按 instruction hash 命中. (d) 新增 `Persist buildx layer cache` 步骤 (`if: always()`, 跟在 deploy 后), 用 `docker buildx build --cache-to type=local,dest=/tmp/.buildx-cache-new,mode=max --output type=cacheonly containers/markitdown` 把当前 daemon 内 cache (含本次 deploy 新增 layer) 落盘并替换旧目录, 喂给下一次 run. 注: wrangler / D1 migrations apply / `wrangler deploy` 命令本身未改, `pnpm --filter @prompt-optimizer/server exec wrangler ...` 调用链不变; container Dockerfile / `MarkitdownContainer` binding / Worker 路由 / SPA `base=/autotest/` 全部不变. 本项目为唯一带 `containers/markitdown/Dockerfile` 的子工程, 优化只作用于 `autotesting.yml`, 其它三个 workflow 无影响.
+- 部署链路优化, 不影响使用.
 
 # 2026.05.19 (lockstep v1.5.18)
 
-1. 版本号 lockstep 同步 1.5.17 → 1.5.18, 与上游 gateway / ele-autopilot / ele-autopilot-local v1.5.18 一同发布; 本项目无业务改动. 上游修复 v1.5.17 引入的 `ele-autopilot upgrade` 缺省 base URL 报错, 同时回滚 v1.5.18 早期草案的 `~/.config/ele-autopilot/base` 持久化方案 (用户反馈 wheel 工具不应写 `$XDG_CONFIG_HOME`; 且 BASE 是 CF 账号私有子域无法在 wheel build 期写入) — ele-autopilot 渲染的 `install.sh` 在 `uv tool install --reinstall` 成功后改为 unquoted heredoc 把 BASE 字面值烧进 `$HOME/.local/bin/ele-autopilot-upgrade` shim 并 `chmod +x`; ele-autopilot-local `autopilot/cli.py` 删 base 解析链与 `--base` 参数, `upgrade` (alias `update`) 缩减为 `bash ~/.local/bin/ele-autopilot-upgrade`, shim 缺失则 stderr 提示重跑 install.sh. SPA `base=/autotest/` 经 gateway `/autotest/*` strip 转发的契约不变.
+- 跟随版本同步发布.
 
 # 2026.05.19 (lockstep v1.5.17)
 
-1. 版本号 lockstep 同步 1.5.16 → 1.5.17, 与上游 gateway / ele-autopilot / ele-autopilot-local v1.5.17 一同发布; 本项目无业务改动. 上游变化: (a) `ele-autopilot-local/autopilot/cli.py` 接入 `argparse` 修复 `ele-autopilot --help` 此前被 `uvicorn.run` 吞掉的失效问题, 新增 `--help` / `-h`, `--version` / `-V` (输出 `ele-autopilot 1.5.17`), `upgrade` (alias `update`) 子命令复用 gateway `install.sh` 重装最新 wheel (base URL 优先级 `--base` > 环境变量 `ELE_AUTOPILOT_BASE`, 缺失时 stderr 提示并 exit 2); 默认无参数仍 `uvicorn.run("autopilot.cli:app", host="0.0.0.0", port=8000)`, 完全向后兼容. (b) gateway landing 安装本地 agent 区块说明文案改为面向非开发用户 (去掉 `0.0.0.0:8000` 与外层 `<code>` 标签, 改为 `两步完成. 启动后 AutoPilot 工作台会自动连接本地 agent, 即可派单执行任务.`). SPA `base=/autotest/` 经 gateway `/autotest/*` strip 转发的契约不变.
+- 跟随版本同步发布.
 
 # 2026.05.19 (lockstep v1.5.16)
 
-1. 版本号 lockstep 同步 1.5.15 → 1.5.16, 与上游 gateway / ele-autopilot / ele-autopilot-local v1.5.16 一同发布; 本项目无业务改动. 上游变化: gateway landing `.install` 框补齐小屏适配 — `<= 640px` `padding 18px 16px`, `.install-head` `meta` 取消 `margin-left: auto` 改 `width: 100%` 独占一行, `.steps li` 加 `min-width: 0` 兜底 grid item 与 `.cmd white-space: nowrap` 长 URL 撑破场景且 `padding 10px 12px`, `.install-desc margin-bottom 14px`; `<= 420px` 极窄屏 `.cmd-row flex-wrap: wrap` + `.cmd flex-basis: 100%` + `.copy margin-left: auto` 让命令独占一行、复制按钮在第二行右侧. SPA `base=/autotest/` 经 gateway `/autotest/*` strip 转发的契约不变.
+- 跟随版本同步发布.
 
 # 2026.05.19 (lockstep v1.5.15)
 
-1. 版本号 lockstep 同步 1.5.14 → 1.5.15, 与上游 gateway / ele-autopilot / ele-autopilot-local v1.5.15 一同发布; 本项目无业务改动. 上游变化: ele-autopilot `install.sh` 加 `ensure_runtime` 前置, 缺失运行时时静默 bootstrap 并把日志捕获到 `mktemp`, 仅失败时回吐, 用户终端 `info` 文案统一中性话术; gateway landing 安装本地 agent 区块由三步改两步 (Step 1 安装命令、Step 2 启动命令), 删去原独立的运行时安装命令. SPA `base=/autotest/` 经 gateway `/autotest/*` strip 转发的契约不变.
+- 跟随版本同步发布.
 
 # 2026.05.19 (lockstep v1.5.14)
 
-1. mobile 小屏阅读阻塞收尾, 上接 v1.5.13 已做的 InputPanel 控制面板 `flex-wrap` 与提交按钮 `flex-1 sm:flex-none`. 收尾覆盖以下 2 处:
-   - `packages/ui/src/components/TestPanel.vue` 顶部 header (`<h3>内容生成</h3>` + `ModelSelectUI` + `开始生成 →` 按钮) `flex items-center justify-between` 改 `flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between`, 右侧按钮组 `flex items-center gap-2` 加 `flex-wrap`; `生成结果` header (含 `添加数据源` dropdown + 已添加 tag 横向滚动条) `flex items-center justify-between mb-3 flex-none` 改 `flex flex-col gap-2 mb-3 flex-none sm:flex-row sm:items-center sm:justify-between`, dropdown 容器 `ml-4` 加 `sm:` 前缀. 此前 360px 屏: ModelSelect (≥180px) + `开始生成 →` 按钮强行同行排, ModelSelect 被压扁到不可点; `生成结果 + 已添加 tag 滚动条 + 添加数据源 dropdown` 三者同行排, dropdown 弹出层 `absolute right-0 w-48` 在 360px 屏右沿溢出. 改后 360px 屏 header 自动两行 (标题独占第一行, 控件第二行 `flex-wrap` 自然换行).
-   - `packages/ui/src/components/InputPanel.vue` 标题行内层 `<div class="flex items-center space-x-4">` (包 optimization-mode-selector + 上下文别名 input `flex-1 min-w-[120px]` + PromptTypeSelector) 改 `flex flex-wrap items-center gap-x-4 gap-y-2`. 此前 360px 屏 + `optimizationMode === 'context'` 时三个 item 强行同行排, 别名输入框被压到 ~80px (放不下 4 个汉字 placeholder), PromptTypeSelector dropdown 触发器被挤截; 改后小屏自动两行 (mode selector + 别名输入第一行, PromptTypeSelector 第二行).
-
-   桌面体验 (`>= 640px`) 完全不变. autotest SPA `MainLayout` 已有的 `flex-col lg:flex-row` + `ActionButton` `max-md:hidden` 文字 + 其他 14 个组件已有的 `sm:` / `lg:` 断点本次不动.
+- TestPanel 与 InputPanel 在手机小屏下的展示问题.
 
 # 2026.05.19 (lockstep v1.5.13)
 
-1. 版本号 lockstep 同步 1.5.12 → 1.5.13, 与上游 gateway / ele-autopilot / ele-autopilot-local v1.5.13 一同发布. 上游 ele-autopilot 把 v1.5.12 遗留的 7 处 mobile 小屏阅读阻塞 (3 个 Modal/Drawer 用 `min(N, vw)` 封顶 + JobDetailPanel 任务列表 max-h 加 `sm:` 前缀 + Descriptions 单列堆叠 + folder-sider Agent 配置 Popover 内容动态宽 + 步骤截图 `<Image>` 加 `max-w-full`) 一并修完.
-2. 本项目同主题收尾 1 处: `packages/ui/src/components/InputPanel.vue` 控制面板 `<div class="flex items-center gap-2">` 改 `flex flex-wrap items-end gap-2`, 模板选择 `flex-1 min-w-0` 加 `basis-full sm:basis-0` 小屏整行占一行, 提交按钮 `min-w-[60px]` 加 `flex-1 sm:flex-none` 让小屏按钮拉伸占满行剩余空间; 占位高度块 `h-[20px] mb-1.5` 加 `hidden sm:block` 小屏不再渲染无用对齐空白. 此前 360px 屏上 模型选择 / 模板选择 / 控制按钮组 / 提交按钮 4 个 flex item 强行同行挤压, 模板下拉与按钮文本会被截断; 改后小屏自动两行布局 (模型 + 提交按钮一行, 模板选择独占一行), 桌面 (`>= 640px`) 仍单行紧凑布局.
+- InputPanel 控件在小屏下自动换行, 不再挤压.
 
 # 2026.05.19 (lockstep v1.5.12)
 
-1. 版本号 lockstep 同步 1.5.11 → 1.5.12, 与上游 gateway / ele-autopilot / ele-autopilot-local v1.5.12 一同发布; 本项目无业务改动. 上游修复: ele-autopilot admin (`/autopilot`) 与执行历史页 (`/autopilot/preview/:taskId`) 在 mobile 小屏 (< 768px) 阅读阻塞 — 固定宽 Ant Sider 抽屉化, Table 加 `scroll={{ x: 'max-content' }}`, Descriptions column 改 `{ xs: 1, sm: 2 }`, Header `flex-wrap`. autotest SPA 自身经 Tailwind `MainLayout` (`flex-col lg:flex-row`) + `ActionButton` (`max-md:hidden` 文字) + 14 个组件已有的 `sm:`/`lg:` 断点已满足"无障碍信息预览", 本次不动.
+- 跟随版本同步发布.
 
 # 2026.05.19 (lockstep v1.5.11)
 
-1. `packages/web/public/favicon.ico` 与 ele-autopilot 同步替换为 multi-size 16/32/48 (≈ 7.4 KB); 此 ICO 实际只在 autotest SPA 直接被请求 `/autotest/favicon.ico` 时使用 (Vite build 阶段把 root-relative `/favicon.ico` 改写为带 base 前缀的 `/autotest/favicon.ico`), 修复 Retina 屏上 autotest tab favicon 被放大模糊的问题. SPA 行为契约不变.
+- 浏览器收藏图标在高分屏不再模糊.
 
 # 2026.05.19 (lockstep v1.5.10)
 
-1. SPA 品牌与文案对齐: `packages/web/index.html` `<title>` 由 `提示词优化器` 改为 `QA AutoPilot · AutoTest`, 加 description / theme-color + `<link rel=icon|alternate icon|apple-touch-icon|mask-icon|manifest>` 五件套, 指向 gateway 透传的 `/favicon.svg` / `/favicon.ico` / `/apple-touch-icon.png` / `/site.webmanifest`; `packages/web/src/App.vue` 顶部 title slot 去掉 `Ele QA Test Case v<APP_VERSION>` 版本号显示 (版本号在 gateway landing footer 唯一展示), 改为 `QA AutoPilot · AutoTest`, 同步移除 `const APP_VERSION = __APP_VERSION__` (build-time define 仍保留, 仅 UI 不再透出); `packages/ui/src/components/MainLayout.vue` 默认 title slot 由 `Ele QA Test Case` 改 `QA AutoPilot · AutoTest`, logo `<img alt="Logo">` 改 `alt=""` (装饰图片不朗读 alt); `packages/ui/src/components/PromptTypeSelector.vue` MCP client name 从 `QA Test Case` v0.0.1 改为 `qa-autotest` v1.0, 修正服务端日志品牌字样.
-2. 品牌资产替换: `packages/ui/src/assets/logo.png` (608×608) 与 `packages/web/public/favicon.ico` 替换为与 gateway landing brand mark 视觉一致的 蓝紫渐变圆角方 + 白 `Q`; 删除未引用的 `packages/ui/src/assets/logo.jpg` (21 KB) 避免长期堆积.
+- 标题改为 "QA AutoPilot · AutoTest", 接入全套品牌图标.
 
 # 2026.05.19 (lockstep v1.5.9)
 
-1. 版本号 lockstep 同步 1.5.8 → 1.5.9, 与上游 gateway / ele-autopilot / ele-autopilot-local v1.5.9 一同发布; 本项目无业务改动. 上游修复: gateway landing CSS 加 `prefers-reduced-motion` 兜底 (a11y) + `<html lang>` 改 `zh-CN`. gateway `/autotest/*` strip 转发逻辑与本项目 SPA `base=/autotest/` 契约不变.
+- 跟随版本同步发布.
 
 # 2026.05.19 (lockstep v1.5.8)
 
-1. 版本号 lockstep 同步 1.5.7 → 1.5.8, 与上游 gateway / ele-autopilot / ele-autopilot-local v1.5.8 一同发布; 本项目无业务改动. 上游修复: gateway landing SSR 拿真实 origin 直接渲染 install 命令 (修复占位符闪烁), `/index.html` 由 worker 层 301 → `/` (修复 RR 无该路由的 404), clipboard catch + 删 service binding 上无效的 `cf.cacheTtl`. gateway `/autotest/*` strip 转发逻辑不变.
+- 跟随版本同步发布.
 
 # 2026.05.19 (lockstep v1.5.7)
 
-1. 版本号 lockstep 同步 1.5.6 → 1.5.7, 与上游 gateway / ele-autopilot / ele-autopilot-local v1.5.7 一同发布; 本项目无业务改动. 上游变化: gateway landing 从单文件内嵌 HTML 重写为 React Router v7 framework mode (SSR), 视觉重做; gateway 路由分发顺序与对 `/autotest/*` 的 strip 转发逻辑不变.
+- 跟随版本同步发布.
 
 # 2026.05.19 (lockstep v1.5.6)
 
-1. 版本号 lockstep 同步 1.5.5 → 1.5.6, 与上游 gateway / ele-autopilot / ele-autopilot-local v1.5.6 一同发布; 本项目无业务改动. 上游修复: autopilot-local workflow 4 处 `wrangler r2 object put` 补 `--remote` (wrangler v4 默认 local), production R2 写入恢复.
+- 跟随版本同步发布.
 
 # 2026.05.19 (lockstep v1.5.5)
 
-1. 版本号 lockstep 同步 1.5.4 → 1.5.5, 与上游 gateway / ele-autopilot / ele-autopilot-local v1.5.5 一同发布; 本项目无业务改动. 上游变化: install 入口从 ele-autopilot `/help` 迁到 gateway landing 页内嵌区块.
+- 跟随版本同步发布.
 
 # 2026.05.19 (lockstep v1.5.4)
 
-1. 修复 `packages/ui/src/components/PromptTypeSelector.vue` 内 4 处 `fetch` 漏 `/autotest` 前缀导致 Confluence 解析 / Figma 解析 / 图片识别 / markdown-research 在生产 gateway 后全部命中 404 (与 v1.5.3 第 5/6 条同型, 上版仅修了 `/api/sync/*` 与 `/stream-proxy /http-proxy`, 本次补齐 `/confluence-parse` / `/figma-parse` / `/image-research/analyze` / `/markdown-research`). 实际请求被 gateway 默认转给 AUTOPILOT, AUTOPILOT 没有这些路由直接 ErrorBoundary 404 HTML.
-2. `packages/core/src/utils/environment.ts` 新增 `getApiBasePath()` getter, 读已被 `setProxyBasePath` 写入的 module-level `configuredBasePath`; 由 `packages/core/src/index.ts` + `packages/ui/src/index.ts` re-export. UI 组件直接拼 `${getApiBasePath()}/<path>`, 与 `getProxyUrl` 完全同源, 没有引入新机制.
+- Confluence / Figma / 图片识别 / markdown 解析在公网入口下不再 404.
 
 # 2026.05.19 (lockstep v1.5.3)
 
-1. 版本号 lockstep 同步 1.5.2 → 1.5.3, 与上游 ele-autopilot / ele-autopilot-local / gateway v1.5.3 一同发布.
-2. `packages/server/wrangler.jsonc` 加 `workers_dev: false` — Worker 不再暴露 `*.workers.dev` 公网, 仅可经新增 gateway Worker (`qa`) 通过 service binding 访问.
-3. `packages/web/vite.config.ts` `base` 选项: 生产构建走 `/autotest/`, dev 保持 `/` — 配合 gateway 把 `/autotest/*` 路径 strip 后转发到本 Worker.
-4. `packages/server/src/index.ts` 末尾加 `env.ASSETS.fetch(request)` fallback (仅 Hono 404 时触发) — service binding 调用会绕过平台层 Static Assets 处理, 需要 Worker 内手动 fallback 才能让静态资源 + SPA `not_found_handling` 工作.
-5. 修复 Web SPA 调远端存储 API 漏 `/autotest` 前缀导致 404 (`/api/sync/items/*` 等被 gateway 默认转给 AUTOPILOT, AUTOTEST 不接到流量). `useAppInitializer` 改为接收 `apiBase` 参数, web 侧由 `import.meta.env.BASE_URL` 注入 (生产 `/autotest`, dev `''`), 与 vite `base` 锁步. 影响: `packages/ui/src/composables/useAppInitializer.ts` + `packages/web/src/App.vue`.
-6. 修复 LLM 流式 / HTTP 代理 (`/stream-proxy`, `/http-proxy`) 同样漏 `/autotest` 前缀导致优化按钮触发 404 (与第 5 条同型). core 包加 `setProxyBasePath(basePath)` module setter, `getProxyUrl` 拼 URL 时带上前缀; `useAppInitializer` 在 setup() 同步阶段调用 setter (早于 `createLLMService`). 影响: `packages/core/src/utils/environment.ts` + `packages/core/src/index.ts` + `packages/ui/src/index.ts` + `packages/ui/src/composables/useAppInitializer.ts`.
+- 公网入口统一改经 gateway, 业务地址不再直接对外暴露.
+- 修复远端存储与 LLM 代理接口因路径前缀缺失导致的 404.
 
 # 2026.05.19 (lockstep v1.5.2)
 
-1. 版本号 lockstep 同步 1.5.0 → 1.5.2, 与上游 ele-autopilot / ele-autopilot-local v1.5.2 一同发布; 本项目无业务改动.
-2. 工程层撤销 per-project namespace tag (`ele-autotesting/v*`) 回到统一 `v*` lockstep tag: `.github/workflows/autotesting.yml` trigger + verify 改回 `v*`; `Deploy.md` / `CLAUDE.md` tag 格式与 workflow 路径同步. 详见根 `AGENTS.md` "Git / 发布约定".
+- 跟随版本同步发布; 发布流程改回 lockstep.
 
 # 2025.11.10
 
-1. confluence office api upgraded.
+- Confluence office API 升级.
 
 # 2025.10.14
 
-1. confluence 文本支持 img 解析。
+- Confluence 文本支持图片解析.
 
 # 2025.10.10
 
-1. Add “PRD生成（beta）” 模版。
-2. Add “Prompt-创世纪” 模版。
-3. Add “Prompt-演化纪” 模版。
-4. Update: “传话机器人” 提示词增强，小模型也很好的完成任务。
-5. Update: 部分文案更新
+- 新增 "PRD 生成 (beta)" 模板.
+- 新增 "Prompt-创世纪" 模板.
+- 新增 "Prompt-演化纪" 模板.
+- "传话机器人" 提示词增强, 小模型也能更好地完成任务.
+- 部分文案更新.
 
 # 2025.10.07
 
-1. 支持 excel 导出
+- 支持 Excel 导出.
 
 # 2025.09.30
 
-1. 优化了图片识别的接口，默认使用 gemini 2.5-flash，(支持 openai 和 gemini 两种模型)。
-2. 支持文件 markdown 识别（支持 pdf、docx、pptx、csv、doc、epub、html、htm、txt、text、plaintext、xlsx 等文件类型）。
+- 图片识别接口优化, 默认使用 Gemini 2.5-flash (支持 OpenAI 与 Gemini 两种模型).
+- 支持文件 markdown 识别 (pdf / docx / pptx / csv / doc / epub / html / htm / txt / text / plaintext / xlsx 等).
 
 # 2025.09.26
 
-1. 迭代优化的模版，只能选择高级模版，不能选择简单模版。代码层面进行过滤。
-2. 切 tab 的时候，保留【内容生成】中的数据，不要清空。
+- 迭代优化的模板只能选高级模板, 不能选简单模板.
+- 切 tab 时保留"内容生成"中的数据, 不再清空.
 
 # 2025.09.25
 
-1. 优化【测试用例生成】提示词模版
-2. 增加【鹰眼分析】提示词模版
-3. 文案修改：用例生成/测试用例生成 => 内容生成/内容生成
+- "测试用例生成"提示词模板优化.
+- 新增"鹰眼分析"提示词模板.
+- 文案修改: 用例生成 / 测试用例生成 → 内容生成.
 
 # 2025.09.18
 
-1.  增加了 figma 快速录入
-    1.  目的：解决图片录入操作繁琐的问题
-2.  图片识别增加了 gemini 支持，默认 gemini 2.5-flash。
-    1.  目的：识别更准确、速度更快。
-3.  测试用例生成提示词作了优化，
-    1.  生成的用例质量会更高（覆盖更全面、边界条件等细节会更多）
-    2.  删除了将用例进行聚合相关的描述
-    3.  生成的用例保持清晰、有序
-4.  增加了【传话人】提示词，用于不修改任何 raw 内容，直接进行上下文的录入。
-5.  文案修改：用例验证 => 用例生成
+- 新增 Figma 快速录入, 解决图片录入操作繁琐.
+- 图片识别新增 Gemini 支持, 默认 Gemini 2.5-flash, 识别更准更快.
+- 测试用例生成提示词优化, 覆盖更全面 / 边界条件更细致, 用例更清晰有序.
+- 新增"传话人"提示词, 用于不修改 raw 内容直接录入上下文.
+- 文案修改: 用例验证 → 用例生成.
