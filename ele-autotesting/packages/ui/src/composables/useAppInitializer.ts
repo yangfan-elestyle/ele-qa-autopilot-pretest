@@ -192,7 +192,7 @@ export function useAppInitializer(apiBase: string = '') {
       templateManager = templateManagerInstance
       historyManager = historyManagerInstance
 
-      // 创建严格符合接口的适配器
+      // 创建严格符合接口的适配器 (含 IImportExportable 的 4 个方法).
       const modelManagerAdapter: IModelManager = {
         ensureInitialized: () => modelManagerInstance.ensureInitialized(),
         isInitialized: () => modelManagerInstance.isInitialized(),
@@ -204,6 +204,10 @@ export function useAppInitializer(apiBase: string = '') {
         enableModel: (key) => modelManagerInstance.enableModel(key),
         disableModel: (key) => modelManagerInstance.disableModel(key),
         getEnabledModels: () => modelManagerInstance.getEnabledModels(),
+        exportData: () => modelManagerInstance.exportData(),
+        importData: (data) => modelManagerInstance.importData(data),
+        getDataType: () => modelManagerInstance.getDataType(),
+        validateData: (data) => modelManagerInstance.validateData(data),
       }
 
       const templateManagerAdapter: ITemplateManager = {
@@ -214,6 +218,10 @@ export function useAppInitializer(apiBase: string = '') {
         exportTemplate: (id) => templateManagerInstance.exportTemplate(id),
         importTemplate: (json) => templateManagerInstance.importTemplate(json),
         listTemplatesByType: (type) => templateManagerInstance.listTemplatesByType(type),
+        exportData: () => templateManagerInstance.exportData(),
+        importData: (data) => templateManagerInstance.importData(data),
+        getDataType: () => templateManagerInstance.getDataType(),
+        validateData: (data) => templateManagerInstance.validateData(data),
       }
 
       const historyManagerAdapter: IHistoryManager = {
@@ -228,6 +236,10 @@ export function useAppInitializer(apiBase: string = '') {
         createNewChain: (record) => historyManagerInstance.createNewChain(record),
         addIteration: (params) => historyManagerInstance.addIteration(params),
         deleteChain: (id) => historyManagerInstance.deleteChain(id),
+        exportData: () => historyManagerInstance.exportData(),
+        importData: (data) => historyManagerInstance.importData(data),
+        getDataType: () => historyManagerInstance.getDataType(),
+        validateData: (data) => historyManagerInstance.validateData(data),
       }
 
       // Services that depend on initialized managers

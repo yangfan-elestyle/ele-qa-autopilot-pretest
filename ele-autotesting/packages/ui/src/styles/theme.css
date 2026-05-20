@@ -2384,17 +2384,42 @@ html * {
   .ds-ms-toolbar {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 12px;
     padding: 0 2px;
   }
   .ds-ms-toolbar-title {
     font-size: 13px;
     font-weight: 600;
     color: var(--ds-text-primary);
+    flex-shrink: 0;
   }
   .ds-ms-toolbar-meta {
     font-size: 12px;
     color: var(--ds-text-secondary);
+    margin-left: auto;
+  }
+  .ds-ms-toolbar .ds-ms-actions {
+    margin-left: 8px;
+    margin-bottom: 0;
+  }
+  .ds-ms-search {
+    flex: 1;
+    min-width: 120px;
+    max-width: 360px;
+    height: 28px;
+    padding: 0 8px;
+    font-size: 12px;
+    border: 1px solid var(--ds-border);
+    border-radius: 6px;
+    background: var(--ds-surface);
+    color: var(--ds-text-primary);
+  }
+  .ds-ms-search:focus {
+    outline: none;
+    border-color: var(--ds-brand-500, #6366f1);
+  }
+  .ds-ms-row--selected td {
+    background: color-mix(in srgb, var(--ds-brand-500, #6366f1) 6%, transparent);
   }
 
   .ds-ms-table-wrap {
@@ -2492,6 +2517,36 @@ html * {
     padding: 4px 2px;
     font-size: 12px;
     color: var(--ds-text-secondary);
+  }
+  .ds-ms-detail-cell {
+    background: var(--ds-surface-subtle);
+    padding: 12px 16px;
+  }
+  .ds-ms-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--ds-text-primary);
+  }
+  .ds-ms-detail-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .ds-ms-detail-label {
+    font-weight: 600;
+    color: var(--ds-text-secondary);
+  }
+  .ds-ms-detail-steps {
+    margin: 0;
+    padding-left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .ds-ms-detail-steps li {
+    line-height: 1.5;
   }
 }
 

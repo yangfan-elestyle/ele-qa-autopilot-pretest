@@ -8,15 +8,19 @@ import { buildMsSignedHeaders } from '../lib/metersphere/sign.ts'
  * 链路: 浏览器 -> gateway -> autotesting Worker -> env.METERSPHERE (VPC) ->
  *       tunnel `ele-server` -> ele-fly cloudflared -> qa.elepay.link
  *
- * AK/SK 从请求头 X-MS-AK / X-MS-SK 取 (浏览器侧 session-only, 不持久化, 不入 D1).
+ * AK/SK 从请求头 X-MS-AK / X-MS-SK 取 (浏览器侧 localStorage 缓存, 不入 D1).
  * 本 Worker 仅 AES-CBC 签名 + 转发, 不缓存 / 不日志 AK/SK 明文.
  *
- * 本期 5 路由对应 PLAN-autotesting-metersphere.md §5:
- *   GET  /api/ms/_smoke           链路烟雾, 不需 AK/SK
- *   GET  /api/ms/orgs             当前 AK 关联用户的组织列表
- *   POST /api/ms/projects         项目分页
- *   GET  /api/ms/modules          功能用例模块树
- *   POST /api/ms/cases            功能用例分页
+ * 路由:
+ *   GET  /api/ms/_smoke                  链路烟雾, 不需 AK/SK
+ *   GET  /api/ms/orgs                    当前 AK 关联用户的组织列表
+ *   POST /api/ms/projects                项目分页
+ *   GET  /api/ms/modules                 功能用例模块树
+ *   POST /api/ms/cases                   功能用例分页
+ *   GET  /api/ms/case/:id                单条用例详情 (prerequisite/steps/expectedResult/description)
+ *   GET  /api/ms/default-template/:pid   项目默认模板 (从 data.id 取 templateId)
+ *   POST /api/ms/module/add              新建模块 ({projectId, parentId='NONE', name})
+ *   POST /api/ms/case/add                新建用例 (multipart, worker 内封 FormData)
  */
 
 const router = new Hono<HonoEnv>()
@@ -232,6 +236,109 @@ router.post('/cases', async (c: Context<HonoEnv>) => {
     })
   } catch (e: any) {
     console.error('ms cases error:', e?.message || e)
+    return c.json({ error: String(e?.message || e) }, 500)
+  }
+})
+
+router.get('/case/:id', async (c: Context<HonoEnv>) => {
+  const ak = getAkSk(c)
+  if (ak instanceof Response) return ak
+  const id = (c.req.param('id') ?? '').trim()
+  if (!id) return c.json({ error: 'id required' }, 400)
+  try {
+    return callMeterSphere(c, {
+      method: 'GET',
+      path: `/functional/case/detail/${encodeURIComponent(id)}`,
+      ak: ak.ak,
+      sk: ak.sk,
+    })
+  } catch (e: any) {
+    console.error('ms case detail error:', e?.message || e)
+    return c.json({ error: String(e?.message || e) }, 500)
+  }
+})
+
+router.get('/default-template/:projectId', async (c: Context<HonoEnv>) => {
+  const ak = getAkSk(c)
+  if (ak instanceof Response) return ak
+  const projectId = (c.req.param('projectId') ?? '').trim()
+  if (!projectId) return c.json({ error: 'projectId required' }, 400)
+  try {
+    return callMeterSphere(c, {
+      method: 'GET',
+      path: `/functional/case/default/template/field/${encodeURIComponent(projectId)}`,
+      ak: ak.ak,
+      sk: ak.sk,
+    })
+  } catch (e: any) {
+    console.error('ms default-template error:', e?.message || e)
+    return c.json({ error: String(e?.message || e) }, 500)
+  }
+})
+
+router.post('/module/add', async (c: Context<HonoEnv>) => {
+  const ak = getAkSk(c)
+  if (ak instanceof Response) return ak
+  let body: any
+  try { body = await c.req.json() } catch { return c.json({ error: 'invalid json body' }, 400) }
+  const projectId = String(body?.projectId ?? '').trim()
+  const name = String(body?.name ?? '').trim()
+  const parentId = String(body?.parentId ?? 'NONE').trim() || 'NONE'
+  if (!projectId || !name) return c.json({ error: 'projectId/name required' }, 400)
+  try {
+    return callMeterSphere(c, {
+      method: 'POST',
+      path: '/functional/case/module/add',
+      ak: ak.ak,
+      sk: ak.sk,
+      body: { projectId, parentId, name },
+    })
+  } catch (e: any) {
+    console.error('ms module/add error:', e?.message || e)
+    return c.json({ error: String(e?.message || e) }, 500)
+  }
+})
+
+/**
+ * POST /api/ms/case/add — 新建用例.
+ *
+ * 上游 `POST /functional/case/add` 是 `multipart/form-data` (`request` part = JSON 串).
+ * worker 接 application/json (body 即上游 FunctionalCaseAddRequest 形状),
+ * 内部构造 FormData 转发, runtime 自动生成 boundary.
+ *
+ * 不接受 / 不转发附件 (files / caseDetailFileIds), 后续需要再扩.
+ */
+router.post('/case/add', async (c: Context<HonoEnv>) => {
+  const ak = getAkSk(c)
+  if (ak instanceof Response) return ak
+  let body: any
+  try { body = await c.req.json() } catch { return c.json({ error: 'invalid json body' }, 400) }
+  const required = ['projectId', 'templateId', 'name', 'moduleId', 'caseEditType'] as const
+  for (const k of required) {
+    if (!body?.[k] || typeof body[k] !== 'string') {
+      return c.json({ error: `${k} required (string)` }, 400)
+    }
+  }
+  try {
+    const { accessKey, signature } = await buildMsSignedHeaders(ak.ak, ak.sk)
+    const fd = new FormData()
+    fd.append(
+      'request',
+      new Blob([JSON.stringify(body)], { type: 'application/json' }),
+      'request.json',
+    )
+    const upstream = await c.env.METERSPHERE.fetch(`${BACKEND_BASE}/functional/case/add`, {
+      method: 'POST',
+      headers: { accept: 'application/json', accessKey, signature },
+      body: fd,
+    })
+    const respBody = await upstream.text()
+    return new Response(respBody, {
+      status: upstream.status,
+      headers: { 'content-type': upstream.headers.get('content-type') ?? 'application/json' },
+    })
+  } catch (e: any) {
+    console.error('ms case/add error:', e?.message || e)
     return c.json({ error: String(e?.message || e) }, 500)
   }
 })

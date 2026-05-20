@@ -2,6 +2,24 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.11.5] - 2026-05-21
+
+### Added
+
+- 数据联动面板补全 3 项能力, 为后续多系统执行联动打底:
+  - **检索**: AutoTest 用例列表 / MeterSphere 模块下拉 / MeterSphere 用例列表 各自加搜索框, 本地过滤名称 / 模块 / 标签 / 步骤 / 期望等字段.
+  - **多选 + 全选**: AutoTest 用例与 MeterSphere 用例双侧均支持表头全选 + 行 checkbox; 选中数实时计数.
+  - **录入 MeterSphere**: AutoTest 用例选中后点 "录入 MeterSphere" -> 选目标项目 -> 按用例自带 module 路径在 MS 中逐级查找或新建模块 (复用已有, 缺失则建), 再 POST 创建用例; 实时展示成功 / 失败 / 当前项进度及详细日志.
+- MeterSphere 用例行新增 "详情" 按钮, 展开显示前置条件 / 步骤 (含期望) / 描述 / 备注 — 之前列表仅能看到名称等元数据, 后续做执行任务需要完整字段.
+
+### Changed
+
+- Worker `/api/ms` 新增 4 路由: 单条用例详情 (`GET /case/:id`), 项目默认模板 (`GET /default-template/:projectId`), 新建模块 (`POST /module/add`), 新建用例 (`POST /case/add`, worker 内封装 `multipart/form-data` 转发上游).
+
+### Fixed
+
+- 修复 UI 包预存的 4 处 TS 接口缺失错误 (`IModelManager` / `ITemplateManager` / `IHistoryManager` adapter 未实现 core 升级后新加的 `exportData` / `importData` / `getDataType` / `validateData`; `IPreferenceService` ui 端临时类型与 core 不兼容). 不影响运行时, 但本地 typecheck 与 IDE 红线消除.
+
 ## [1.11.4] - 2026-05-21
 
 ### Fixed

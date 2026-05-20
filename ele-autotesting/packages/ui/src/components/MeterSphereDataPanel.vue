@@ -1,6 +1,6 @@
 <template>
   <div class="ds-ms-panel">
-    <!-- 凭据 + 组织/项目/模块选择 -->
+    <!-- 凭据 + 项目/模块选择 -->
     <div class="ds-ms-controls">
       <div class="ds-ms-field">
         <label>Access Key</label>
@@ -19,9 +19,17 @@
       </div>
       <div class="ds-ms-field ds-ms-field--tree">
         <label>模块 (可选, 不选 = 全部)</label>
+        <input
+          v-model="moduleKeyword"
+          class="ds-ms-search"
+          type="search"
+          placeholder="搜索模块名…"
+          :disabled="!modulesFlat.length"
+          style="max-width: none; margin-bottom: 4px"
+        />
         <select v-model="moduleId" :disabled="!modulesFlat.length">
           <option value="">{{ modulesFlat.length ? '全部' : '尚未加载' }}</option>
-          <option v-for="m in modulesFlat" :key="m.id" :value="m.id">
+          <option v-for="m in modulesFiltered" :key="m.id" :value="m.id">
             {{ '— '.repeat(m.depth) }}{{ m.name }}
           </option>
         </select>
@@ -41,36 +49,107 @@
 
     <div v-if="error" class="ds-ms-error">{{ error }}</div>
 
-    <!-- 用例表 -->
+    <!-- 用例表 toolbar -->
     <div class="ds-ms-toolbar">
       <span class="ds-ms-toolbar-title">MeterSphere 用例</span>
-      <span class="ds-ms-toolbar-meta" v-if="caseTotal">共 {{ caseTotal }} 条, 第 {{ casePage }} 页 / {{ Math.max(1, Math.ceil(caseTotal / casePageSize)) }}</span>
+      <input
+        v-model="caseKeyword"
+        class="ds-ms-search"
+        type="search"
+        placeholder="搜索 名称 / 标签 / 创建人"
+      />
+      <span class="ds-ms-toolbar-meta">
+        {{ casesFiltered.length }} / {{ caseTotal || cases.length }} 条
+        <template v-if="caseTotal">· 第 {{ casePage }} 页 / {{ Math.max(1, Math.ceil(caseTotal / casePageSize)) }}</template>
+        <template v-if="selectedIds.size">· 已选 {{ selectedIds.size }}</template>
+      </span>
     </div>
+
     <div class="ds-ms-table-wrap">
       <table class="ds-ms-table">
         <thead>
           <tr>
+            <th style="width: 32px">
+              <input
+                type="checkbox"
+                :checked="allSelected"
+                :indeterminate.prop="someSelected && !allSelected"
+                @change="toggleAll(($event.target as HTMLInputElement).checked)"
+                aria-label="全选"
+              />
+            </th>
             <th style="width: 56px">#</th>
-            <th style="width: 30%">名称</th>
+            <th style="width: 26%">名称</th>
             <th style="width: 12%">类型</th>
             <th>Tags</th>
             <th style="width: 14%">创建人</th>
             <th style="width: 18%">创建时间</th>
+            <th style="width: 68px"></th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="row in cases" :key="row.id">
-            <td>{{ row.num }}</td>
-            <td>{{ row.name }}</td>
-            <td>{{ row.caseEditType }}</td>
-            <td>
-              <span v-for="t in (row.tags ?? [])" :key="t" class="ds-ms-tag">{{ t }}</span>
-            </td>
-            <td>{{ row.createUserName ?? row.createUser ?? '—' }}</td>
-            <td>{{ formatTs(row.createTime) }}</td>
-          </tr>
-          <tr v-if="!cases.length">
-            <td colspan="6" class="ds-ms-empty">{{ loading.cases ? '加载中…' : '尚未拉取或无数据' }}</td>
+          <template v-for="row in casesFiltered" :key="row.id">
+            <tr :class="{ 'ds-ms-row--selected': selectedIds.has(row.id) }">
+              <td>
+                <input
+                  type="checkbox"
+                  :checked="selectedIds.has(row.id)"
+                  @change="toggleOne(row.id, ($event.target as HTMLInputElement).checked)"
+                  :aria-label="`选中 ${row.name}`"
+                />
+              </td>
+              <td>{{ row.num }}</td>
+              <td>{{ row.name }}</td>
+              <td>{{ row.caseEditType }}</td>
+              <td>
+                <span v-for="t in (row.tags ?? [])" :key="t" class="ds-ms-tag">{{ t }}</span>
+              </td>
+              <td>{{ row.createUserName ?? row.createUser ?? '—' }}</td>
+              <td>{{ formatTs(row.createTime) }}</td>
+              <td>
+                <button class="ds-ms-btn ds-ms-btn--mini" @click="toggleDetail(row.id)">
+                  {{ expandedId === row.id ? '收起' : '详情' }}
+                </button>
+              </td>
+            </tr>
+            <tr v-if="expandedId === row.id">
+              <td colspan="8" class="ds-ms-detail-cell">
+                <div v-if="loadingDetail" class="ds-ms-empty">加载详情中…</div>
+                <div v-else-if="detailError" class="ds-ms-error">{{ detailError }}</div>
+                <div v-else-if="detail" class="ds-ms-detail">
+                  <div class="ds-ms-detail-row">
+                    <span class="ds-ms-detail-label">模块</span>
+                    <span>{{ detail.moduleName ?? '—' }}</span>
+                  </div>
+                  <div class="ds-ms-detail-row" v-if="detail.prerequisite">
+                    <span class="ds-ms-detail-label">前置条件</span>
+                    <pre class="ds-ms-pre">{{ detail.prerequisite }}</pre>
+                  </div>
+                  <div class="ds-ms-detail-row" v-if="detail.caseEditType === 'STEP' && parsedSteps.length">
+                    <span class="ds-ms-detail-label">步骤</span>
+                    <ol class="ds-ms-detail-steps">
+                      <li v-for="(s, i) in parsedSteps" :key="s.id ?? i">
+                        <div><strong>步骤:</strong> <span>{{ s.desc || '—' }}</span></div>
+                        <div v-if="s.result"><strong>期望:</strong> <span>{{ s.result }}</span></div>
+                      </li>
+                    </ol>
+                  </div>
+                  <div class="ds-ms-detail-row" v-if="detail.caseEditType === 'TEXT'">
+                    <span class="ds-ms-detail-label">描述</span>
+                    <pre class="ds-ms-pre">{{ detail.textDescription }}</pre>
+                    <span class="ds-ms-detail-label">期望</span>
+                    <pre class="ds-ms-pre">{{ detail.expectedResult }}</pre>
+                  </div>
+                  <div class="ds-ms-detail-row" v-if="detail.description">
+                    <span class="ds-ms-detail-label">备注</span>
+                    <pre class="ds-ms-pre">{{ detail.description }}</pre>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </template>
+          <tr v-if="!casesFiltered.length">
+            <td colspan="8" class="ds-ms-empty">{{ loading.cases ? '加载中…' : (cases.length ? '无匹配' : '尚未拉取或无数据') }}</td>
           </tr>
         </tbody>
       </table>
@@ -85,7 +164,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { getApiBasePath } from '@prompt-optimizer/core'
 import { useBrowserCache } from '../composables/useBrowserCache'
 
@@ -102,12 +181,29 @@ interface MsCase {
   createUser?: string
   createUserName?: string
 }
+interface MsCaseDetail {
+  id: string
+  num: number
+  name: string
+  moduleId?: string
+  moduleName?: string
+  caseEditType?: 'STEP' | 'TEXT' | string
+  prerequisite?: string
+  steps?: string
+  textDescription?: string
+  expectedResult?: string
+  description?: string
+  tags?: string[]
+}
+interface MsStepItem { id?: string; num?: number; desc?: string; result?: string }
 
-// AK/SK 走通用浏览器缓存, 刷新后自动恢复; 清空输入即从 localStorage 移除.
+// AK/SK 走通用浏览器缓存, 与 AutotestCasesPanel 共享同一组 localStorage key.
 const ak = useBrowserCache<string>('metersphere.ak', '')
 const sk = useBrowserCache<string>('metersphere.sk', '')
 const projectId = ref('')
 const moduleId = ref('')
+const moduleKeyword = ref('')
+const caseKeyword = ref('')
 
 const projects = ref<MsProject[]>([])
 const modulesFlat = ref<MsFlatModule[]>([])
@@ -118,6 +214,54 @@ const casePageSize = ref(20)
 
 const loading = ref({ projects: false, modules: false, cases: false })
 const error = ref('')
+
+const selectedIds = ref<Set<string>>(new Set())
+const expandedId = ref<string | null>(null)
+const detail = ref<MsCaseDetail | null>(null)
+const loadingDetail = ref(false)
+const detailError = ref('')
+
+const modulesFiltered = computed(() => {
+  const kw = moduleKeyword.value.trim().toLowerCase()
+  if (!kw) return modulesFlat.value
+  return modulesFlat.value.filter((m) => m.name.toLowerCase().includes(kw))
+})
+
+const casesFiltered = computed(() => {
+  const kw = caseKeyword.value.trim().toLowerCase()
+  if (!kw) return cases.value
+  return cases.value.filter((c) => {
+    const tags = (c.tags ?? []).join(' ')
+    return [c.name, tags, c.createUserName ?? '', c.createUser ?? '', String(c.num)]
+      .some((s) => s.toLowerCase().includes(kw))
+  })
+})
+
+const allSelected = computed(() => casesFiltered.value.length > 0 && casesFiltered.value.every((c) => selectedIds.value.has(c.id)))
+const someSelected = computed(() => casesFiltered.value.some((c) => selectedIds.value.has(c.id)))
+
+const parsedSteps = computed<MsStepItem[]>(() => {
+  const raw = detail.value?.steps
+  if (!raw) return []
+  try {
+    const arr = JSON.parse(raw)
+    return Array.isArray(arr) ? arr : []
+  } catch { return [] }
+})
+
+function toggleOne(id: string, on: boolean) {
+  const next = new Set(selectedIds.value)
+  if (on) next.add(id); else next.delete(id)
+  selectedIds.value = next
+}
+
+function toggleAll(on: boolean) {
+  const next = new Set(selectedIds.value)
+  for (const c of casesFiltered.value) {
+    if (on) next.add(c.id); else next.delete(c.id)
+  }
+  selectedIds.value = next
+}
 
 function buildHeaders(extra: Record<string, string> = {}): HeadersInit {
   return {
@@ -150,7 +294,6 @@ async function loadProjects() {
   error.value = ''
   loading.value.projects = true
   try {
-    // organizationId 由 Worker 经 /is-login 自动发现, 前端不传.
     const res = await callApi<any>('POST', '/api/ms/projects', { current: 1, pageSize: 100 })
     const list: MsProject[] = res?.data?.list ?? res?.data ?? []
     projects.value = list.map((p) => ({ id: p.id, name: p.name, organizationId: p.organizationId }))
@@ -201,12 +344,48 @@ async function loadCases(page: number) {
     cases.value = list
     caseTotal.value = Number(res?.data?.total ?? 0)
     casePage.value = page
+    // 翻页 / 切项目时清空选中与展开, 避免错位.
+    selectedIds.value = new Set()
+    expandedId.value = null
+    detail.value = null
   } catch (e: any) {
     error.value = `拉用例失败: ${e?.message ?? e}`
   } finally {
     loading.value.cases = false
   }
 }
+
+async function toggleDetail(id: string) {
+  if (expandedId.value === id) {
+    expandedId.value = null
+    detail.value = null
+    detailError.value = ''
+    return
+  }
+  expandedId.value = id
+  detail.value = null
+  detailError.value = ''
+  loadingDetail.value = true
+  try {
+    const res = await callApi<any>('GET', `/api/ms/case/${encodeURIComponent(id)}`)
+    detail.value = res?.data ?? null
+    if (!detail.value) detailError.value = '上游未返回详情数据'
+  } catch (e: any) {
+    detailError.value = `拉详情失败: ${e?.message ?? e}`
+  } finally {
+    loadingDetail.value = false
+  }
+}
+
+watch(projectId, () => {
+  modulesFlat.value = []
+  moduleId.value = ''
+  cases.value = []
+  caseTotal.value = 0
+  selectedIds.value = new Set()
+  expandedId.value = null
+  detail.value = null
+})
 
 function formatTs(ts?: number) {
   if (!ts) return '—'
