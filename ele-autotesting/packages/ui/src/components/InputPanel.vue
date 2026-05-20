@@ -4,10 +4,6 @@
     <!-- Panel head -->
     <header class="ds-panel-head">
       <div class="ds-panel-head-left">
-        <h3 class="ds-panel-title">
-          <span class="ds-panel-title-dot" aria-hidden="true"></span>
-          {{ label || '输入 Prompt' }}
-        </h3>
         <slot name="optimization-mode-selector"></slot>
       </div>
       <div class="ds-panel-head-right">

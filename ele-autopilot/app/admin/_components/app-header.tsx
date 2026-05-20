@@ -1,5 +1,4 @@
 import {
-  HomeOutlined,
   LoadingOutlined,
   ReloadOutlined,
   SettingOutlined,
@@ -269,18 +268,6 @@ export default function AppHeader({
       {rightExtra}
 
       {rightExtra && <span className="ds-vrule hidden sm:inline-block" aria-hidden="true" />}
-
-      <Tooltip title="返回首页">
-        <Button
-          type="text"
-          shape="circle"
-          icon={<HomeOutlined />}
-          aria-label="返回首页"
-          href={homeHref}
-        />
-      </Tooltip>
-
-      <span className="ds-vrule hidden sm:inline-block" aria-hidden="true" />
 
       <AgentSettingsPopover />
     </header>
