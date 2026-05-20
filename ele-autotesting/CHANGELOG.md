@@ -2,6 +2,13 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.13.1] - 2026-05-21
+
+### Added
+
+- 从 MeterSphere 用例送至 Autopilot 时, 自动在 task 标题前注入 `[MS #编号]` 前缀, 并在任务正文末尾追加 MS 来源引用块 (项目 / 模块 / 编号 / ID / 标签). Autopilot 工作台一眼即可识别任务来自哪条 MS 用例, 排查与回查不再需要肉眼对照.
+- 录入完成步骤新增「录入对照」展开区, 按行列出每条 Autopilot task 与其对应的 MS 用例编号, 便于核对落地结果.
+
 ## [1.13.0] - 2026-05-21
 
 ### Added

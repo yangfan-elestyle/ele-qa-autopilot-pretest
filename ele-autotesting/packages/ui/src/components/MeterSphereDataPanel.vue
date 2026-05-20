@@ -338,8 +338,22 @@
                 <div style="font-size: 13px; margin-bottom: 8px">
                   <a :href="apAutopilotUrl" target="_blank" rel="noopener" style="color: var(--theme-link, #2563eb)">→ 打开 Autopilot 工作台</a>
                 </div>
+                <details v-if="apIngestSourceMap.length" style="margin-top: 8px" open>
+                  <summary style="cursor: pointer; font-size: 13px">录入对照 (Autopilot ↔ MeterSphere) · {{ apIngestSourceMap.length }} 条</summary>
+                  <div style="max-height: 240px; overflow: auto; font-size: 12px; padding: 8px; background: rgba(0,0,0,0.04); border-radius: 4px; margin-top: 4px">
+                    <div
+                      v-for="row in apIngestSourceMap"
+                      :key="row.taskId"
+                      style="display: grid; grid-template-columns: 64px 1fr 110px; gap: 6px; padding: 2px 0; align-items: baseline"
+                    >
+                      <span style="font-family: ui-monospace, monospace; opacity: 0.7">{{ row.msLabel }}</span>
+                      <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap" :title="row.title">{{ row.title }}</span>
+                      <span style="font-family: ui-monospace, monospace; opacity: 0.6" :title="row.taskId">#{{ row.taskId.slice(0, 8) }}</span>
+                    </div>
+                  </div>
+                </details>
                 <details style="margin-top: 8px">
-                  <summary style="cursor: pointer; font-size: 13px">task ids ({{ ap.ingestResult?.tasks.length ?? 0 }})</summary>
+                  <summary style="cursor: pointer; font-size: 13px">原始 task ids ({{ ap.ingestResult?.tasks.length ?? 0 }})</summary>
                   <pre class="ds-ms-pre" style="max-height: 200px; overflow: auto; font-size: 12px; padding: 8px; background: rgba(0,0,0,0.04); border-radius: 4px">{{ ap.ingestResult?.tasks.map((t: any) => t.id).join('\n') }}</pre>
                 </details>
               </div>
@@ -656,7 +670,15 @@ interface ApIngestResult {
   tasks: { id: string }[]
 }
 
-interface ApParsedTask { title: string; text: string }
+// 录入时 enrich 出的对照行: autopilot task id ↔ MS 用例编号 + 录入用的最终 title.
+// 用户在 done 步骤看一眼就能知道哪条 MS 用例落到了哪条 autopilot task.
+interface ApIngestSourceRow { taskId: string; title: string; msLabel: string }
+
+interface ApParsedTask { title: string; text: string; caseIndex: number }
+
+// Autopilot ingest API 的 title 长度上限 (与 ele-autopilot/app/routes/api.v1.ingest.tasks.tsx
+// `TASK_TITLE_MAX` 同值). 加 [MS #num] 前缀后超限的原 title 会被截尾 + ellipsis.
+const AP_TASK_TITLE_MAX = 200
 
 interface ApPromptPreset { key: string; label: string; tip: string; template: string }
 
@@ -733,6 +755,7 @@ interface ApRunState {
   elapsed: number
   ingesting: boolean
   ingestResult: ApIngestResult | null
+  ingestSourceMap: ApIngestSourceRow[]
   error: string
   sessionId: string | undefined
 }
@@ -749,9 +772,12 @@ const ap = reactive<ApRunState>({
   elapsed: 0,
   ingesting: false,
   ingestResult: null,
+  ingestSourceMap: [],
   error: '',
   sessionId: undefined,
 })
+
+const apIngestSourceMap = computed<ApIngestSourceRow[]>(() => ap.ingestSourceMap)
 
 const apBusy = computed(() => ap.step === 'fetching' || ap.step === 'calling' || ap.ingesting)
 
@@ -819,18 +845,57 @@ function buildHarnessPrompt(template: string, aggregated: string): string {
 function parseHarnessText(text: string): ApParsedTask[] {
   const lines = text.split(/\r?\n/)
   const sections: ApParsedTask[] = []
-  let current: { title: string; bodyLines: string[] } | null = null
+  let current: { title: string; bodyLines: string[]; caseIndex: number } | null = null
   for (const line of lines) {
     const m = line.match(AP_CASE_HEADER_RE)
     if (m) {
-      if (current) sections.push({ title: current.title, text: current.bodyLines.join('\n').trim() })
-      current = { title: m[2] || `CASE ${m[1]}`, bodyLines: [] }
+      if (current) sections.push({ title: current.title, text: current.bodyLines.join('\n').trim(), caseIndex: current.caseIndex })
+      current = { title: m[2] || `CASE ${m[1]}`, bodyLines: [], caseIndex: Number(m[1]) }
     } else if (current) {
       current.bodyLines.push(line)
     }
   }
-  if (current) sections.push({ title: current.title, text: current.bodyLines.join('\n').trim() })
+  if (current) sections.push({ title: current.title, text: current.bodyLines.join('\n').trim(), caseIndex: current.caseIndex })
   return sections.filter((s) => s.text.length > 0)
+}
+
+// 通过 CASE 头里的编号 N 映射到 ap.details[N-1], 用于把 MS 来源元数据 (项目/编号/ID/模块)
+// 注入到录入 Autopilot 的 task. 若用户在 harness 编辑步骤新增 / 删除了 CASE 头导致
+// 编号对不上原始 details, 返回 undefined, 此条 task 跳过 metadata 注入但仍录入.
+function resolveSourceDetail(parsed: ApParsedTask): MsCaseDetail | undefined {
+  if (!Number.isInteger(parsed.caseIndex) || parsed.caseIndex < 1) return undefined
+  return ap.details[parsed.caseIndex - 1]
+}
+
+function buildEnrichedTitle(parsed: ApParsedTask, detail: MsCaseDetail | undefined): string | undefined {
+  const rawTitle = (parsed.title || detail?.name || '').trim()
+  if (!detail) return rawTitle || undefined
+  const prefix = `[MS #${detail.num}] `
+  if (!rawTitle) return prefix.trimEnd()
+  const combined = `${prefix}${rawTitle}`
+  if (combined.length <= AP_TASK_TITLE_MAX) return combined
+  // 给省略号留 1 字符. prefix 一般 ≤ 16, 即便 num 极长也极少超 200.
+  const allowed = Math.max(1, AP_TASK_TITLE_MAX - prefix.length - 1)
+  return `${prefix}${rawTitle.slice(0, allowed)}…`
+}
+
+// 把 MS 元数据追加到 task.text 末尾, 使用 markdown 引用块 (`> `) 隔离, autopilot UI 渲染时
+// 可见, browser-use agent 看到引用块通常会跳过, 不影响执行. 含项目 / 模块 / 编号 / ID,
+// 让任务可追溯回 MS 原始用例.
+function buildTaskTextWithSource(parsed: ApParsedTask, detail: MsCaseDetail | undefined): string {
+  if (!detail) return parsed.text
+  const projectName = projects.value.find((p) => p.id === projectId.value)?.name?.trim()
+  const metaLines: string[] = [
+    '',
+    '---',
+    '> **来源**: MeterSphere',
+    `> 用例编号: #${detail.num}`,
+    `> 用例 ID: \`${detail.id}\``,
+  ]
+  if (projectName) metaLines.push(`> 项目: ${projectName}`)
+  if (detail.moduleName?.trim()) metaLines.push(`> 模块: ${detail.moduleName.trim()}`)
+  if (detail.tags?.length) metaLines.push(`> 标签: ${detail.tags.join(', ')}`)
+  return `${parsed.text}\n${metaLines.join('\n')}`
 }
 
 const apParsedTasks = computed(() => parseHarnessText(ap.harnessText))
@@ -846,6 +911,7 @@ function openSendAutopilot() {
   ap.promptTemplate = apPromptTemplateCache.value.trim() ? apPromptTemplateCache.value : AP_DEFAULT_PROMPT_TEMPLATE
   ap.harnessText = ''
   ap.ingestResult = null
+  ap.ingestSourceMap = []
   ap.error = ''
   ap.sessionId = undefined
   ap.elapsed = 0
@@ -965,10 +1031,20 @@ async function callIngest() {
     if (!folderPath.length) throw new Error('folder_path 不能为空')
     if (!apParsedTasks.value.length) throw new Error('未解析到任何 task, 无法录入')
 
+    // 录入前把 MS 来源元数据注入每条 task: title 加 [MS #num] 前缀, text 末尾追加引用块.
+    // 让 autopilot 工作台一眼能追溯到 MS 原始用例 (#num + ID + 项目 + 模块).
+    const enrichedTasks = apParsedTasks.value.map((t) => {
+      const detail = resolveSourceDetail(t)
+      return {
+        title: buildEnrichedTitle(t, detail),
+        text: buildTaskTextWithSource(t, detail),
+        detail,
+      }
+    })
     const payload = {
       source: 'autotesting',
       folder_path: folderPath,
-      tasks: apParsedTasks.value.map((t) => ({ title: t.title, text: t.text })),
+      tasks: enrichedTasks.map(({ title, text }) => ({ title, text })),
     }
     const res = await callApi<{ code: number; message: string; data: ApIngestResult }>(
       'POST',
@@ -979,6 +1055,16 @@ async function callIngest() {
       throw new Error(`返回结构异常: ${JSON.stringify(res).slice(0, 300)}`)
     }
     ap.ingestResult = res.data
+    // 按返回 task id 顺序与 enrichedTasks 对齐 (ingest API 保证 tasks[].id 顺序与请求一致),
+    // 构造录入对照表, 让 done 步骤直观显示哪条 MS 用例落到了哪条 autopilot task.
+    ap.ingestSourceMap = res.data.tasks.map((createdTask, i) => {
+      const entry = enrichedTasks[i]
+      return {
+        taskId: createdTask.id,
+        title: entry?.title ?? `task ${i + 1}`,
+        msLabel: entry?.detail ? `#${entry.detail.num}` : '—',
+      }
+    })
     pushFolderHistory(apFolderPath.value)
     ap.step = 'done'
   } catch (e: any) {
