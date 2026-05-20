@@ -100,7 +100,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
         </header>
 
         <section className="hero">
-          <span className="hero-eyebrow">Test Orchestration · AI 用例生成</span>
+          <span className="hero-eyebrow">任务编排 · 用例生成 · 自动化</span>
           <h1>
             QA 工作流, <em>一站做完.</em>
           </h1>
