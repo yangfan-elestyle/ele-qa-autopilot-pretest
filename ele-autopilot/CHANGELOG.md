@@ -2,6 +2,16 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.9.8] - 2026-05-20
+
+整体目标: AI 主动扫雷第六轮 — 补齐 job complete callback 的幂等保护. `api.jobs.$id.callback.task.tsx` 早已带终态保护 (existing 已 `completed`/`failed` 时拒绝降级回 `running`/`pending`), 但同链路的 `api.jobs.$id.callback.complete.tsx` 此前没有对应防线 — 已 completed/failed 的 job 在 local agent 重试 / 异常断连后重发 complete callback 时, `updateJobById` 会把新的 `completed_at` 写进去, `error` 字段也会被覆盖 (新 callback 给空就清空, 给值就刷新). 表现是 admin UI 上历史 job 的"结束时间"突然跳到几分钟后, "失败原因"被覆盖成空字符串或新的提示, 误导排查. 本轮把 complete callback 也加上 `job.status` 终态保护与 task callback 对齐.
+
+### Fixed
+
+- `app/routes/api.jobs.$id.callback.complete.tsx`: 新增 `TERMINAL_JOB_STATUSES = new Set<JobStatus>(['completed', 'failed'])`, 校验 status 字段格式之后立刻判断当前 `job.status`, 若已是终态直接返回 `envelope(0, 'ignored (job already in terminal state)', null)` (200 OK + code 0, 不算错误, 让 local 端 `_post_with_retry` 视为成功停止重试). 不动 `task` callback 路径 — 那里早已带 `isTerminal(existing.status) && !isTerminal(nextStatus)` 反降级保护, 本次只是把同样的语义对齐到 job 维度. 没改 `syncJobStatusFromTasks` — 它从 `job_tasks` 真实状态推导 jobs.status 是幂等的, 与新加的拦截层叠加无副作用 (终态 job 走不到 sync 调用).
+
+[1.9.8]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.7...v1.9.8
+
 ## [1.9.7] - 2026-05-20
 
 整体目标: AI 主动扫雷第五轮 — Job 时间戳真实性修正. 此前 `jobs.started_at` 在 `createJob` 时硬写成 `now`, 与 `status='pending'` 同时落地, 任务后续真正开始执行时 server 端再无写入入口, 导致前端任何"耗时 = completed_at - started_at"算式都把 local agent 接收 callback 到第一次 task running 之间的等待时长 (取决于 local agent 负载 / 浏览器冷启动, 可能几十秒) 算进去, 用户排查"这条任务为什么跑这么久"会得到错误结论. 配套修 `syncJobStatusFromTasks` 在状态首次推进到非 pending 时回填该字段.

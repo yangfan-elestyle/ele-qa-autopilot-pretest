@@ -2,6 +2,14 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.9.8] - 2026-05-20
+
+### Changed
+
+- lockstep 同步, 与上游 gateway / ele-autopilot / ele-autotesting v1.9.8 一同发布; 本项目无业务改动 (FastAPI app / 路由 / browser-use 执行链路 / callback 上行格式不变). 本轮上游聚焦 AI 主动扫雷第六轮: ele-autopilot 给 job complete callback 加幂等保护, 与同链路 task callback 已有的终态降级保护对齐 — 副作用是本端 `CallbackClient._post_with_retry` 在 job 已是终态时收到的 `code=0, message="ignored ..."` 仍是 200 OK, 视为成功停止重试, 无需任何 client 端配套改动 (报文格式 200 + JSON envelope 不变, retry policy 走的是 HTTP status 而非 envelope code); ele-autotesting 给 `/markdown-research` 加 body size 双层 guard 防 Worker OOM. 本项目 R2 wheel 发布链路 / `_update_status` 状态机沿用 v1.9.7.
+
+[1.9.8]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.7...v1.9.8
+
 ## [1.9.7] - 2026-05-20
 
 整体目标: AI 主动扫雷第五轮 — local 端 callback 链路可靠性 + CORS 收紧. 此前 `CallbackClient` 单次 POST 失败直接 `logger.warning` + 返回 False, 网络抖动 (本机 wifi 切换 / gateway 偶发 5xx / Cloudflare cold start) 会让 server 端 `jobs` 永远停在 pending 或缺中间 task 状态, 而 local 端任务实际已完成 — 用户在 admin UI 看到 job 假死. CORS 同时把 `allow_origins=["*"]` 与 `allow_credentials=True` 混用是浏览器规范禁止的组合, 实际 cookie 也发不出去, 删掉这一伪配置避免后续路由层误以为可凭跨站 cookie 鉴权.

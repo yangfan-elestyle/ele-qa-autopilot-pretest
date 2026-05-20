@@ -1,3 +1,14 @@
+# 2026.05.20 (lockstep v1.9.8)
+
+整体目标: AI 主动扫雷第六轮 — 补 `/markdown-research` 路由的 body size guard. 此前 handler 直接 `c.req.json()` 把整个 body 读到 memory, 没有任何 size 校验, 攻击者只要 POST 一个几十 MB 的 markdown 字段就能把 Worker 单实例 128MB 内存撑爆触发 OOM 502; 同 Worker 上的其他业务路由 (figma / confluence / sync) 都会被连锁影响. 路由背后插件链一次最多分析 50 张图, 实际业务对 markdown 文本长度需求 ≤ 2MB (Confluence 单页 / 设计稿 md 导出常见在百 KB 量级), 加一道双层 size guard 即可堵住这条放大面.
+
+## Fixed
+
+1. `packages/server/src/routes/markdownResearch.ts` 入口加 `MAX_MARKDOWN_LENGTH = 2 * 1024 * 1024` (字符串长度上限) 和 `MAX_BODY_BYTES = 4 * 1024 * 1024` (body 字节上限, 给 JSON 包装 / 转义留余量) 两道防线: handler 先读 `content-length` 请求头, 若声明值超过 `MAX_BODY_BYTES` 直接 413 返回 `{ error: 'Payload too large', limit_bytes }`, 不进 `c.req.json()` 拿不到完整 body 也不会触发 Hono 内部 buffer 累积; 进入 `c.req.json()` 之后再校验 `markdown.length > MAX_MARKDOWN_LENGTH` 兜底 413 + `limit_chars`, 防止 client 故意省 / 谎报 content-length 头. 业务路由响应字段口径不变 (`text` / `errors`), client 拿到 413 应当截断 markdown 后重试.
+2. 没动 `/figma-parse` / `/confluence-parse` / `/image-research/*` — 这三条的 payload 主要是 token + url 字符串或图片二进制, 长度本就受上游 API 限制 (Figma node_id 列表 / Confluence page_id / vision API 入参), 真正的放大面只在 `/markdown-research` 的 markdown 字段. proxy (`/stream-proxy` / `/http-proxy`) body 受 LLM provider 上限管控同理不动. 若后续 figma / confluence 出现类似 abuse pattern 再单独补.
+
+[1.9.8]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.7...v1.9.8
+
 # 2026.05.20 (lockstep v1.9.7)
 
 整体目标: AI 主动扫雷第五轮 — 把外部依赖 (Figma API / Atlassian Cloud) 的 fetch 调用全部加上显式 AbortSignal 超时. 此前裸 fetch 仅靠 CF 平台层 subrequest 30s 兜底超时, 命中后 Worker 进入"待回收"状态收到的客户端响应是无文案 524, 排查难; 同时若 client 已断开但 Worker 仍在 await 上游响应, 那个 invocation slot 是被无端占用的, 对 free / paid 配额都是浪费.

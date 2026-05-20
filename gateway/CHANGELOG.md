@@ -2,6 +2,14 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.9.8] - 2026-05-20
+
+### Changed
+
+- lockstep 同步, 与上游 v1.9.8 一同发布; 本项目无业务改动. 本轮上游聚焦 AI 主动扫雷第六轮: ele-autopilot 给 `api.jobs.$id.callback.complete.tsx` 加 job 终态幂等保护, 与同链路的 task callback 已有保护对齐, 修掉 local agent 重试 / 异常断连后重发 complete callback 会污染历史 job `completed_at` / `error` 的功能缺陷; ele-autotesting 给 `/markdown-research` 加 `MAX_MARKDOWN_LENGTH = 2MB` + `MAX_BODY_BYTES = 4MB` 双层 size guard, 堵住攻击者上传巨型 markdown 撑爆 Worker 128MB 单实例内存的 OOM 放大面. gateway 路径分发 / `/autotest/*` strip / SSR loader / service bindings 行为不变.
+
+[1.9.8]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.7...v1.9.8
+
 ## [1.9.7] - 2026-05-20
 
 整体目标: AI 主动扫雷第五轮 — service binding 失败的可观测性补全, 与 lockstep 联调 ele-autopilot Job 时间戳修正 / ele-autotesting 外部 fetch 超时 / ele-autopilot-local callback 重试一起发版.

@@ -6,6 +6,7 @@ import { isValidId } from '@/lib/db/utils';
 import { jsonResponse, methodNotAllowed } from '@/app/lib/api-shared';
 
 const FINAL_STATUSES: JobStatus[] = ['completed', 'failed'];
+const TERMINAL_JOB_STATUSES = new Set<JobStatus>(['completed', 'failed']);
 
 function envelope(code: number, message: string, data: unknown = null, status = 200) {
   return jsonResponse({ code, message, data }, { status });
@@ -42,6 +43,13 @@ export async function action({ request, params }: ActionFunctionArgs) {
   const status = payload.status;
   if (typeof status !== 'string' || !FINAL_STATUSES.includes(status as JobStatus)) {
     return envelope(400, 'Invalid status, must be completed or failed', null, 400);
+  }
+
+  // 幂等保护: job 已是终态 (completed / failed) 时, 拒绝 complete callback 覆盖
+  // completed_at / error — 与 task callback 的终态保护对齐, 防止本地 agent 重试
+  // 或异常断连后重发 callback 污染历史指标 (任务结束时间被刷新, error 被空覆盖).
+  if (TERMINAL_JOB_STATUSES.has(job.status)) {
+    return envelope(0, 'ignored (job already in terminal state)', null);
   }
 
   const error = typeof payload.error === 'string' ? payload.error : null;
