@@ -271,9 +271,19 @@
                 <div style="font-size: 13px; margin-bottom: 8px">
                   <a :href="apAutopilotUrl" target="_blank" rel="noopener" style="color: var(--theme-link, #2563eb)">→ 打开 Autopilot 工作台</a>
                 </div>
-                <details style="margin-top: 8px">
-                  <summary style="cursor: pointer; font-size: 13px">task ids ({{ ap.ingestResult?.tasks.length ?? 0 }})</summary>
-                  <pre class="ds-ms-pre" style="max-height: 200px; overflow: auto; font-size: 12px; padding: 8px; background: rgba(0,0,0,0.04); border-radius: 4px">{{ ap.ingestResult?.tasks.map((t: any) => t.id).join('\n') }}</pre>
+                <details v-if="ap.ingestResult?.tasks.length" style="margin-top: 8px" open>
+                  <summary style="cursor: pointer; font-size: 13px">task ids ({{ ap.ingestResult.tasks.length }}) · 点击直跳预览</summary>
+                  <div style="max-height: 200px; overflow: auto; font-size: 12px; padding: 8px; background: rgba(0,0,0,0.04); border-radius: 4px; margin-top: 4px; display: flex; flex-direction: column; gap: 2px">
+                    <a
+                      v-for="t in ap.ingestResult.tasks"
+                      :key="t.id"
+                      :href="apTaskPreviewUrl(t.id)"
+                      target="_blank"
+                      rel="noopener"
+                      style="font-family: ui-monospace, monospace; color: var(--theme-link, #2563eb); text-decoration: none"
+                      :title="`打开任务预览 ${t.id}`"
+                    >#{{ t.id.slice(0, 8) }} · {{ t.id }}</a>
+                  </div>
                 </details>
               </div>
               <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px">
@@ -632,11 +642,18 @@ function parseHarnessText(text: string): ApParsedTask[] {
 
 const apParsedTasks = computed(() => parseHarnessText(ap.harnessText))
 
+// 录入完成后直跳 Autopilot 工作台 + 锁定刚 upsert 的 folder, deep link 协议同
+// MeterSphereDataPanel: AdminTaskExplorer 读 URL ?folderId= 选中该 folder.
 const apAutopilotUrl = computed(() => {
-  // gateway 公网入口; ele-autopilot web 工作台 = 根路径下 admin 视图. 直接打开 base 即可.
-  // 拼上 folder_id 可深链, 但 ele-autopilot 路由本期未对外约定参数, 走根 + 让用户筛 source=autotesting.
-  return new URL('/', window.location.origin).toString()
+  const url = new URL('/autopilot', window.location.origin)
+  const fid = ap.ingestResult?.folder_id
+  if (fid) url.searchParams.set('folderId', fid)
+  return url.toString()
 })
+
+function apTaskPreviewUrl(taskId: string): string {
+  return new URL(`/autopilot/preview/${encodeURIComponent(taskId)}`, window.location.origin).toString()
+}
 
 function openSendAutopilot() {
   if (!canSendAutopilot.value) return

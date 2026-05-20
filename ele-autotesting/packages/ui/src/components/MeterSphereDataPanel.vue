@@ -348,7 +348,13 @@
                     >
                       <span style="font-family: ui-monospace, monospace; opacity: 0.7">{{ row.msLabel }}</span>
                       <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap" :title="row.title">{{ row.title }}</span>
-                      <span style="font-family: ui-monospace, monospace; opacity: 0.6" :title="row.taskId">#{{ row.taskId.slice(0, 8) }}</span>
+                      <a
+                        :href="apTaskPreviewUrl(row.taskId)"
+                        target="_blank"
+                        rel="noopener"
+                        style="font-family: ui-monospace, monospace; color: var(--theme-link, #2563eb); text-decoration: none"
+                        :title="`打开任务预览 ${row.taskId}`"
+                      >#{{ row.taskId.slice(0, 8) }}</a>
                     </div>
                   </div>
                 </details>
@@ -799,7 +805,21 @@ const apStepLabel = computed(() => {
   }
 })
 
-const apAutopilotUrl = computed(() => new URL('/', window.location.origin).toString())
+// 录入完成后直跳 Autopilot 工作台并锁定到刚 upsert 的 folder; folderId deep link 协议在
+// ele-autopilot AdminTaskExplorer 中读 URL ?folderId=. 任一缺失 (未录入 / 未拿到 folder_id)
+// 时回退到根 /autopilot, 进入第一个 root folder, 不阻塞用户.
+const apAutopilotUrl = computed(() => {
+  const url = new URL('/autopilot', window.location.origin)
+  const fid = ap.ingestResult?.folder_id
+  if (fid) url.searchParams.set('folderId', fid)
+  return url.toString()
+})
+
+// 单条 task 直链到 Autopilot 任务预览页 (/autopilot/preview/<taskId>). 录入对照表渲染时
+// 用它生成 <a>, 用户点击 task id 直接看 job 历史 / 执行截图, 不再需要先回工作台搜.
+function apTaskPreviewUrl(taskId: string): string {
+  return new URL(`/autopilot/preview/${encodeURIComponent(taskId)}`, window.location.origin).toString()
+}
 
 function applyPreset(key: string) {
   const preset = promptPresets.find((p) => p.key === key)

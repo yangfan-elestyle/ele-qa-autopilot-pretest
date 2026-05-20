@@ -2,6 +2,13 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.13.2] - 2026-05-21
+
+### Added
+
+- 任务工作台支持 URL deep link `?folderId=<id>`: 外部系统 (autotesting 等) ingest 完成后, 给出的"打开 Autopilot 工作台"链接可直接锁定到刚 upsert 的 folder, 进入页面即看到该 folder 下的任务列表, 不再需要逐级展开侧栏树寻找.
+- 用户在工作台手动切换 folder 时, 浏览器地址栏同步更新, 可作为书签 / 复制分享给同事直接定位到同一 folder.
+
 ## [1.12.2] - 2026-05-21
 
 ### Fixed

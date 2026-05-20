@@ -18,12 +18,21 @@ import TaskModal, { type TaskFormValues } from './task-modal';
 import SourceTag from './source-tag';
 import TaskTitleTag from './task-title-tag';
 
+// URL deep link 协议: `/autopilot?folderId=<id>` 直接打开指定 folder; selectedFolderId 变更
+// 时反向 history.replaceState 同步, 不触发 react-router navigate / loader 重跑, 保留 SPA 状态.
+// 用于外部系统 (autotesting 等) ingest 完成后给用户一个能"立刻看到刚录入那批 task"的入口.
+function readInitialFolderIdFromUrl(): Id | null {
+  if (typeof window === 'undefined') return null;
+  const id = new URLSearchParams(window.location.search).get('folderId');
+  return id && id.trim() ? id.trim() : null;
+}
+
 export default function AdminTaskExplorer() {
   const { message, modal } = App.useApp();
 
   const [folders, setFolders] = useState<Folder[]>([]);
   const [foldersLoading, setFoldersLoading] = useState(false);
-  const [selectedFolderId, setSelectedFolderId] = useState<Id | null>(null);
+  const [selectedFolderId, setSelectedFolderId] = useState<Id | null>(readInitialFolderIdFromUrl);
 
   const [treeSearch, setTreeSearch] = useState('');
   const [expandedKeys, setExpandedKeys] = useState<React.Key[]>([]);
@@ -182,6 +191,43 @@ export default function AdminTaskExplorer() {
     setExpandedKeys(Array.from(visibleFolderIds));
     setAutoExpandParent(true);
   }, [visibleFolderIds]);
+
+  // selectedFolderId -> URL ?folderId=. 用 replaceState 不入历史栈, 避免来回切 folder
+  // 把后退键塞满. 走 URL 而非 router navigate, 防止 RR7 触发 loader 重跑.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const url = new URL(window.location.href);
+    const current = url.searchParams.get('folderId');
+    if (selectedFolderId && current !== selectedFolderId) {
+      url.searchParams.set('folderId', selectedFolderId);
+      window.history.replaceState(window.history.state, '', url.toString());
+    } else if (!selectedFolderId && current) {
+      url.searchParams.delete('folderId');
+      window.history.replaceState(window.history.state, '', url.toString());
+    }
+  }, [selectedFolderId]);
+
+  // 自动展开 selectedFolderId 的所有祖先节点, 让 deep link 进来时左侧树直接落在目标 folder.
+  // 仅在 folders 数据到位且祖先未全部展开时触发, 不与 visibleFolderIds 的搜索过滤逻辑互冲.
+  useEffect(() => {
+    if (!selectedFolderId || folders.length === 0) return;
+    if (treeSearch.trim()) return;
+    const folderByIdMap = new Map<Id, Folder>();
+    for (const f of folders) folderByIdMap.set(f.id, f);
+    const ancestors: Id[] = [];
+    let cur = folderByIdMap.get(selectedFolderId);
+    while (cur?.parent_id) {
+      ancestors.push(cur.parent_id);
+      cur = folderByIdMap.get(cur.parent_id);
+    }
+    if (!ancestors.length) return;
+    setExpandedKeys((prev) => {
+      const prevSet = new Set(prev);
+      const missing = ancestors.filter((id) => !prevSet.has(id));
+      if (!missing.length) return prev;
+      return [...prev, ...missing];
+    });
+  }, [selectedFolderId, folders, treeSearch]);
 
   function openCreateFolderModal(parentId: Id | null) {
     setFolderModalMode('create');

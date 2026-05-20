@@ -2,6 +2,13 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.13.2] - 2026-05-21
+
+### Changed
+
+- 「送至 Autopilot」录入完成步骤的"打开 Autopilot 工作台"链接现在带上刚 upsert 的 folder_id, 点击后 Autopilot 工作台直接锁定到该 folder, 不必再回根目录手动找路径. MeterSphere 与 AutoTest 两个面板同步生效.
+- 录入对照 / task ids 列表中的 task id 改为可点击链接, 点开直接跳到 Autopilot 任务预览页 (job 历史 / 执行截图), 录入闭环可以在两步内完成核对.
+
 ## [1.13.1] - 2026-05-21
 
 ### Added
