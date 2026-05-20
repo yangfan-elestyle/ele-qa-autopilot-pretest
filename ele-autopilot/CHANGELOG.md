@@ -2,14 +2,20 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
-## [1.9.8] - 2026-05-20
+## [1.9.9] - 2026-05-20
 
-整体目标: AI 主动扫雷第六轮 — 补齐 job complete callback 的幂等保护. `api.jobs.$id.callback.task.tsx` 早已带终态保护 (existing 已 `completed`/`failed` 时拒绝降级回 `running`/`pending`), 但同链路的 `api.jobs.$id.callback.complete.tsx` 此前没有对应防线 — 已 completed/failed 的 job 在 local agent 重试 / 异常断连后重发 complete callback 时, `updateJobById` 会把新的 `completed_at` 写进去, `error` 字段也会被覆盖 (新 callback 给空就清空, 给值就刷新). 表现是 admin UI 上历史 job 的"结束时间"突然跳到几分钟后, "失败原因"被覆盖成空字符串或新的提示, 误导排查. 本轮把 complete callback 也加上 `job.status` 终态保护与 task callback 对齐.
+整体目标: AI 主动扫雷第七轮 — 跨工程功能流程审计后的双线修复. 重点收两条曾在体感上"任务卡住又找不到根因"的链路: (1) callback.task 单张截图坏 base64 让整条 callback 500 → task 永卡 running; (2) admin UI 调本地 agent 三处 fetch 全无 timeout, 本地 agent hang 时 UI 一直 spinner 只能刷页. 同步在 lockstep 把 ele-autopilot-local `callback.py` 的 callback 子路径 (`/task` / `/complete`) 从硬编码字符串提为顶层常量并消除尾斜杠拼接歧义, 与 server 端 `app/routes.ts` 注册的 `/api/jobs/:id/callback/{task,complete}` 形成可审计的契约绑定.
+
+### Fixed
+
+- `lib/screenshots.ts` `externalizeScreenshots` 把 `writeScreenshotToR2(...)` 包进逐张 try-catch: 此前 `base64ToBytes` 内部 `atob()` 遇 base64 非法字符会抛 `InvalidCharacterError`, 该异常从 `await externalizeScreenshots(existing.id, result)` 一路冒到 `app/routes/api.jobs.$id.callback.task.tsx` 的外层 try 之外 (调用点在 try 之前), 直接让 callback 返 500 → local agent 在 retry 上限 (3 次) 之后 give up, server 端 `job_tasks.status` 永远停在前一个值, `syncJobStatusFromTasks` 也没数据可推导 → admin UI 看到的 task 永远 running 永不收敛. 现在单张失败仅 `console.warn` + 字段置 null, 同一 step 的其他截图与整体 task 状态正常落地; `writeScreenshotToR2` 函数注释也补了"让异常向上传播给逐张 try-catch"的契约说明, 防止后续被人无意收回函数内部.
+- `app/admin/_services/local-api.ts` 三处 `fetch` 加显式 `AbortSignal.timeout`: `dispatchToLocal` (POST `/autopilot/run`) 30s, `stopJobOnLocal` (POST `/autopilot/jobs/:id/stop`) 10s, `checkLocalConnection` (GET `/system/connect`) 5s. 此前裸 fetch 无超时, 本地 agent 卡死 / Chrome user data dir 锁未释放 / wifi 切换网络黑洞时, 前端 spinner 永远转, 用户只能刷新整页. timeout 阈值按各路径业务上限给: dispatch 留 30s 因为 Chrome 冷启动 + browser-use Agent 初始化在慢机上能跑到 10s+, stop / connect 走静态路径短超时. `TimeoutError` 分支 throw 时携带 `{ cause: err }` 满足 ESLint `preserve-caught-error` 规则, UI 上抛出可读中文 ("Local API 超时 ..."); `checkLocalConnection` 的 catch 保持静默返回 false (轮询接口不应让一次失败把 useAgentConnection hook 崩成 error 态).
 
 ### Fixed
 
 - `app/routes/api.jobs.$id.callback.complete.tsx`: 新增 `TERMINAL_JOB_STATUSES = new Set<JobStatus>(['completed', 'failed'])`, 校验 status 字段格式之后立刻判断当前 `job.status`, 若已是终态直接返回 `envelope(0, 'ignored (job already in terminal state)', null)` (200 OK + code 0, 不算错误, 让 local 端 `_post_with_retry` 视为成功停止重试). 不动 `task` callback 路径 — 那里早已带 `isTerminal(existing.status) && !isTerminal(nextStatus)` 反降级保护, 本次只是把同样的语义对齐到 job 维度. 没改 `syncJobStatusFromTasks` — 它从 `job_tasks` 真实状态推导 jobs.status 是幂等的, 与新加的拦截层叠加无副作用 (终态 job 走不到 sync 调用).
 
+[1.9.9]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.8...v1.9.9
 [1.9.8]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.7...v1.9.8
 
 ## [1.9.7] - 2026-05-20

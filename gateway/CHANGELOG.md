@@ -2,6 +2,14 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.9.9] - 2026-05-20
+
+### Changed
+
+- lockstep 同步, 与上游 v1.9.9 一同发布; 本项目无业务改动 (workers/app.ts 路径分发 / `/autotest/*` strip / `/index.html` 301 / RR SSR landing / service bindings forwardTo 兜底全部不变). 本轮上游聚焦 AI 主动扫雷第七轮: ele-autopilot 把 `lib/screenshots.ts` 的 `externalizeScreenshots` 单张截图异常隔离掉 (此前 base64 非法字符会让 `atob()` 抛 InvalidCharacterError, 整条 callback 500, local agent retry 完 task 永卡 running) + `app/admin/_services/local-api.ts` 三处 fetch 加 `AbortSignal.timeout` (dispatch 30s / stop 10s / connect 5s, 修掉 local agent hang 时 UI 永远 spinner); ele-autopilot-local 把 `callback.py` 的 `/task` / `/complete` 子路径提为顶层常量并入口 normalize callback_url 尾斜杠, 形成与 server 端 `app/routes.ts` 的双向人工锁契约.
+
+[1.9.9]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.8...v1.9.9
+
 ## [1.9.8] - 2026-05-20
 
 ### Changed

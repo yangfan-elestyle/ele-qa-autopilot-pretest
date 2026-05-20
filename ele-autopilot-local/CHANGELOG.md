@@ -2,6 +2,21 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.9.9] - 2026-05-20
+
+整体目标: AI 主动扫雷第七轮 — 把 callback 子路径从两处硬编码字符串提为顶层常量, 与上游 ele-autopilot `app/routes.ts` 注册的 `/api/jobs/:id/callback/{task,complete}` 形成可审计的契约绑定, 同时消除 `callback_url` 尾斜杠传入时的拼接歧义.
+
+### Fixed
+
+- `autopilot/callback.py` 新增 `TASK_CALLBACK_SUBPATH = "/task"` 与 `COMPLETE_CALLBACK_SUBPATH = "/complete"` 顶层常量并配契约绑定注释 (与 server 端 React Router 路由对应), `report_task_update` / `report_job_complete` 拼 URL 改用常量. 此前两处 f-string 硬编码 `/task` / `/complete`, 与 server 端文件名约定 (`api.jobs.$id.callback.task.tsx`) 没有任何编译期 / 静态 grep 期的关联 — 谁动一端 (比如把路由文件改名成 `.task-result.`) 都不会触发另一端编译失败, 只会等 deploy 后所有 callback 静默 404, local agent retry 完直接 give up, server 端 jobs 全卡 running. 现在常量化让 grep `TASK_CALLBACK_SUBPATH` 直接命中关键定义, 后续任一端修路径必须同步另一端的字符串字面值, 形成最小成本的人工双向锁.
+- `autopilot/callback.py` `CallbackClient.__init__` 对 `callback_url` 做 `.rstrip("/")`: 此前 server 端下发的 `callback_url` 若意外带尾斜杠 (`/api/jobs/{id}/callback/`), `f"{self.callback_url}/task"` 会拼出 `/api/jobs/{id}/callback//task`, 部分 web server / 反向代理会归一化双斜杠, 部分不会 — 跨环境表现不一致. 入口处 normalize 之后, 不论 server 端怎么写, 出口 URL 都是 `/api/jobs/{id}/callback/task` 单一形态. 对 `None` 输入仍保持 `None` 不变 (Local 独立模式无 callback).
+
+### Changed
+
+- lockstep 同步发版, 与上游 gateway / ele-autopilot / ele-autotesting v1.9.9 一同推. 上游 ele-autopilot 同步修了 `lib/screenshots.ts` `externalizeScreenshots` 的单张截图异常隔离 (此前 atob 抛 InvalidCharacterError 会让整条 callback 500 → local agent retry 上限后 task 永卡 running) 与 `app/admin/_services/local-api.ts` 三处 fetch 显式 timeout. 本端 callback payload 字段 / 重试策略 / HTTP 状态码语义全部不变.
+
+[1.9.9]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.8...v1.9.9
+
 ## [1.9.8] - 2026-05-20
 
 ### Changed

@@ -1,3 +1,11 @@
+# 2026.05.20 (lockstep v1.9.9)
+
+## Changed
+
+1. lockstep 同步, 与 gateway / ele-autopilot / ele-autopilot-local v1.9.9 一同发布; 本项目 (`packages/{core,ui,web,server}` / `containers/markitdown`) 业务路由 / D1 schema / Static Assets `run_worker_first` / proxyGuard SSRF 防护 / `/api/sync` owner 过滤 全部不变. 本轮上游聚焦 AI 主动扫雷第七轮: ele-autopilot 修 `lib/screenshots.ts` `externalizeScreenshots` 的单张截图异常隔离 + `app/admin/_services/local-api.ts` 三处 fetch 显式 timeout, ele-autopilot-local 把 callback 子路径从硬编码字符串提为顶层常量并入口 normalize callback_url 尾斜杠. 三块改动都不涉及本工程的路由表 / Container binding / `assets.run_worker_first`.
+
+[1.9.9]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.8...v1.9.9
+
 # 2026.05.20 (lockstep v1.9.8)
 
 整体目标: AI 主动扫雷第六轮 — 补 `/markdown-research` 路由的 body size guard. 此前 handler 直接 `c.req.json()` 把整个 body 读到 memory, 没有任何 size 校验, 攻击者只要 POST 一个几十 MB 的 markdown 字段就能把 Worker 单实例 128MB 内存撑爆触发 OOM 502; 同 Worker 上的其他业务路由 (figma / confluence / sync) 都会被连锁影响. 路由背后插件链一次最多分析 50 张图, 实际业务对 markdown 文本长度需求 ≤ 2MB (Confluence 单页 / 设计稿 md 导出常见在百 KB 量级), 加一道双层 size guard 即可堵住这条放大面.

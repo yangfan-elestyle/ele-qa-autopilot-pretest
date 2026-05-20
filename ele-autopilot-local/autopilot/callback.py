@@ -26,6 +26,14 @@ DEFAULT_RETRIES = 3
 RETRY_BACKOFF_BASE_SECONDS = 1.0
 RETRYABLE_STATUS = {408, 429, 500, 502, 503, 504}
 
+# 与 ele-autopilot `app/routes.ts` 注册的子路径绑定:
+#   /api/jobs/:id/callback/task     -> api.jobs.$id.callback.task.tsx
+#   /api/jobs/:id/callback/complete -> api.jobs.$id.callback.complete.tsx
+# server 收到的 callback_url 已经包含 `/api/jobs/{job_id}/callback`, 这里只拼后缀.
+# 双向耦合: 任一端改路径必须同步另一端, 否则 callback 全 404 → 任务永卡 running.
+TASK_CALLBACK_SUBPATH = "/task"
+COMPLETE_CALLBACK_SUBPATH = "/complete"
+
 
 class CallbackClient:
     """回调客户端（Local 主动回调 Server）"""
@@ -37,8 +45,10 @@ class CallbackClient:
         Args:
             callback_url: Server 的回调基础 URL，格式：http://server-host:port/api/jobs/{job_id}/callback
                          如果为 None，则不执行回调（Local 独立运行模式）
+                         尾部斜杠会被剥掉 — 避免 client 端传 `.../callback/` 时
+                         拼出 `.../callback//task`, 某些 server normalize 不一致.
         """
-        self.callback_url = callback_url
+        self.callback_url = callback_url.rstrip("/") if callback_url else None
         self.client = httpx.AsyncClient(timeout=30.0) if callback_url else None
 
     async def _post_with_retry(
@@ -137,7 +147,7 @@ class CallbackClient:
             "completed_at": completed_at.isoformat() if completed_at else None,
         }
 
-        url = f"{self.callback_url}/task"
+        url = f"{self.callback_url}{TASK_CALLBACK_SUBPATH}"
         return await self._post_with_retry(url, payload, f"Task callback ({status})")
 
     async def report_job_complete(
@@ -166,7 +176,7 @@ class CallbackClient:
             "completed_at": completed_at.isoformat() if completed_at else None,
         }
 
-        url = f"{self.callback_url}/complete"
+        url = f"{self.callback_url}{COMPLETE_CALLBACK_SUBPATH}"
         return await self._post_with_retry(url, payload, f"Job complete callback ({status})")
 
     async def close(self) -> None:

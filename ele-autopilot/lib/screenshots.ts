@@ -40,6 +40,9 @@ async function writeScreenshotToR2(
 ): Promise<string> {
   const { SCREENSHOTS } = getBindings();
   const key = `${jobTaskId}/${stepIndex}.png`;
+  // base64ToBytes 内部 atob() 遇非法字符抛 InvalidCharacterError; SCREENSHOTS.put
+  // 也可能因 R2 暂态故障抛错. 让异常向上传播给 externalizeScreenshots 的逐张
+  // try-catch 捕获 — 单张失败就置 null 不阻断其他截图与 task 状态写入.
   await SCREENSHOTS.put(key, base64ToBytes(stripDataUriPrefix(base64)), {
     httpMetadata: { contentType: 'image/png' },
   });
@@ -79,6 +82,11 @@ export async function deleteScreenshotsByJobTaskIds(jobTaskIds: string[]): Promi
 /**
  * 把 result.steps[].thinking_image 的 base64 内嵌图片抽出落盘到 R2,
  * 字段值替换为 /screenshots/{id}/{i}.png. 幂等 (已经是路径的不动).
+ *
+ * 单张截图失败 (base64 解码异常 / R2 暂态故障) 不打断整条 callback —
+ * 该字段置 null + console.warn, 其他步骤继续处理. 没有这层隔离时,
+ * 一张坏图 → atob() 抛 InvalidCharacterError → callback 整体 500
+ * → local agent 重试到上限后整个 task 永远卡在 running.
  */
 export async function externalizeScreenshots(
   jobTaskId: string,
@@ -98,7 +106,15 @@ export async function externalizeScreenshots(
       step.thinking_image = null;
       continue;
     }
-    step.thinking_image = await writeScreenshotToR2(jobTaskId, i, img);
+    try {
+      step.thinking_image = await writeScreenshotToR2(jobTaskId, i, img);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.warn(
+        `[screenshots] step ${i} of ${jobTaskId} dropped: write failed: ${message}`,
+      );
+      step.thinking_image = null;
+    }
   }
 
   return result;

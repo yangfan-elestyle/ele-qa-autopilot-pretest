@@ -31,6 +31,13 @@ type LocalRunResponse = {
   } | null;
 };
 
+// 本地 agent 无网络等待, 但浏览器冷启动 / Chrome user data dir 解锁慢时 dispatch
+// 可能要 10s+. 30s 给一份余量, 同时确保用户 hang 时 UI 30s 内能弹错而不是
+// 永远 spinner. stop / connect 走静态路径, 短超时.
+const FETCH_TIMEOUT_DISPATCH_MS = 30_000;
+const FETCH_TIMEOUT_STOP_MS = 10_000;
+const FETCH_TIMEOUT_CONNECT_MS = 5_000;
+
 /**
  * 下发任务到 Local
  *
@@ -44,11 +51,23 @@ export async function dispatchToLocal(request: LocalRunRequest): Promise<LocalRu
   const { config, ...rest } = request;
   const payload: LocalRunPayload = { ...rest, ...config };
 
-  const response = await fetch(`${agentUrl}/autopilot/run`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${agentUrl}/autopilot/run`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_DISPATCH_MS),
+    });
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'TimeoutError') {
+      throw new Error(
+        `Local API 超时 (>${FETCH_TIMEOUT_DISPATCH_MS / 1000}s), 请确认本地 agent 是否响应`,
+        { cause: err },
+      );
+    }
+    throw err;
+  }
 
   if (!response.ok) {
     throw new Error(`Local API error: ${response.status} ${response.statusText}`);
@@ -77,11 +96,23 @@ type StopJobResponse = {
 export async function stopJobOnLocal(jobId: string, taskId?: string): Promise<StopJobResponse> {
   const agentUrl = getAgentUrl();
 
-  const response = await fetch(`${agentUrl}/autopilot/jobs/${jobId}/stop`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(taskId ? { task_id: taskId } : {}),
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${agentUrl}/autopilot/jobs/${jobId}/stop`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(taskId ? { task_id: taskId } : {}),
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_STOP_MS),
+    });
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'TimeoutError') {
+      throw new Error(
+        `Local API 超时 (>${FETCH_TIMEOUT_STOP_MS / 1000}s), 请确认本地 agent 是否响应`,
+        { cause: err },
+      );
+    }
+    throw err;
+  }
 
   if (!response.ok) {
     const error = (await response
@@ -105,6 +136,7 @@ export async function checkLocalConnection(): Promise<boolean> {
     const response = await fetch(`${agentUrl}/system/connect`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_CONNECT_MS),
     });
 
     if (!response.ok) return false;
@@ -112,6 +144,9 @@ export async function checkLocalConnection(): Promise<boolean> {
     const result = (await response.json()) as { code: number };
     return result.code === 0;
   } catch {
+    // 包括 TimeoutError / NetworkError / 任何非预期异常: 一律视为未连接.
+    // 不向 UI 抛, checkLocalConnection 是轮询性接口, 不应让一次失败把
+    // 整个 useAgentConnection hook 崩成 error 态.
     return false;
   }
 }
