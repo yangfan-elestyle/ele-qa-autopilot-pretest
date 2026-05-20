@@ -63,6 +63,14 @@
         <template v-if="caseTotal">· 第 {{ casePage }} 页 / {{ Math.max(1, Math.ceil(caseTotal / casePageSize)) }}</template>
         <template v-if="selectedIds.size">· 已选 {{ selectedIds.size }}</template>
       </span>
+      <div class="ds-ms-actions">
+        <button
+          class="ds-ms-btn ds-ms-btn--primary"
+          :disabled="!canSendAutopilot"
+          :title="sendAutopilotDisabledReason"
+          @click="openSendAutopilot"
+        >送至 Autopilot</button>
+      </div>
     </div>
 
     <div class="ds-ms-table-wrap">
@@ -160,11 +168,194 @@
       <span>{{ casePage }}</span>
       <button class="ds-ms-btn ds-ms-btn--mini" :disabled="casePage * casePageSize >= caseTotal || loading.cases" @click="loadCases(casePage + 1)">下一页</button>
     </div>
+
+    <!-- 送至 Autopilot 弹框: 拉详情 -> 预览 + prompt 编辑 -> harness -> 切片审阅 + folder -> 录入 -->
+    <Teleport to="body">
+      <div v-if="ap.open" class="fixed inset-0 theme-mask z-50 flex items-center justify-center p-4" @click="closeSendAutopilot">
+        <div
+          class="theme-manager-container w-full mx-auto flex flex-col overflow-hidden"
+          style="max-width: 880px; max-height: 92vh"
+          @click.stop
+        >
+          <header class="ds-modal-head">
+            <div class="ds-modal-head-left">
+              <h3 class="ds-modal-title">MS 用例 → Autopilot · {{ apStepLabel }}</h3>
+            </div>
+            <div class="ds-modal-head-right">
+              <button class="ds-icon-btn-sm" type="button" @click="closeSendAutopilot" :disabled="apBusy" aria-label="关闭">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M18 6 6 18" />
+                  <path d="m6 6 12 12" />
+                </svg>
+              </button>
+            </div>
+          </header>
+
+          <div class="ds-modal-body" style="padding: 16px; overflow: auto">
+            <!-- 步骤 1: 拉详情 -->
+            <section v-if="ap.step === 'fetching'">
+              <div style="display: flex; align-items: center; gap: 12px; padding: 16px 8px">
+                <div class="ds-ms-spinner"></div>
+                <div>
+                  <div style="font-weight: 500">并发拉取 MS 用例详情…</div>
+                  <div style="font-size: 13px; opacity: 0.7; margin-top: 4px">
+                    {{ ap.fetched }} / {{ ap.total }} 完成 · 失败 {{ ap.failedFetch }}
+                  </div>
+                </div>
+              </div>
+              <div v-if="ap.error" class="ds-ms-error" style="margin-bottom: 8px">{{ ap.error }}</div>
+            </section>
+
+            <!-- 步骤 2: 预览聚合 + prompt 模板编辑 -->
+            <section v-if="ap.step === 'preview'">
+              <div style="font-size: 13px; opacity: 0.8; margin-bottom: 8px">
+                已拉取 <strong>{{ ap.details.length }}</strong> 条 MS 用例详情
+                <template v-if="ap.failedFetch">· <span style="color: var(--theme-danger, #b00)">{{ ap.failedFetch }} 条失败 (已跳过)</span></template>.
+                聚合成一段文本, 经 harness 走 prompt 模板处理后, 按 "=== CASE N: " 头切片录入 Autopilot.
+              </div>
+
+              <div style="margin-bottom: 10px">
+                <label style="display: block; font-size: 12px; opacity: 0.8; margin-bottom: 4px">
+                  prompt 模板 (preset 一键填入, 也可自由编辑; 模板尾部会自动拼接聚合后的用例文本)
+                </label>
+                <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px">
+                  <button
+                    v-for="p in promptPresets"
+                    :key="p.key"
+                    class="ds-ms-btn ds-ms-btn--mini"
+                    type="button"
+                    :title="p.tip"
+                    @click="applyPreset(p.key)"
+                  >{{ p.label }}</button>
+                </div>
+                <textarea
+                  v-model="ap.promptTemplate"
+                  rows="6"
+                  style="width: 100%; font-size: 12px; font-family: ui-monospace, monospace; padding: 8px; border-radius: 4px; border: 1px solid var(--theme-border, #ccc); resize: vertical"
+                />
+              </div>
+
+              <details style="margin-bottom: 12px">
+                <summary style="cursor: pointer; font-size: 13px; padding: 4px 0">聚合预览 ({{ apAggregatedText.length }} chars)</summary>
+                <pre class="ds-ms-pre" style="max-height: 300px; overflow: auto; font-size: 12px; white-space: pre-wrap; padding: 8px; background: rgba(0,0,0,0.04); border-radius: 4px">{{ apAggregatedText }}</pre>
+              </details>
+
+              <div v-if="ap.error" class="ds-ms-error" style="margin-bottom: 8px">{{ ap.error }}</div>
+
+              <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px">
+                <button class="ds-ms-btn" type="button" @click="closeSendAutopilot">取消</button>
+                <button
+                  class="ds-ms-btn ds-ms-btn--primary"
+                  :disabled="!ap.details.length || !ap.promptTemplate.trim()"
+                  @click="callHarness"
+                >调 harness</button>
+              </div>
+            </section>
+
+            <!-- 步骤 3: 调 harness 中 -->
+            <section v-if="ap.step === 'calling'">
+              <div style="display: flex; align-items: center; gap: 12px; padding: 24px 8px">
+                <div class="ds-ms-spinner"></div>
+                <div>
+                  <div style="font-weight: 500">harness 处理中…</div>
+                  <div style="font-size: 13px; opacity: 0.7; margin-top: 4px">
+                    需等待 AI 完成 oneshot 推理, 通常 10–90 秒. 已用 {{ ap.elapsed }}s
+                  </div>
+                </div>
+              </div>
+              <div v-if="ap.error" class="ds-ms-error" style="margin-bottom: 8px">{{ ap.error }}</div>
+            </section>
+
+            <!-- 步骤 4: 审阅 + 录入 -->
+            <section v-if="ap.step === 'edit'">
+              <div style="font-size: 13px; opacity: 0.8; margin-bottom: 8px">
+                harness 返回原文已展示. 可直接编辑下方文本, 切片按 "=== CASE N: " 头进行,
+                解析得到 <strong>{{ apParsedTasks.length }}</strong> 条 task.
+              </div>
+              <label style="display: block; font-size: 12px; opacity: 0.8; margin-bottom: 4px">harness 返回 (可编辑)</label>
+              <textarea
+                v-model="ap.harnessText"
+                style="width: 100%; min-height: 220px; max-height: 360px; font-size: 12px; font-family: ui-monospace, monospace; padding: 8px; border-radius: 4px; border: 1px solid var(--theme-border, #ccc); resize: vertical"
+              />
+
+              <div style="margin-top: 8px; font-size: 13px">
+                解析出的 tasks:
+                <ul style="margin: 4px 0 0 16px; padding: 0">
+                  <li v-for="(t, idx) in apParsedTasks" :key="idx" style="font-size: 12px; opacity: 0.85">
+                    {{ idx + 1 }}. <strong>{{ t.title }}</strong> ({{ t.text.length }} chars)
+                  </li>
+                  <li v-if="!apParsedTasks.length" style="color: var(--theme-danger, #b00); font-size: 12px">
+                    未解析到任何 task. 请检查文本是否包含 "=== CASE N: &lt;title&gt; ===" 头.
+                  </li>
+                </ul>
+              </div>
+
+              <div style="margin-top: 12px">
+                <label style="display: block; font-size: 12px; opacity: 0.8; margin-bottom: 4px">
+                  目标 folder_path (按 "/" 分段, autopilot 会逐级 upsert)
+                </label>
+                <input
+                  v-model="apFolderPath"
+                  type="text"
+                  list="ap-folder-history"
+                  style="width: 100%; padding: 6px 8px; border-radius: 4px; border: 1px solid var(--theme-border, #ccc); font-size: 13px"
+                  :placeholder="apFolderPlaceholder"
+                />
+                <datalist id="ap-folder-history">
+                  <option v-for="h in apFolderHistoryList" :key="h" :value="h" />
+                </datalist>
+                <div v-if="apFolderHistoryList.length" style="margin-top: 4px; font-size: 11px; opacity: 0.6">
+                  最近使用: {{ apFolderHistoryList.length }} 项, 输入框聚焦可下拉选择.
+                </div>
+              </div>
+
+              <div v-if="ap.error" class="ds-ms-error" style="margin-top: 8px">{{ ap.error }}</div>
+
+              <div style="display: flex; justify-content: space-between; gap: 8px; margin-top: 16px">
+                <button class="ds-ms-btn" type="button" @click="apResetToPreview" :disabled="ap.ingesting">
+                  重选 prompt / 再调一次
+                </button>
+                <div style="display: flex; gap: 8px">
+                  <button class="ds-ms-btn" type="button" @click="closeSendAutopilot" :disabled="ap.ingesting">取消</button>
+                  <button
+                    class="ds-ms-btn ds-ms-btn--primary"
+                    :disabled="!apParsedTasks.length || !apFolderPath.trim() || ap.ingesting"
+                    @click="callIngest"
+                  >{{ ap.ingesting ? '录入中…' : `录入 ${apParsedTasks.length} 条到 Autopilot` }}</button>
+                </div>
+              </div>
+            </section>
+
+            <!-- 步骤 5: 完成 -->
+            <section v-if="ap.step === 'done'">
+              <div style="padding: 8px 0">
+                <div style="font-size: 15px; font-weight: 500; margin-bottom: 8px; color: var(--theme-success, #2c8a4d)">
+                  录入成功: {{ ap.ingestResult?.tasks.length ?? 0 }} 条 task
+                </div>
+                <div style="font-size: 13px; opacity: 0.85; margin-bottom: 8px">
+                  folder_id: <code>{{ ap.ingestResult?.folder_id }}</code>
+                </div>
+                <div style="font-size: 13px; margin-bottom: 8px">
+                  <a :href="apAutopilotUrl" target="_blank" rel="noopener" style="color: var(--theme-link, #2563eb)">→ 打开 Autopilot 工作台</a>
+                </div>
+                <details style="margin-top: 8px">
+                  <summary style="cursor: pointer; font-size: 13px">task ids ({{ ap.ingestResult?.tasks.length ?? 0 }})</summary>
+                  <pre class="ds-ms-pre" style="max-height: 200px; overflow: auto; font-size: 12px; padding: 8px; background: rgba(0,0,0,0.04); border-radius: 4px">{{ ap.ingestResult?.tasks.map((t: any) => t.id).join('\n') }}</pre>
+                </details>
+              </div>
+              <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px">
+                <button class="ds-ms-btn ds-ms-btn--primary" type="button" @click="closeSendAutopilot">关闭</button>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { getApiBasePath } from '@prompt-optimizer/core'
 import { useBrowserCache } from '../composables/useBrowserCache'
 
@@ -447,4 +638,355 @@ function formatTs(ts?: number) {
   if (!ts) return '—'
   try { return new Date(ts).toISOString().replace('T', ' ').slice(0, 19) } catch { return String(ts) }
 }
+
+// ── 送至 Autopilot ─────────────────────────────────────────────────────────
+// 5 步: fetching (并发拉详情) → preview (编辑 prompt 模板) → calling (harness) →
+//        edit (审阅切片 + 编辑 folder_path) → done.
+// 切片头沿用与 AutotestCasesPanel 相同的 `=== CASE N: <title> ===`, 保持下游一致.
+// prompt 模板, folder_path, folder 历史均走 useBrowserCache, 重开面板自动恢复.
+
+const AP_CASE_HEADER_RE = /^===\s*CASE\s+(\d+):\s*(.*?)\s*===\s*$/i
+const AP_FOLDER_HISTORY_MAX = 8
+const AP_DEFAULT_PROMPT_TEMPLATE = `你是"传话人". 请把【】内的内容原样复述出来, 不要做任何改动 / 解读 / 归纳 / 评价 / 增删字符 / 翻译.
+保持分隔头 "=== CASE N: <title> ===" 原样, 不要去掉, 不要换行错位.
+不要在前后添加任何解释 / 寒暄 / 摘要; 只输出原文.`
+
+interface ApIngestResult {
+  folder_id: string
+  tasks: { id: string }[]
+}
+
+interface ApParsedTask { title: string; text: string }
+
+interface ApPromptPreset { key: string; label: string; tip: string; template: string }
+
+const promptPresets: ApPromptPreset[] = [
+  {
+    key: 'passthrough',
+    label: '传话人 (原文)',
+    tip: '让 harness 把内容原样吐回, 不做任何改写',
+    template: AP_DEFAULT_PROMPT_TEMPLATE,
+  },
+  {
+    key: 'distill',
+    label: '梳理 (合并去重)',
+    tip: '让 harness 合并重复 / 极相似 case, 输出仍按 CASE N 分隔',
+    template: `你是测试用例梳理助手. 请阅读【】内的多条测试用例, 合并重复 / 极相似的, 去掉冗余描述,
+保留必要的步骤与期望. 输出仍按 "=== CASE N: <title> ===" 头切分, N 从 1 开始重新编号,
+分隔头独占一行, 不允许去掉.
+仅输出整理后的用例文本, 不要附加任何解释 / 寒暄 / 摘要.`,
+  },
+  {
+    key: 'translate-en',
+    label: '翻译为英文',
+    tip: '把每条 case 翻成英文, 严格保留 CASE N 分隔头',
+    template: `请把【】内的每条测试用例翻译为英文.
+严格保留 "=== CASE N: <title> ===" 行不被翻译 / 不被去掉, N 与原文一一对应, 标题部分翻译.
+其他内容 (模块 / 步骤 / 期望) 翻译为自然的技术英文.
+仅输出翻译后的全文, 不要附加任何前言 / 寒暄 / 解释.`,
+  },
+  {
+    key: 'fill-expected',
+    label: '补充期望结果',
+    tip: '给缺期望或期望过简的 case 补充更具体的 expected',
+    template: `你是测试评审助手. 阅读【】内的每条测试用例, 对期望 / expected 缺失或过于简略的,
+基于步骤推断出更可执行的期望结果并补全 (尽量具体到 UI 反馈 / 状态码 / 文案).
+不要改步骤 / 模块 / 标签 / 标题. 严格保留 "=== CASE N: <title> ===" 头与原编号.
+仅输出补全后的全文, 不要附加任何解释 / 寒暄 / 摘要.`,
+  },
+]
+
+const apFolderPath = useBrowserCache<string>('autopilot.send.folderPath', '')
+const apFolderHistoryRaw = useBrowserCache<string>('autopilot.send.folderHistory', '')
+const apPromptTemplateCache = useBrowserCache<string>('autopilot.send.promptTemplate', AP_DEFAULT_PROMPT_TEMPLATE)
+
+const apFolderHistoryList = computed<string[]>(() => {
+  if (!apFolderHistoryRaw.value) return []
+  try {
+    const arr = JSON.parse(apFolderHistoryRaw.value)
+    return Array.isArray(arr) ? arr.filter((x) => typeof x === 'string' && x.trim()) : []
+  } catch { return [] }
+})
+
+function pushFolderHistory(path: string) {
+  const trimmed = path.trim()
+  if (!trimmed) return
+  const prev = apFolderHistoryList.value.filter((p) => p !== trimmed)
+  const next = [trimmed, ...prev].slice(0, AP_FOLDER_HISTORY_MAX)
+  apFolderHistoryRaw.value = JSON.stringify(next)
+}
+
+const apFolderPlaceholder = computed(() => {
+  const proj = projects.value.find((p) => p.id === projectId.value)?.name?.trim()
+  return proj ? `例: MeterSphere / ${proj}` : '例: MeterSphere / <项目名>'
+})
+
+interface ApRunState {
+  open: boolean
+  step: 'fetching' | 'preview' | 'calling' | 'edit' | 'done'
+  total: number
+  fetched: number
+  failedFetch: number
+  details: MsCaseDetail[]
+  promptTemplate: string
+  harnessText: string
+  elapsed: number
+  ingesting: boolean
+  ingestResult: ApIngestResult | null
+  error: string
+  sessionId: string | undefined
+}
+
+const ap = reactive<ApRunState>({
+  open: false,
+  step: 'fetching',
+  total: 0,
+  fetched: 0,
+  failedFetch: 0,
+  details: [],
+  promptTemplate: AP_DEFAULT_PROMPT_TEMPLATE,
+  harnessText: '',
+  elapsed: 0,
+  ingesting: false,
+  ingestResult: null,
+  error: '',
+  sessionId: undefined,
+})
+
+const apBusy = computed(() => ap.step === 'fetching' || ap.step === 'calling' || ap.ingesting)
+
+const canSendAutopilot = computed(() => selectedIds.value.size > 0 && !!ak.value.trim() && !!sk.value.trim())
+const sendAutopilotDisabledReason = computed(() => {
+  if (!selectedIds.value.size) return '请先选中至少一条 MS 用例'
+  if (!ak.value.trim() || !sk.value.trim()) return '请先填入 MS AK / SK'
+  return ''
+})
+
+const apStepLabel = computed(() => {
+  switch (ap.step) {
+    case 'fetching': return '1/5 拉取详情'
+    case 'preview': return '2/5 预览 + prompt'
+    case 'calling': return '3/5 harness 处理中'
+    case 'edit': return '4/5 审阅录入'
+    case 'done': return '5/5 完成'
+    default: return ''
+  }
+})
+
+const apAutopilotUrl = computed(() => new URL('/', window.location.origin).toString())
+
+function applyPreset(key: string) {
+  const preset = promptPresets.find((p) => p.key === key)
+  if (!preset) return
+  ap.promptTemplate = preset.template
+}
+
+function buildAggregatedFromDetails(details: MsCaseDetail[]): string {
+  const parts = details.map((d, idx) => {
+    let stepsBlock = ''
+    if (d.caseEditType === 'STEP') {
+      try {
+        const arr = JSON.parse(d.steps ?? '[]')
+        if (Array.isArray(arr) && arr.length) {
+          stepsBlock = '\n步骤:\n' + arr
+            .map((s: any, i: number) => {
+              const desc = (s?.desc ?? '').trim()
+              const result = (s?.result ?? '').trim()
+              return result ? `${i + 1}. ${desc} → 期望: ${result}` : `${i + 1}. ${desc}`
+            })
+            .join('\n')
+        }
+      } catch { /* steps 字段不是 json, 忽略 */ }
+    } else if (d.caseEditType === 'TEXT' && d.textDescription) {
+      stepsBlock = `\n描述:\n${d.textDescription}`
+    }
+    const expectedLine = d.expectedResult?.trim() ? `\n期望: ${d.expectedResult.trim()}` : ''
+    const preReqLine = d.prerequisite?.trim() ? `\n前置: ${d.prerequisite.trim()}` : ''
+    const tagsLine = d.tags?.length ? `\n标签: ${d.tags.join(', ')}` : ''
+    return `=== CASE ${idx + 1}: ${d.name} ===
+模块: ${d.moduleName ?? '—'}${preReqLine}${stepsBlock}${expectedLine}${tagsLine}`
+  })
+  return parts.join('\n\n')
+}
+
+const apAggregatedText = computed(() => buildAggregatedFromDetails(ap.details))
+
+function buildHarnessPrompt(template: string, aggregated: string): string {
+  // 模板 + 聚合文本; 用 `【...】` 包裹聚合体, 与 AutotestCasesPanel 一致, 让 LLM 知道边界.
+  return `${template.trim()}\n\n【\n${aggregated}\n】`
+}
+
+function parseHarnessText(text: string): ApParsedTask[] {
+  const lines = text.split(/\r?\n/)
+  const sections: ApParsedTask[] = []
+  let current: { title: string; bodyLines: string[] } | null = null
+  for (const line of lines) {
+    const m = line.match(AP_CASE_HEADER_RE)
+    if (m) {
+      if (current) sections.push({ title: current.title, text: current.bodyLines.join('\n').trim() })
+      current = { title: m[2] || `CASE ${m[1]}`, bodyLines: [] }
+    } else if (current) {
+      current.bodyLines.push(line)
+    }
+  }
+  if (current) sections.push({ title: current.title, text: current.bodyLines.join('\n').trim() })
+  return sections.filter((s) => s.text.length > 0)
+}
+
+const apParsedTasks = computed(() => parseHarnessText(ap.harnessText))
+
+function openSendAutopilot() {
+  if (!canSendAutopilot.value) return
+  ap.open = true
+  ap.step = 'fetching'
+  ap.total = selectedIds.value.size
+  ap.fetched = 0
+  ap.failedFetch = 0
+  ap.details = []
+  ap.promptTemplate = apPromptTemplateCache.value.trim() ? apPromptTemplateCache.value : AP_DEFAULT_PROMPT_TEMPLATE
+  ap.harnessText = ''
+  ap.ingestResult = null
+  ap.error = ''
+  ap.sessionId = undefined
+  ap.elapsed = 0
+  ap.ingesting = false
+  fetchSelectedDetails().catch((e) => { ap.error = `拉详情失败: ${e?.message ?? e}` })
+}
+
+function closeSendAutopilot() {
+  if (apBusy.value) return
+  ap.open = false
+}
+
+function apResetToPreview() {
+  if (ap.ingesting) return
+  ap.step = 'preview'
+  ap.error = ''
+}
+
+async function fetchSelectedDetails() {
+  const ids = Array.from(selectedIds.value)
+  // 并发但有上限 (5), 避免一次性给上游 MS / VPC 打太多并发.
+  const concurrency = 5
+  let cursor = 0
+  const results: MsCaseDetail[] = []
+
+  async function worker() {
+    while (cursor < ids.length) {
+      const i = cursor++
+      const id = ids[i]
+      try {
+        const res = await callApi<any>('GET', `/api/ms/case/${encodeURIComponent(id)}`)
+        const d: MsCaseDetail | null = res?.data ?? null
+        if (d) results.push(d)
+        else ap.failedFetch += 1
+      } catch {
+        ap.failedFetch += 1
+      } finally {
+        ap.fetched += 1
+      }
+    }
+  }
+
+  await Promise.all(Array.from({ length: Math.min(concurrency, ids.length) }, () => worker()))
+
+  // 按原列表 num 排序, 避免并发顺序错乱.
+  results.sort((a, b) => (a.num ?? 0) - (b.num ?? 0))
+  ap.details = results
+
+  if (!results.length) {
+    ap.error = '所有详情均拉取失败, 无法继续'
+    return
+  }
+
+  // 默认 folder_path: 优先用缓存, 没缓存时根据当前项目名给个建议值.
+  if (!apFolderPath.value.trim()) {
+    const proj = projects.value.find((p) => p.id === projectId.value)?.name?.trim()
+    if (proj) apFolderPath.value = `MeterSphere / ${proj}`
+  }
+  ap.step = 'preview'
+}
+
+// 持久化用户对 prompt 模板的修改, 让重开 / 切 tab 后保留.
+watch(() => ap.promptTemplate, (v) => {
+  // 只在弹框打开 + 非默认值时写入缓存; 显式还原默认走 ap.promptTemplate = AP_DEFAULT_PROMPT_TEMPLATE,
+  // 也允许写回默认 (用户可能就想用默认值).
+  if (ap.open) apPromptTemplateCache.value = v
+})
+
+let apTicker: number | null = null
+
+function clearApTicker() {
+  if (apTicker !== null) {
+    window.clearInterval(apTicker)
+    apTicker = null
+  }
+}
+
+async function callHarness() {
+  if (ap.step !== 'preview') return
+  if (!ap.details.length || !ap.promptTemplate.trim()) return
+  ap.error = ''
+  ap.step = 'calling'
+  ap.elapsed = 0
+  const startedAt = Date.now()
+  clearApTicker()
+  apTicker = window.setInterval(() => {
+    ap.elapsed = Math.floor((Date.now() - startedAt) / 1000)
+  }, 1000)
+
+  try {
+    const prompt = buildHarnessPrompt(ap.promptTemplate, apAggregatedText.value)
+    const res = await callApi<{ text: string; sessionId?: string }>('POST', '/api/harness/oneshot', {
+      prompt,
+      source: 'autotesting',
+    })
+    ap.harnessText = res?.text ?? ''
+    ap.sessionId = res?.sessionId
+    if (!ap.harnessText.trim()) throw new Error('harness 返回空文本')
+    ap.step = 'edit'
+  } catch (e: any) {
+    ap.error = `harness 调用失败: ${e?.message ?? e}`
+    ap.step = 'preview'
+  } finally {
+    clearApTicker()
+  }
+}
+
+async function callIngest() {
+  if (ap.ingesting) return
+  ap.error = ''
+  ap.ingesting = true
+  try {
+    const folderPath = apFolderPath.value
+      .split('/')
+      .map((s) => s.trim())
+      .filter(Boolean)
+    if (!folderPath.length) throw new Error('folder_path 不能为空')
+    if (!apParsedTasks.value.length) throw new Error('未解析到任何 task, 无法录入')
+
+    const payload = {
+      source: 'autotesting',
+      folder_path: folderPath,
+      tasks: apParsedTasks.value.map((t) => ({ title: t.title, text: t.text })),
+    }
+    const res = await callApi<{ code: number; message: string; data: ApIngestResult }>(
+      'POST',
+      '/api/autopilot/ingest',
+      payload,
+    )
+    if (!res?.data?.folder_id || !Array.isArray(res?.data?.tasks)) {
+      throw new Error(`返回结构异常: ${JSON.stringify(res).slice(0, 300)}`)
+    }
+    ap.ingestResult = res.data
+    pushFolderHistory(apFolderPath.value)
+    ap.step = 'done'
+  } catch (e: any) {
+    ap.error = `autopilot 录入失败: ${e?.message ?? e}`
+  } finally {
+    ap.ingesting = false
+  }
+}
+
+onBeforeUnmount(clearApTicker)
 </script>

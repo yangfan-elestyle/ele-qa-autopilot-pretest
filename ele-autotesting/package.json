@@ -1,6 +1,6 @@
 {
   "name": "prompt-optimizer",
-  "version": "1.12.4",
+  "version": "1.13.0",
   "private": true,
   "packageManager": "pnpm@10.6.1",
   "engines": {

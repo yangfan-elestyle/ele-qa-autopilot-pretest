@@ -2,6 +2,13 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.13.0] - 2026-05-21
+
+### Added
+
+- MeterSphere 用例面板新增「送至 Autopilot」入口: 勾选 MS 用例后, 并发拉详情聚合 -> 经 harness 处理 -> 按 "=== CASE N: " 切片, 一次性录入 Autopilot 工作台. 弹框分 "拉详情 / 预览 / harness 处理 / 审阅录入 / 完成" 五步, 真正打通 "MS 已有用例 → Autopilot 自动执行" 的反向链路.
+- 「送至 Autopilot」prompt 模板内嵌可编辑 textarea + 4 个 preset (传话人 / 梳理合并 / 翻译英文 / 补充期望), 用户可即时改写 harness 行为; 编辑值与 folder_path / folder 历史 (最近 8 项) 走浏览器本地缓存, 重开面板自动恢复, 输入框聚焦下拉选择历史路径.
+
 ## [1.12.4] - 2026-05-21
 
 ### Fixed
