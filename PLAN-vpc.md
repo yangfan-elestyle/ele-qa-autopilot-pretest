@@ -66,9 +66,10 @@ npx wrangler vpc service create metersphere-backend \
 Hono route 调用形态:
 
 ```ts
-// hostname/port 是 binding placeholder, 不发到 origin;
-// 由 VPC service 改写为 qa.elepay.link:443.
-const upstream = await env.METERSPHERE.fetch(`https://backend${path}${qs}`, {
+// VPC binding 仅把请求路由到对应的 cloudflared tunnel, **不会重写 URL hostname**.
+// fetch URL 的 hostname 同时充当 TLS SNI + Host header, 必须等于真实 MS 域名;
+// 写 'https://backend' 会被 ele-fly 上 nginx 拒绝 (TLSV1_ALERT_UNRECOGNIZED_NAME).
+const upstream = await env.METERSPHERE.fetch(`https://qa.elepay.link${path}${qs}`, {
   method,
   headers: { ...forwardedHeaders, accept: 'application/json' },
   body,
@@ -104,6 +105,7 @@ curl -fsS https://qa.<account>.workers.dev/autotest/api/ms/_smoke   # 200, body 
 |---|---|---|
 | Tunnel 数量 | 复用 `ele-server`, 不新建 | cloudflared launchd 已稳态, 一个 tunnel 多 VPC service 是官方推荐用法 |
 | 目标定位 | `--hostname qa.elepay.link` 而非 `--ipv4 172.21.139.237` | cloudflared 在 ele-fly 走 Tailscale magicDNS 解析, 自动跟随 IP 变更; SNI / Host header 一致, TLS 验证更干净 |
+| fetch URL hostname | 直接写真实 `https://qa.elepay.link/...`, **不要**写 placeholder | VPC binding 不改写 hostname; SNI / Host 来自 URL, 写 placeholder 会触发 TLSV1_ALERT_UNRECOGNIZED_NAME |
 | TLS | `verify_full` | 公共 CA 链已签, 无需放宽 |
 | harness 调用方 | 走公网 `https://harness.<account>.workers.dev` + CF Access service token, 不再创第三个 VPC service | autotesting Worker 经 harness Worker 入口能复用既有 CF Access + JWT 校验; 直连 `agentic-loop-backend` 会绕过权限层 |
 | 与 harness 隔离 | 两个 VPC service binding 各自只绑到对应 Worker | autotesting Worker 拿不到 `agentic-loop-backend` binding, 不会误访 |

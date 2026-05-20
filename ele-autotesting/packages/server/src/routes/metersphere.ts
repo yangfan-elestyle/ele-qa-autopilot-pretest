@@ -21,7 +21,10 @@ import { buildMsSignedHeaders } from '../lib/metersphere/sign.ts'
 
 const router = new Hono<HonoEnv>()
 
-const BACKEND_BASE = 'https://backend' // VPC binding placeholder, 会被改写到 qa.elepay.link
+// VPC service binding 只负责把请求路由到对应的 cloudflared tunnel, **不会改写 URL hostname**.
+// fetch URL 的 hostname 同时也是 TLS SNI 与 Host header, 必须等于真实 MeterSphere 域名,
+// 否则 ele-fly 上 cloudflared / 反向到的 nginx 抛 TLSV1_ALERT_UNRECOGNIZED_NAME.
+const BACKEND_BASE = 'https://qa.elepay.link'
 
 interface MsCallInit {
   method: string
@@ -111,9 +114,8 @@ router.get('/orgs', async (c: Context<HonoEnv>) => {
  * `/api/ms/projects` — 列出 AK 用户可见的项目, 前端 **无需** 传 organizationId.
  *
  * MS v3 的 `/organization/project/page` 必须带 organizationId, 但私有部署 + 单组织
- * (即本部署形态) 下用户感知不到 "组织" 概念. 服务端先调 `/is-login` (AK/SK 鉴权
- * 同样生效, 由 ApiKeyFilter 注入 SessionUser, `autoSwitch` 会修正过期 lastOrg),
- * 取出 `lastOrganizationId` 或退化到 `userRoleRelations[]` 第一个 organization id,
+ * (即本部署形态) 下用户感知不到 "组织" 概念. 服务端先调
+ * `/system/user/get/organization` 拿当前 AK 用户可见的组织 list, 取第一个 id,
  * 再走 `/organization/project/page` 翻页. 整条链路对 UI 透明.
  */
 router.post('/projects', async (c: Context<HonoEnv>) => {
@@ -151,9 +153,12 @@ router.post('/projects', async (c: Context<HonoEnv>) => {
 })
 
 /**
- * 调 MeterSphere `/is-login` 拿当前 AK 用户的 organization context.
- * 优先 `lastOrganizationId` (autoSwitch 已修正过期 id); 缺时回退到 `userRoleRelations`
- * 里第一个 sourceType=ORGANIZATION 的条目. 返回 null 表示彻底无法决定.
+ * 调 MeterSphere `/system/user/get/organization` 拿当前 AK 用户可见的组织 list,
+ * 取第一个 id. 本期私有部署单组织 (默认 `100001`), 后续多组织部署再加 UI 切换.
+ *
+ * (尝试过 `/is-login` 自动发现 — MS v3 `ApiKeyFilter` 不拦截该路径, 返回
+ * `{code:100401}`; 而 `/system/user/get/organization` 在 AK/SK 模式下 200, 内含
+ * `id, name` 足够定位组织.)
  */
 async function discoverOrganizationId(
   c: Context<HonoEnv>,
@@ -161,21 +166,17 @@ async function discoverOrganizationId(
   sk: string,
 ): Promise<string | null> {
   const { accessKey, signature } = await buildMsSignedHeaders(ak, sk)
-  const resp = await c.env.METERSPHERE.fetch(`${BACKEND_BASE}/is-login`, {
+  const resp = await c.env.METERSPHERE.fetch(`${BACKEND_BASE}/system/user/get/organization`, {
     method: 'GET',
     headers: { accept: 'application/json', accessKey, signature },
   })
   if (!resp.ok) {
-    throw new Error(`/is-login HTTP ${resp.status}`)
+    throw new Error(`/system/user/get/organization HTTP ${resp.status}`)
   }
   const json: any = await resp.json().catch(() => ({}))
-  const data = json?.data ?? json
-  const lastOrg = typeof data?.lastOrganizationId === 'string' ? data.lastOrganizationId : null
-  if (lastOrg) return lastOrg
-  const relations: any[] = Array.isArray(data?.userRoleRelations) ? data.userRoleRelations : []
-  for (const r of relations) {
-    const orgId = r?.organizationId ?? (r?.type === 'ORGANIZATION' ? r?.sourceId : null)
-    if (typeof orgId === 'string' && orgId) return orgId
+  const list: any[] = Array.isArray(json?.data) ? json.data : []
+  for (const item of list) {
+    if (item?.id && typeof item.id === 'string') return item.id
   }
   return null
 }

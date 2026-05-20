@@ -2,6 +2,13 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.11.3] - 2026-05-21
+
+### Fixed
+
+- MeterSphere 面板拉项目失败 (上游返回 `TLS handshake failed [TLSV1_ALERT_UNRECOGNIZED_NAME]`): 修正 Worker 内部转发的目标 URL hostname, 改用真实 MeterSphere 域名而非占位主机名, TLS 握手 / Host 头与上游一致.
+- 组织自动发现链路替换为可在 AK/SK 模式下工作的接口, 修复发现失败导致项目列表整体不可用的问题.
+
 ## [1.11.2] - 2026-05-21
 
 ### Changed
