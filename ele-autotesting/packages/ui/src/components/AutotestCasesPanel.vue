@@ -288,7 +288,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, reactive, ref } from 'vue'
 import { getApiBasePath } from '@prompt-optimizer/core'
 import { useBrowserCache } from '../composables/useBrowserCache'
 import { MOCK_AUTOTEST_CASES, type AutotestCase } from './_mock/autotest-cases'
@@ -662,6 +662,16 @@ function apResetToPreview() {
   ap.error = ''
 }
 
+// 提到模块作用域便于组件卸载时兜底 clear, 避免 await 期间组件被销毁导致 ticker 泄漏.
+let harnessTicker: number | null = null
+
+function clearHarnessTicker() {
+  if (harnessTicker !== null) {
+    window.clearInterval(harnessTicker)
+    harnessTicker = null
+  }
+}
+
 async function callHarness() {
   if (ap.callingHarness) return
   ap.error = ''
@@ -670,7 +680,8 @@ async function callHarness() {
   ap.elapsed = 0
   const startedAt = Date.now()
   // 简单计时 ticker; ap.elapsed 给 UI 提示用, 不影响业务.
-  const ticker = window.setInterval(() => {
+  clearHarnessTicker()
+  harnessTicker = window.setInterval(() => {
     ap.elapsed = Math.floor((Date.now() - startedAt) / 1000)
   }, 1000)
 
@@ -692,10 +703,12 @@ async function callHarness() {
     ap.error = `harness 调用失败: ${e?.message ?? e}`
     ap.step = 'preview'
   } finally {
-    window.clearInterval(ticker)
+    clearHarnessTicker()
     ap.callingHarness = false
   }
 }
+
+onBeforeUnmount(clearHarnessTicker)
 
 async function callIngest() {
   if (ap.ingesting) return

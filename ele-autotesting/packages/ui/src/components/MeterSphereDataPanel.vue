@@ -164,7 +164,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { getApiBasePath } from '@prompt-optimizer/core'
 import { useBrowserCache } from '../composables/useBrowserCache'
 
@@ -410,6 +410,15 @@ watch(caseKeyword, () => {
   caseKeywordTimer = setTimeout(() => {
     if (projectId.value) loadCases(1)
   }, 350)
+})
+
+// 组件销毁时清掉未 fire 的 timer, 否则 modal 关闭 (DataLinkagePanel v-if=false) 后
+// timer 仍会回调 loadCases, 触发无效 fetch + 潜在 unhandled rejection.
+onBeforeUnmount(() => {
+  if (caseKeywordTimer) {
+    clearTimeout(caseKeywordTimer)
+    caseKeywordTimer = null
+  }
 })
 
 // 挂载时基于浏览器缓存自动联动:

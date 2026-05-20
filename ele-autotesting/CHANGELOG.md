@@ -2,6 +2,12 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.12.4] - 2026-05-21
+
+### Fixed
+
+- 数据联动面板: harness 进度计时器与 MeterSphere 关键词搜索 debounce timer 在面板关闭后兜底清理, 避免无效 fetch 与潜在的未处理 Promise 异常.
+
 ## [1.12.3] - 2026-05-21
 
 ### Fixed
