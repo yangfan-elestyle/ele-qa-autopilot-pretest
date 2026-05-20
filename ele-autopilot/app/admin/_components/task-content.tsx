@@ -25,6 +25,7 @@ import type { Folder, Id, Task, TaskJobStats } from '../_types';
 import EmptyState from './empty-state';
 import MetricTile from './metric-tile';
 import TableSkeleton from './table-skeleton';
+import SourceTag from './source-tag';
 import TaskTitleTag from './task-title-tag';
 
 type TaskContentProps = {
@@ -172,6 +173,7 @@ export default function TaskContent({
             onEditTask(record);
           }}
         >
+          <SourceTag source={record.source} />
           <TaskTitleTag title={record.title} />
           <div className="ds-task-row-text">{value}</div>
           <div className="ds-task-row-meta">

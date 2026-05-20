@@ -3,6 +3,7 @@ import { Button, Drawer, Empty, Modal, Typography } from 'antd';
 import { useMemo, useState } from 'react';
 
 import type { Folder, Id, Task } from '../_types';
+import SourceTag from './source-tag';
 import TaskTitleTag from './task-title-tag';
 
 type SelectedTasksDrawerProps = {
@@ -164,6 +165,7 @@ export default function SelectedTasksDrawer({
                     ellipsis={{ rows: 3, tooltip: task.text }}
                     className="!mb-0 !text-[13px] leading-relaxed"
                   >
+                    <SourceTag source={task.source} />
                     <TaskTitleTag title={task.title} />
                     {task.text}
                   </Typography.Paragraph>

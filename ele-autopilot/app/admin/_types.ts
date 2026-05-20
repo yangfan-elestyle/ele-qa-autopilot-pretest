@@ -15,6 +15,7 @@ export type Task = {
   title: string | null;
   text: string;
   sub_ids?: Id[];
+  source: string;
   created_at: string;
 };
 

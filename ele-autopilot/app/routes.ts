@@ -21,6 +21,9 @@ export default [
   route('api/jobs/:id/callback/complete', 'routes/api.jobs.$id.callback.complete.tsx'),
   route('api/jobs/:id/callback/task', 'routes/api.jobs.$id.callback.task.tsx'),
 
+  // External ingest API (v1). 外部系统建 task / chain 的入口, 公网可达, 本期无鉴权, 无幂等.
+  route('api/v1/ingest/tasks', 'routes/api.v1.ingest.tasks.tsx'),
+
   // Static screenshot files (R2 bucket ele-autopilot-screenshots, URL 形如 /screenshots/{job_task_id}/{i}.png)
   route('screenshots/*', 'routes/screenshots.$.tsx'),
 

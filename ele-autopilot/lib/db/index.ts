@@ -26,6 +26,7 @@ export {
   listFoldersPage,
   reorderFolders,
   updateFolderById,
+  upsertFolderByPath,
 } from './folders';
 
 export {

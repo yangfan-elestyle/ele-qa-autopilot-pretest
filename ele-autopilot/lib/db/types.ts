@@ -18,6 +18,7 @@ export type TaskRow = {
   title: string | null;
   text: string;
   sub_ids: Id[];
+  source: string;
   created_at: string;
 };
 

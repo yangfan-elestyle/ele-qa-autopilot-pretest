@@ -43,6 +43,7 @@ QA AutoPilot 合并仓库. `gateway` + 三个独立业务子项目并存; 非 mo
 - `ele-autopilot` 前端默认调本地 `http://127.0.0.1:8000` 创建 Job (`app/admin/_services/local-api.ts`).
 - `ele-autopilot-local` 通过 `autopilot/callback.py` 回调 `ele-autopilot`; callback base URL 由后端按 request origin 下发, 经 gateway 变为公网入口.
 - `ele-autotesting` 当前与 autopilot 运行时无耦合; 未来联动加 service binding.
+- 外部系统经 `POST /api/v1/ingest/tasks` 直接录入 autopilot 任务 (公网可达, 无鉴权), 契约见 [ele-autopilot/docs/ingest-api.md](./ele-autopilot/docs/ingest-api.md).
 
 ## 发布
 

@@ -15,6 +15,7 @@ import SelectedTasksDrawer from './selected-tasks-drawer';
 import TaskChainModal from './task-chain-modal';
 import TaskContent from './task-content';
 import TaskModal, { type TaskFormValues } from './task-modal';
+import SourceTag from './source-tag';
 import TaskTitleTag from './task-title-tag';
 
 export default function AdminTaskExplorer() {
@@ -429,6 +430,7 @@ export default function AdminTaskExplorer() {
         <div>
           <p>确定要执行以下任务吗？</p>
           <div className="mt-2 max-h-60 overflow-y-auto rounded bg-gray-100 p-2 text-sm whitespace-pre-wrap">
+            <SourceTag source={task.source} />
             <TaskTitleTag title={task.title} />
             {task.text}
           </div>

@@ -9,6 +9,7 @@ import { useState } from 'react';
 
 import AppHeader from '@/app/admin/_components/app-header';
 import EmptyState from '@/app/admin/_components/empty-state';
+import SourceTag from '@/app/admin/_components/source-tag';
 import TaskTitleTag from '@/app/admin/_components/task-title-tag';
 import { useIsMobile } from '@/app/admin/_hooks/use-is-mobile';
 import type { JobListItem, JobLite, JobTask, Task } from '@/app/admin/_types';
@@ -103,7 +104,7 @@ export default function PreviewWorkspace({
                   #{task.id.slice(0, 8)}
                 </span>
               </div>
-              <TaskSummaryText title={task.title} text={task.text} />
+              <TaskSummaryText title={task.title} text={task.text} source={task.source} />
             </div>
             <div className="flex shrink-0 flex-wrap items-center gap-1.5">
               <StatBadge label="总" value={jobs.length} tone="neutral" />
@@ -216,7 +217,15 @@ function StatBadge({
   );
 }
 
-function TaskSummaryText({ title, text }: { title: string | null; text: string }) {
+function TaskSummaryText({
+  title,
+  text,
+  source,
+}: {
+  title: string | null;
+  text: string;
+  source?: string;
+}) {
   const [expanded, setExpanded] = useState(false);
   const compact = text.length > 240;
   return (
@@ -237,6 +246,7 @@ function TaskSummaryText({ title, text }: { title: string | null; text: string }
               } as React.CSSProperties)
         }
       >
+        <SourceTag source={source} />
         <TaskTitleTag title={title} />
         {text}
       </div>

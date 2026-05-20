@@ -184,6 +184,64 @@ export async function createFolder(input: { name: string; parent_id?: Id | null 
   return folder;
 }
 
+/**
+ * 按层级路径 upsert folder, 返回最末级. ingest API 路由用以承接调用方任意定义的目录树.
+ * 匹配规则: 同级按 (name, parent_id) 完全相等, 区分大小写; 命中复用, 否则 createFolder.
+ * 注: folders 表无 (name, parent_id) unique 约束, 并发推送同 path 可能产生同名 sibling.
+ * 当前 ingest 调用方都是后台 / batch, 并发面足够低, 不补救.
+ */
+export async function upsertFolderByPath(path: string[]): Promise<FolderRow> {
+  if (!Array.isArray(path) || path.length === 0) {
+    throw new Error('`folder_path` must be a non-empty array');
+  }
+
+  let parentId: Id | null = null;
+  let current: FolderRow | null = null;
+
+  for (const rawSegment of path) {
+    if (typeof rawSegment !== 'string') {
+      throw new Error('Invalid folder path segment');
+    }
+    const name = rawSegment.trim();
+    if (!name) {
+      throw new Error('Invalid folder path segment');
+    }
+
+    let existing: FolderRow | null;
+    if (parentId === null) {
+      existing = await queryGet<FolderRow>(
+        `
+          SELECT
+            f.id, f.name, f.parent_id, f.order_index, f.created_at,
+            (SELECT COUNT(1) FROM tasks t WHERE t.folder_id = f.id) AS task_count
+          FROM folders f
+          WHERE f.name = ? AND f.parent_id IS NULL
+          LIMIT 1
+        `,
+        [name],
+      );
+    } else {
+      existing = await queryGet<FolderRow>(
+        `
+          SELECT
+            f.id, f.name, f.parent_id, f.order_index, f.created_at,
+            (SELECT COUNT(1) FROM tasks t WHERE t.folder_id = f.id) AS task_count
+          FROM folders f
+          WHERE f.name = ? AND f.parent_id = ?
+          LIMIT 1
+        `,
+        [name, parentId],
+      );
+    }
+
+    current = existing ?? (await createFolder({ name, parent_id: parentId }));
+    parentId = current.id;
+  }
+
+  if (!current) throw new Error('Folder path resolution failed');
+  return current;
+}
+
 export async function updateFolderById(
   id: Id,
   patch: { name?: string; parent_id?: Id | null; order_index?: number | null },

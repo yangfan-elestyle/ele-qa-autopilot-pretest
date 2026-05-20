@@ -66,7 +66,7 @@ function buildTasksFilterParts(filter: Record<string, unknown>) {
 export async function getTaskById(id: Id) {
   const row = await queryGet<TaskDbRow>(
     `
-      SELECT t.id, t.folder_id, t.title, t.text, t.sub_ids, t.created_at
+      SELECT t.id, t.folder_id, t.title, t.text, t.sub_ids, t.source, t.created_at
       FROM tasks t
       WHERE t.id = ?
     `,
@@ -82,7 +82,7 @@ export async function getTasksByIds(ids: Id[]) {
   const placeholders = unique.map(() => '?').join(',');
   const rows = await queryAll<TaskDbRow>(
     `
-      SELECT t.id, t.folder_id, t.title, t.text, t.sub_ids, t.created_at
+      SELECT t.id, t.folder_id, t.title, t.text, t.sub_ids, t.source, t.created_at
       FROM tasks t
       WHERE t.id IN (${placeholders})
       ORDER BY t.created_at DESC
@@ -106,7 +106,7 @@ export async function listTasksPage(args: ListPageArgs) {
   const rows = await queryAll<TaskDbRow>(
     `
       ${withClause}
-      SELECT t.id, t.folder_id, t.title, t.text, t.sub_ids, t.created_at
+      SELECT t.id, t.folder_id, t.title, t.text, t.sub_ids, t.source, t.created_at
       FROM tasks t
       ${whereSql}
       ORDER BY ${orderBy}
@@ -138,6 +138,7 @@ export async function createTask(input: {
   text: string;
   folder_id: Id;
   sub_ids?: Id[];
+  source?: string;
   created_at?: string;
 }) {
   const text = input.text.trim();
@@ -151,16 +152,17 @@ export async function createTask(input: {
   const title = input.title?.trim() || null;
   const subIds = input.sub_ids ?? [];
   if (!Array.isArray(subIds) || !subIds.every(isValidId)) throw new Error('Invalid sub_ids');
+  const source = (input.source ?? 'manual').trim() || 'manual';
 
   if (input.created_at) {
     await queryRun(
-      `INSERT INTO tasks (id, folder_id, title, text, sub_ids, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
-      [id, folderId, title, text, JSON.stringify(subIds), input.created_at],
+      `INSERT INTO tasks (id, folder_id, title, text, sub_ids, source, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [id, folderId, title, text, JSON.stringify(subIds), source, input.created_at],
     );
   } else {
     await queryRun(
-      `INSERT INTO tasks (id, folder_id, title, text, sub_ids) VALUES (?, ?, ?, ?, ?)`,
-      [id, folderId, title, text, JSON.stringify(subIds)],
+      `INSERT INTO tasks (id, folder_id, title, text, sub_ids, source) VALUES (?, ?, ?, ?, ?, ?)`,
+      [id, folderId, title, text, JSON.stringify(subIds), source],
     );
   }
   const task = await getTaskById(id);
@@ -168,7 +170,9 @@ export async function createTask(input: {
   return task;
 }
 
-export async function createTasks(inputs: { text: string; folder_id: Id; sub_ids?: Id[] }[]) {
+export async function createTasks(
+  inputs: { title?: string; text: string; folder_id: Id; sub_ids?: Id[]; source?: string }[],
+) {
   if (!inputs.length) return [];
 
   const results: Awaited<ReturnType<typeof createTask>>[] = [];
@@ -301,6 +305,7 @@ function toTaskRow(dbRow: TaskDbRow): TaskRow {
     title: dbRow.title ?? null,
     text: dbRow.text,
     sub_ids: parseSubIds(dbRow.sub_ids),
+    source: dbRow.source ?? 'manual',
     created_at: dbRow.created_at,
   };
 }

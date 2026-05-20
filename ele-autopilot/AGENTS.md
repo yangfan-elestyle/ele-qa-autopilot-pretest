@@ -26,6 +26,7 @@
 - `action` 内按 `request.method` 分发 POST / PUT / PATCH / DELETE.
 - 列表参数为 JSON 字符串: `sort` / `range` / `filter`; 分页响应头 `Content-Range`, 并暴露 `Access-Control-Expose-Headers`.
 - 新增 API: 写 `app/routes/api.xxx.tsx` 后同步登记 `app/routes.ts`.
+- 外部 ingest: `POST /api/v1/ingest/tasks` 公网可达, 无鉴权, 无幂等, 单次 ≤1000 task. 契约见 [docs/ingest-api.md](./docs/ingest-api.md).
 
 ## Data
 
