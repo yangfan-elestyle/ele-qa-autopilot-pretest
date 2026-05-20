@@ -1,6 +1,7 @@
 import { Hono, Context } from 'hono'
 import { stream } from 'hono/streaming'
 import type { HonoEnv } from '../types/env.ts'
+import { shouldStripResponseHeader, validateProxyTarget } from '../utils/proxyGuard.ts'
 
 const router = new Hono<HonoEnv>()
 
@@ -8,12 +9,9 @@ router.all('/', async (c: Context<HonoEnv>) => {
   const targetUrl = c.req.query('targetUrl')
   if (!targetUrl) return c.json({ error: '缺少目标URL参数' }, 400)
 
-  let validTargetUrl: string
-  try {
-    validTargetUrl = new URL(decodeURIComponent(targetUrl)).toString()
-  } catch (error: any) {
-    return c.json({ error: `无效的目标URL: ${error.message}` }, 400)
-  }
+  const guard = validateProxyTarget(targetUrl)
+  if ('error' in guard) return c.json({ error: guard.error }, guard.status)
+  const validTargetUrl = guard.url
 
   const headers: Record<string, string> = {}
   c.req.raw.headers.forEach((value, key) => {
@@ -47,8 +45,7 @@ router.all('/', async (c: Context<HonoEnv>) => {
 
   const responseHeaders: Record<string, string> = {}
   fetchResponse.headers.forEach((value, key) => {
-    const lowerKey = key.toLowerCase()
-    if (!['content-encoding', 'transfer-encoding', 'content-length'].includes(lowerKey)) {
+    if (!shouldStripResponseHeader(key)) {
       responseHeaders[key] = value
     }
   })

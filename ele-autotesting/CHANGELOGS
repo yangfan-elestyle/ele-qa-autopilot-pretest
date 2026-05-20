@@ -1,3 +1,15 @@
+# 2026.05.20 (lockstep v1.9.4)
+
+整体目标: AI 主动扫雷第二轮 — 把 LLM 代理链路 (http-proxy / stream-proxy) 从开放 SSRF 跳板收回到可控边界, 同时切断上游敏感响应头对客户端 cookie / 凭据空间的污染.
+
+## Fixed
+
+1. `packages/server/src/utils/proxyGuard.ts` 新增 `validateProxyTarget(raw)` + `shouldStripResponseHeader(name)` 两个共享辅助, 给 `/http-proxy` 与 `/stream-proxy` 复用. 之前两个 proxy 直接 `new URL(decodeURIComponent(targetUrl)).toString()` 就 fetch, 等于让 Worker 当开放跳板, 攻击者可探测 cloud metadata (`169.254.169.254`) / Worker 内网 / `127.0.0.1` 段 / `file:` 等非 http(s) scheme. `validateProxyTarget` 强制 protocol ∈ {http, https}, 黑名单 hostname 命中 `localhost` / `127.0.0.0/8` / `10.0.0.0/8` / `172.16.0.0/12` / `192.168.0.0/16` / `169.254.0.0/16` / `0.0.0.0` / IPv6 环回 + ULA + link-local + mapped + `.internal` / `.local` / `metadata.google.internal` 一律 400. 字符串级校验拦不住 DNS rebind, 但配合 CF Worker 平台层对内网 IP 的拒绝, 99% 的探测请求会在 Worker 内被驳回, 不再进 fetch.
+2. `packages/server/src/routes/httpProxy.ts` 接入 `validateProxyTarget`, 同时响应头过滤改为 `shouldStripResponseHeader` — 在原本的 `content-encoding/transfer-encoding/content-length` 之外加 `set-cookie/set-cookie2/authorization/proxy-authenticate/www-authenticate` 黑名单. 之前上游 set-cookie 会原样回传到客户端, 等于让 proxy 给 gateway domain (qa.\*.workers.dev) 注入跨源 cookie, 攻击者可用恶意 LLM endpoint 给浏览器塞任意 cookie; authorization / WWW-Authenticate 会把上游凭据 / 认证挑战暴露给客户端. 现敏感头一律剥离.
+3. `packages/server/src/routes/streamProxy.ts` 同步接入 `validateProxyTarget` + `shouldStripResponseHeader`. SSE 长连接路径上的 reader.cancel() finally 保护沿用 v1.9.3 修复; 本轮只补 SSRF + 响应头黑名单, 不动 stream 生命周期管理.
+
+[1.9.4]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.3...v1.9.4
+
 # 2026.05.20 (lockstep v1.9.3)
 
 整体目标: 主动扫雷 — 对 LLM 代理链路与外网代理链路两条核心数据流做后端缺陷专项排查, 修掉流式连接资源泄漏 / 代理 OOM 两类问题, 顺手抛 Toast 与 FullscreenDialog 两个组件的视觉.

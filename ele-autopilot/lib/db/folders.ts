@@ -1,5 +1,6 @@
 import type { FolderRow, Id, ListPageArgs } from './types';
 import { escapeLike, generateId, isRecord, isValidId, queryAll, queryGet, queryRun } from './utils';
+import { pruneSubIdReferencesUnsafe } from './tasks';
 
 export async function ensureParentFolderValid(folderId: Id, parentId: Id | null) {
   if (parentId === null) return;
@@ -249,6 +250,9 @@ export async function deleteFolderById(
   }
 
   await queryRun(`DELETE FROM tasks WHERE folder_id IN (${placeholders})`, folderIds);
+  if (taskIds.length > 0) {
+    await pruneSubIdReferencesUnsafe(taskIds);
+  }
 
   let totalChanges = 0;
   for (const folderId of folderIds) {

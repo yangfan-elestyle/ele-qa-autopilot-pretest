@@ -3,6 +3,12 @@ import type { TaskActionResult } from './db';
 
 const URL_PREFIX = '/screenshots';
 
+// 单张截图 base64 上限. Worker 单实例内存 128MB, 一次 callback 可能携带 N 步
+// 截图; 这里收 6MB/张, 解码后原图体积 ~4.5MB, 留出 Worker 处理余量.
+// 超限的截图直接丢弃 (字段置空), 不让 base64 字符串落到 R2 — 既能让任务结果
+// 仍写回 D1, 又避免被恶意 / 异常 client 撑爆 R2 配额或 Worker 内存.
+const MAX_SCREENSHOT_BASE64_LENGTH = 6 * 1024 * 1024;
+
 function stripDataUriPrefix(value: string): string {
   const m = /^data:image\/[a-zA-Z0-9+.-]+;base64,/.exec(value);
   return m ? value.slice(m[0].length) : value;
@@ -85,6 +91,13 @@ export async function externalizeScreenshots(
     const img = step.thinking_image;
     if (typeof img !== 'string' || img.length === 0 || img === '<string>') continue;
     if (looksLikePath(img)) continue;
+    if (img.length > MAX_SCREENSHOT_BASE64_LENGTH) {
+      console.warn(
+        `[screenshots] step ${i} of ${jobTaskId} dropped: base64 length ${img.length} > limit ${MAX_SCREENSHOT_BASE64_LENGTH}`,
+      );
+      step.thinking_image = null;
+      continue;
+    }
     step.thinking_image = await writeScreenshotToR2(jobTaskId, i, img);
   }
 

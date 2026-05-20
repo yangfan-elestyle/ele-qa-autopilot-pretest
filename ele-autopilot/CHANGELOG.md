@@ -2,6 +2,18 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.9.4] - 2026-05-20
+
+整体目标: AI 主动扫雷第二轮 — 对 callback 入口与 sub_ids 链路两条数据流做缺陷专项排查, 把"恶意 / 异常 client 撑爆 R2"与"删任务后留下悬挂引用"两类问题闭环.
+
+### Fixed
+
+- `lib/screenshots.ts` `externalizeScreenshots` 单张截图 base64 长度上限 `MAX_SCREENSHOT_BASE64_LENGTH = 6 * 1024 * 1024` (解码后原图 ~4.5MB, Worker 单实例 128MB 留余量). callback 路由对截图体积零校验, base64 字段直接写 R2, 异常或恶意 client 一次 callback 可携带 N 个 step × 任意大 base64, 把 R2 配额或 Worker 内存撑爆. 现超限截图字段置空 + console.warn 记录 (`step {i} of {jobTaskId} dropped`), task 结果 D1 行仍能写回, 不让单步异常拖垮整个 callback.
+- `lib/db/tasks.ts` 新增 `pruneSubIdReferencesUnsafe(deletedIds)`: 扫表 `sub_ids != '[]'` 的所有 task, JSON.parse 后 filter 掉被删 id 再回写. `sub_ids` 是 JSON 字符串列, 不是 FK, D1 cascade 管不到, 删 task 不清理父链就留悬挂引用 — `flattenTaskTree` 走到时 `getTaskById` 返回 null 会 skip 不崩, 但 admin UI 展示 / 导出会带幽灵 id, 数据完整性破口. `deleteTaskById` 在 D1 行删除后调用 prune; `deleteTasksByFolderIds` 先 `SELECT id` 收集再删, 拿到 id 数组后 prune.
+- `lib/db/folders.ts` `deleteFolderById` 递归级联删 tasks 后追加 `pruneSubIdReferencesUnsafe(taskIds)` — 子树内的 task 被批量删时, 子树外引用它们的 task `sub_ids` 链也要同步清, 避免跨 folder 删除留下脏引用.
+
+[1.9.4]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.3...v1.9.4
+
 ## [1.9.3] - 2026-05-20
 
 整体目标: 主动扫雷 — 对 v1.9.x 工作台已稳定的功能流程做后端缺陷专项排查, 修掉删除链 R2 残留 / 错误码语义错位 / 列表参数 DoS 隐患三类问题, 把 UI 也顺手抛了 Tree drag indicator / Toast 进度条 / FullscreenDialog 头部三处.

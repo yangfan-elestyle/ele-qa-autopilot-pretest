@@ -206,6 +206,40 @@ export async function updateTaskById(
   return task;
 }
 
+/**
+ * 把一组被删除的 task id 从所有父 task 的 sub_ids JSON 链上摘掉.
+ * sub_ids 不是 FK, D1 cascade 管不到, 必须显式扫表清理.
+ * 不清理会留下悬挂引用: flattenTaskTree 走到时拿不到 task 会 skip (不崩),
+ * 但 admin UI 展示 / 导出会带着幽灵 id, 影响数据完整性.
+ *
+ * 命名后缀 `Unsafe`: 调用方必须保证 deletedIds 对应的 task 已经从表里被删除,
+ * 不再校验; folders.ts 的级联删除需要复用, 才暴露成 export.
+ */
+export async function pruneSubIdReferencesUnsafe(deletedIds: Id[]) {
+  if (deletedIds.length === 0) return;
+  const deleted = new Set(deletedIds);
+  // sub_ids 是 JSON 字符串, SQLite 没办法在 SQL 层做数组项移除 (json_remove 在 D1
+  // 上不一定可用); 拉出所有可能含被删 id 的行再回写, 量级可控 (后台总 task 数 << 1e5).
+  const candidates = await queryAll<{ id: Id; sub_ids: string }>(
+    `SELECT id, sub_ids FROM tasks WHERE sub_ids != '[]'`,
+  );
+  for (const row of candidates) {
+    let arr: unknown;
+    try {
+      arr = JSON.parse(row.sub_ids);
+    } catch {
+      continue;
+    }
+    if (!Array.isArray(arr)) continue;
+    const filtered = arr.filter((v) => typeof v === 'string' && !deleted.has(v as Id));
+    if (filtered.length === arr.length) continue;
+    await queryRun(`UPDATE tasks SET sub_ids = ? WHERE id = ?`, [
+      JSON.stringify(filtered),
+      row.id,
+    ]);
+  }
+}
+
 export async function deleteTaskById(id: Id): Promise<{ changes: number; jobTaskIds: Id[] }> {
   const jobTaskRows = await queryAll<{ id: Id }>(
     `SELECT jt.id
@@ -215,6 +249,9 @@ export async function deleteTaskById(id: Id): Promise<{ changes: number; jobTask
     [id],
   );
   const result = await queryRun(`DELETE FROM tasks WHERE id = ?`, [id]);
+  if (result.changes > 0) {
+    await pruneSubIdReferencesUnsafe([id]);
+  }
   return { changes: result.changes, jobTaskIds: jobTaskRows.map((r) => r.id) };
 }
 
@@ -222,7 +259,15 @@ export async function deleteTasksByFolderIds(folderIds: Id[]) {
   const unique = Array.from(new Set(folderIds.filter(isValidId)));
   if (unique.length === 0) return 0;
   const placeholders = unique.map(() => '?').join(',');
+  // 先收集即将被删的 task id, 才能在删除后清理其他 task 的 sub_ids 引用.
+  const taskRows = await queryAll<{ id: Id }>(
+    `SELECT id FROM tasks WHERE folder_id IN (${placeholders})`,
+    unique,
+  );
   const result = await queryRun(`DELETE FROM tasks WHERE folder_id IN (${placeholders})`, unique);
+  if (taskRows.length > 0) {
+    await pruneSubIdReferencesUnsafe(taskRows.map((r) => r.id));
+  }
   return result.changes;
 }
 

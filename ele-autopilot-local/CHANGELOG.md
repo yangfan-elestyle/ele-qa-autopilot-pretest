@@ -2,6 +2,14 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.9.4] - 2026-05-20
+
+### Changed
+
+- lockstep 同步, 与上游 gateway / ele-autopilot / ele-autotesting v1.9.4 一同发布; 本项目无业务改动. 本轮上游聚焦 AI 主动扫雷第二轮: ele-autopilot 给 callback 截图入口加 6MB/张 base64 长度上限 + `deleteTaskById/deleteFolderById` 接上 `pruneSubIdReferencesUnsafe` 扫表清理悬挂 sub_ids 引用; ele-autotesting 修了 `/http-proxy` / `/stream-proxy` 的 SSRF (`proxyGuard.ts` 共享 host 黑名单 + 强制 http/https protocol) 与上游响应头泄漏 (set-cookie / authorization / WWW-Authenticate 黑名单). 注意 local agent 上报截图时若单步图片解码后 > ~4.5MB, autopilot 会把 thinking_image 字段置空 + console.warn — 这是新限制, 不影响 task 主结果. FastAPI app / 路由 / 监听 / R2 wheel 发布链路不变.
+
+[1.9.4]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.3...v1.9.4
+
 ## [1.9.3] - 2026-05-20
 
 ### Changed

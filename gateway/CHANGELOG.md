@@ -2,6 +2,14 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.9.4] - 2026-05-20
+
+### Changed
+
+- lockstep 同步, 与上游 ele-autopilot / ele-autotesting v1.9.4 一同发布; 本项目无业务改动. 本轮上游聚焦 AI 主动扫雷第二轮 — ele-autopilot 给 callback 截图入口加 6MB/张 base64 长度上限 (`externalizeScreenshots` 超限置空 + warn), 防止异常 / 恶意 client 一次 callback 携带 N 张超大 base64 撑爆 R2 / Worker 内存; 同时给 `deleteTaskById` / `deleteFolderById` 接上 `pruneSubIdReferencesUnsafe` 扫表清理 — `sub_ids` JSON 列不是 FK, D1 cascade 管不到, 之前删 task 留悬挂引用让 admin UI 展示带幽灵 id. ele-autotesting 把 `/http-proxy` / `/stream-proxy` 从开放 SSRF 跳板收回: 新增 `proxyGuard.ts` 共享 `validateProxyTarget` 强制 http(s) protocol + 黑名单 localhost / 127/10/172/192/169.254 私网 / IPv6 环回 + ULA + link-local + `.internal` / `metadata.google.internal` 一律 400; 响应头黑名单加 `set-cookie/set-cookie2/authorization/proxy-authenticate/www-authenticate` 防止上游 cookie 注入 gateway domain 与凭据回流. landing 页路由分发 / `/autotest/*` strip / SSR loader / service bindings 行为不变.
+
+[1.9.4]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.3...v1.9.4
+
 ## [1.9.3] - 2026-05-20
 
 ### Changed
