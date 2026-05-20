@@ -8,18 +8,18 @@ import type { HonoEnv } from '../types/env.ts'
  * 入参: { source, folder_path[], tasks?[], chain? }
  * 出参: 透传上游 status + body. 成功 201 / 失败 4xx-5xx.
  *
- * 走公网 gateway 而非 service binding, 原因:
- *   - gateway 已对 `/api/*` 配置 CF Access Bypass, 公网可达
- *   - service binding 在 wrangler dev 默认 local mode 下要求被绑定 Worker 本地起,
- *     增加开发心智; 公网 fetch 两端都一致
+ * 走 service binding 而非公网 fetch:
+ *   - autotesting Worker 自身经 gateway 暴露在 `qa.<sub>.workers.dev` 后,
+ *     Worker fetch 同域会触发 Cloudflare 1101 (self-subrequest cycle).
+ *   - service binding 直接 worker-to-worker, 不走边缘, 不会循环.
+ *   - ele-autopilot `workers_dev: false`, 公网只能经 gateway, binding 跳过 gateway hop.
  */
 
 const router = new Hono<HonoEnv>()
 
 router.post('/ingest', async (c: Context<HonoEnv>) => {
-  const base = (c.env.QA_AUTOPILOT_INGEST_BASE ?? '').trim()
-  if (!base) {
-    return c.json({ error: 'QA_AUTOPILOT_INGEST_BASE not configured' }, 500)
+  if (!c.env.AUTOPILOT) {
+    return c.json({ error: 'AUTOPILOT service binding not configured' }, 500)
   }
 
   let body: any
@@ -33,17 +33,16 @@ router.post('/ingest', async (c: Context<HonoEnv>) => {
   // 上游 ingest 用 source 在 web UI 做色 hash 标识, 这里强制保证统一.
   const payload = { ...body, source: 'autotesting' }
 
-  const url = `${base.replace(/\/+$/, '')}/api/v1/ingest/tasks`
   let upstream: Response
   try {
-    upstream = await fetch(url, {
+    upstream = await c.env.AUTOPILOT.fetch('http://autopilot/api/v1/ingest/tasks', {
       method: 'POST',
       headers: { 'content-type': 'application/json', accept: 'application/json' },
       body: JSON.stringify(payload),
     })
   } catch (e: any) {
     console.error('autopilot ingest fetch failed:', e?.message || e)
-    return c.json({ error: `autopilot fetch failed: ${e?.message ?? e}` }, 502)
+    return c.json({ error: `autopilot binding fetch failed: ${e?.message ?? e}` }, 502)
   }
 
   const text = await upstream.text()

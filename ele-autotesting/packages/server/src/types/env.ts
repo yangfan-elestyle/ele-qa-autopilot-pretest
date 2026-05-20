@@ -23,11 +23,12 @@ export interface Env {
   AGENTIC_LOOP: Fetcher
 
   /**
-   * autopilot ingest API 公网入口 base URL. 实际请求路径 `${BASE}/api/v1/ingest/tasks`,
-   * 契约见 ele-autopilot/docs/ingest-api.md. 走 gateway (`/api/*` 已 Bypass CF Access),
-   * 默认值在 wrangler.jsonc `vars.QA_AUTOPILOT_INGEST_BASE` 写明.
+   * Service binding 直连 ele-autopilot Worker. 调用形态 `env.AUTOPILOT.fetch('http://autopilot/api/v1/ingest/tasks', ...)`.
+   * 用 binding 而非公网 fetch 是为了避免 autotesting Worker fetch 自己同域
+   * `qa.<sub>.workers.dev` 触发 Cloudflare 1101 (self-subrequest cycle).
+   * 契约见 ele-autopilot/docs/ingest-api.md.
    */
-  QA_AUTOPILOT_INGEST_BASE: string
+  AUTOPILOT: Fetcher
 
   QA_ALTASSIAN_API_KEY?: string
   QA_ALTASSIAN_EMAIL?: string

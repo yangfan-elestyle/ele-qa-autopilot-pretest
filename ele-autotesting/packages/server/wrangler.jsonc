@@ -35,7 +35,7 @@
   "vpc_services": [
     {
       "binding": "METERSPHERE",
-      "service_id": "019e45a0-58be-7323-b61d-72d7a2ed27e6",
+      "service_id": "019e46cf-494a-7220-8ba7-3bb7012c5639",
       "remote": true
     },
     {
@@ -46,6 +46,16 @@
       "binding": "AGENTIC_LOOP",
       "service_id": "019e3fe7-f3c9-7842-9ecb-3218d81d430a",
       "remote": true
+    }
+  ],
+  "services": [
+    {
+      // 直连 ele-autopilot Worker (同 account). 用 service binding 而非公网 fetch
+      // 避免 Worker 自身 fetch 同域 `qa.<sub>.workers.dev` 触发 Cloudflare 1101
+      // self-subrequest cycle. ele-autopilot 自身 workers_dev=false, 公网只能经
+      // gateway, 这里走 binding 跳过 gateway hop.
+      "binding": "AUTOPILOT",
+      "service": "ele-autopilot"
     }
   ],
   "rules": [
@@ -89,9 +99,6 @@
     "QA_IMAGE_RESEARCH_OPENAI_VISION_MODEL": "gpt-4o",
     "QA_IMAGE_RESEARCH_GEMINI_VISION_MODEL": "gemini-3-flash-preview",
     "TEAM_DOMAIN": "https://yigegongjiang.cloudflareaccess.com",
-    "POLICY_AUD": "7da3d8a8012e505a268a913c45a5b840a5b6d3458878fbad7481c3db61ec48d9",
-    // autopilot ingest 走 gateway 公网入口; `/api/*` 在 gateway 已 Bypass CF Access.
-    // 修改 hostname 时同步 gateway/wrangler.jsonc 与 ele-autopilot 部署目标.
-    "QA_AUTOPILOT_INGEST_BASE": "https://qa.fan-yang2019.workers.dev"
+    "POLICY_AUD": "7da3d8a8012e505a268a913c45a5b840a5b6d3458878fbad7481c3db61ec48d9"
   }
 }

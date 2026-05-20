@@ -2,6 +2,16 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.12.1] - 2026-05-21
+
+### Changed
+
+- MeterSphere VPC service 绑定指向新的服务实例, 后端继续经 gateway → autotesting Worker 的链路访问 MS, 用户层无感知.
+
+### Fixed
+
+- 「送至 Autopilot」录入步骤在线上触发 Cloudflare 1101 (Worker threw exception): autotesting Worker 走公网 fetch 同域 gateway 形成 self-subrequest cycle. 改为 service binding 直连 ele-autopilot Worker, 不再经公网 hop.
+
 ## [1.12.0] - 2026-05-21
 
 ### Added
