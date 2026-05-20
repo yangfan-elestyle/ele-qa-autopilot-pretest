@@ -72,36 +72,6 @@
   --ds-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-:root.dark {
-  --ds-brand-50: rgba(99, 102, 241, 0.12);
-  --ds-brand-100: rgba(99, 102, 241, 0.18);
-  --ds-brand-200: rgba(129, 140, 248, 0.32);
-  --ds-brand-400: #a5b4fc;
-  --ds-brand-500: #818cf8;
-  --ds-brand-600: #6366f1;
-  --ds-brand-700: #4f46e5;
-  --ds-brand-800: #4338ca;
-
-  --ds-surface-canvas: #0b1020;
-  --ds-surface-elevated: #131a2c;
-  --ds-surface-subtle: #1a2237;
-  --ds-surface-muted: #232b42;
-
-  --ds-text-primary: #e2e8f0;
-  --ds-text-secondary: #94a3b8;
-  --ds-text-tertiary: #64748b;
-
-  --ds-border-soft: rgba(148, 163, 184, 0.1);
-  --ds-border-default: rgba(148, 163, 184, 0.18);
-  --ds-border-strong: rgba(148, 163, 184, 0.28);
-
-  --ds-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --ds-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.32);
-  --ds-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.45), 0 2px 4px rgba(0, 0, 0, 0.3);
-  --ds-shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.55), 0 4px 8px rgba(0, 0, 0, 0.4);
-  --ds-focus-ring: 0 0 0 4px rgba(129, 140, 248, 0.28);
-}
-
 /* ===== Base ===== */
 html {
   @apply min-h-screen;
@@ -114,9 +84,6 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  transition:
-    background-color 0.25s ease,
-    color 0.25s ease;
 }
 
 body {
@@ -138,19 +105,9 @@ body::before {
     radial-gradient(800px 400px at -10% 110%, rgba(14, 165, 233, 0.05), transparent 60%);
 }
 
-:root.dark body::before {
-  background:
-    radial-gradient(900px 500px at 110% -10%, rgba(99, 102, 241, 0.18), transparent 60%),
-    radial-gradient(800px 400px at -10% 110%, rgba(14, 165, 233, 0.12), transparent 60%);
-}
-
 ::selection {
   background: var(--ds-brand-200);
   color: var(--ds-brand-800);
-}
-:root.dark ::selection {
-  background: rgba(129, 140, 248, 0.32);
-  color: #f8fafc;
 }
 
 /* Soft global transitions */
@@ -1578,9 +1535,6 @@ html * {
   }
   .ds-source-chip-close:hover {
     background: rgba(15, 23, 42, 0.08);
-  }
-  :root.dark .ds-source-chip-close:hover {
-    background: rgba(255, 255, 255, 0.12);
   }
 
   /* ============================== Add source button (TestPanel) ============================== */

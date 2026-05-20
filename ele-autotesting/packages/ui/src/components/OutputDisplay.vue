@@ -153,7 +153,7 @@ defineExpose({ forceRefreshContent, forceExitEditing })
 
 <style scoped>
 .output-display {
-  @apply flex flex-col h-full border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 relative;
+  @apply flex flex-col h-full border border-gray-200 rounded-lg bg-white relative;
 }
 
 /* 悬浮工具栏样式 */
@@ -172,15 +172,9 @@ defineExpose({ forceRefreshContent, forceExitEditing })
   border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
-.dark .floating-toolbar,
-.dark .floating-copy-btn {
-  background: rgba(31, 41, 55, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
 .toolbar-btn {
   @apply flex items-center gap-1 px-2 py-1 text-sm rounded transition-colors;
-  @apply hover:bg-gray-100 dark:hover:bg-gray-700;
+  @apply hover:bg-gray-100;
   @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50;
 }
 
@@ -209,7 +203,7 @@ defineExpose({ forceRefreshContent, forceExitEditing })
 }
 
 .reasoning-header {
-  @apply flex justify-between items-center cursor-pointer p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors;
+  @apply flex justify-between items-center cursor-pointer p-2 rounded hover:bg-gray-50 transition-colors;
 }
 
 .reasoning-toggle {
@@ -269,7 +263,7 @@ defineExpose({ forceRefreshContent, forceExitEditing })
 }
 
 .output-display--editable .output-display__content {
-  @apply border border-dashed border-gray-300 dark:border-gray-600;
+  @apply border border-dashed border-gray-300;
 }
 
 .output-display--editing .output-display__content {

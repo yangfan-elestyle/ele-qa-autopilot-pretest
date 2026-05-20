@@ -81,7 +81,7 @@
 
         <span class="ds-vrule hidden sm:inline-block" aria-hidden="true"></span>
 
-        <!-- 设置组: 数据 + 主题 -->
+        <!-- 设置组: 数据 -->
         <ActionButtonUI text="数据" @click="showDataManager = true">
           <template #icon>
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -99,7 +99,6 @@
             </svg>
           </template>
         </ActionButtonUI>
-        <ThemeToggleUI />
       </template>
 
       <!-- Main Content -->
@@ -212,7 +211,6 @@ import { ref, watch, provide, computed, shallowRef, toRef } from 'vue'
 import {
   // UI Components
   MainLayoutUI,
-  ThemeToggleUI,
   ActionButtonUI,
   ModelManagerUI,
   TemplateManagerUI,

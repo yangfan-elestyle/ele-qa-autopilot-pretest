@@ -304,7 +304,6 @@ onMounted(renderMarkdown)
   margin-bottom: 0 !important;
 }
 
-/* 使用CSS变量，方便主题切换 */
 :root {
   --md-title-spacing: 1em 0;
   --md-spacing-sm: 0.3em 0;

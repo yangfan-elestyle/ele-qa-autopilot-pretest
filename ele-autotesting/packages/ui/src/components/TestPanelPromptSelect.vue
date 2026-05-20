@@ -15,7 +15,7 @@
             :key="template.id"
             class="p-3 border rounded-lg cursor-pointer transition-colors theme-card"
             :class="{
-              'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20': selectedTemplates.has(template.id),
+              'ring-2 ring-blue-500 bg-blue-50': selectedTemplates.has(template.id),
             }"
             @click="toggleTemplateSelection(template.id)"
           >
@@ -26,7 +26,7 @@
                   {{ template.metadata.description }}
                 </p>
                 <div class="flex items-center gap-2 mt-2">
-                  <span v-if="template.isBuiltin" class="text-xs px-2 py-1 rounded bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200">
+                  <span v-if="template.isBuiltin" class="text-xs px-2 py-1 rounded bg-gray-100 text-gray-800">
                     内置
                   </span>
                 </div>
@@ -80,7 +80,7 @@
             :key="record.id"
             class="p-3 border rounded-lg cursor-pointer transition-colors theme-card"
             :class="{
-              'ring-2 ring-green-500 bg-green-50 dark:bg-green-900/20': selectedHistoryRecords.has(record.id),
+              'ring-2 ring-green-500 bg-green-50': selectedHistoryRecords.has(record.id),
             }"
             @click="toggleHistorySelection(record.id)"
           >

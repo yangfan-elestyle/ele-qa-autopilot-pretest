@@ -12,11 +12,6 @@ export const CORE_SERVICE_KEYS = {
   PROMPT_HISTORY: 'prompt_history', // 提示词历史记录存储键
 } as const
 
-// UI设置相关
-export const UI_SETTINGS_KEYS = {
-  THEME_ID: 'app:settings:ui:theme-id',
-} as const
-
 // 模型选择相关
 export const MODEL_SELECTION_KEYS = {
   OPTIMIZE_MODEL: 'app:selected-optimize-model',
@@ -33,7 +28,6 @@ export const TEMPLATE_SELECTION_KEYS = {
 // 所有存储键的联合类型
 export const ALL_STORAGE_KEYS = {
   ...CORE_SERVICE_KEYS,
-  ...UI_SETTINGS_KEYS,
   ...MODEL_SELECTION_KEYS,
   ...TEMPLATE_SELECTION_KEYS,
 } as const
@@ -43,7 +37,6 @@ export const ALL_STORAGE_KEYS_ARRAY = Object.values(ALL_STORAGE_KEYS)
 
 // 类型定义
 export type CoreServiceKey = (typeof CORE_SERVICE_KEYS)[keyof typeof CORE_SERVICE_KEYS]
-export type UISettingsKey = (typeof UI_SETTINGS_KEYS)[keyof typeof UI_SETTINGS_KEYS]
 export type ModelSelectionKey = (typeof MODEL_SELECTION_KEYS)[keyof typeof MODEL_SELECTION_KEYS]
 export type TemplateSelectionKey = (typeof TEMPLATE_SELECTION_KEYS)[keyof typeof TEMPLATE_SELECTION_KEYS]
 export type StorageKey = (typeof ALL_STORAGE_KEYS)[keyof typeof ALL_STORAGE_KEYS]

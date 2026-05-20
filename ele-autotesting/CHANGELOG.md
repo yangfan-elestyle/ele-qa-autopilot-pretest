@@ -2,6 +2,12 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.11.8] - 2026-05-21
+
+### Removed
+
+- 移除暗色主题与右上角主题切换按钮, 工作台统一为浅色样式; 偏好键 `app:settings:ui:theme-id` 不再使用, 旧导出的备份文件中该键会在导入时被跳过.
+
 ## [1.11.7] - 2026-05-21
 
 ### Added

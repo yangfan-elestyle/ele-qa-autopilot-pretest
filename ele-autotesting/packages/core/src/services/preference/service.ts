@@ -4,7 +4,6 @@ import { ImportExportError } from '../../interfaces/import-export'
 
 // 需要导出的UI配置键 - 白名单验证
 const UI_SETTINGS_KEYS = [
-  'app:settings:ui:theme-id',
   'app:selected-optimize-model',
   'app:selected-test-model',
   'app:selected-optimize-template', // 系统优化模板
@@ -12,31 +11,15 @@ const UI_SETTINGS_KEYS = [
   'app:selected-iterate-template', // 迭代模板
 ] as const
 
-// 旧版本键名映射表 - 用于兼容性处理
-const LEGACY_KEY_MAPPING: Record<string, string> = {
-  'theme-id': 'app:settings:ui:theme-id',
-}
-
-/**
- * 将旧版本键名转换为新版本键名
- * @param key 原始键名
- * @returns 标准化后的键名
- */
-const normalizeSettingKey = (key: string): string => {
-  return LEGACY_KEY_MAPPING[key] || key
-}
-
 /**
  * 验证UI配置键是否安全
  */
 const isValidSettingKey = (key: string): boolean => {
-  // 先标准化键名，再验证
-  const normalizedKey = normalizeSettingKey(key)
   return (
-    UI_SETTINGS_KEYS.includes(normalizedKey as any) &&
-    normalizedKey.length <= 50 &&
-    normalizedKey.length > 0 &&
-    !/[<>"\\'&\x00-\x1f\x7f-\x9f]/.test(normalizedKey)
+    UI_SETTINGS_KEYS.includes(key as any) &&
+    key.length <= 50 &&
+    key.length > 0 &&
+    !/[<>"\\'&\x00-\x1f\x7f-\x9f]/.test(key)
   ) // 排除危险字符和控制字符
 }
 
@@ -211,17 +194,8 @@ export class PreferenceService implements IPreferenceService {
           continue
         }
 
-        // 标准化键名（处理旧版本兼容性）
-        const normalizedKey = normalizeSettingKey(key)
-
-        await this.set(normalizedKey, value)
-
-        // 如果键名被转换了，显示转换信息
-        if (normalizedKey !== key) {
-          console.log(`Imported UI configuration (legacy key converted): ${key} -> ${normalizedKey} = ${value}`)
-        } else {
-          console.log(`Imported UI configuration: ${normalizedKey} = ${value}`)
-        }
+        await this.set(key, value)
+        console.log(`Imported UI configuration: ${key} = ${value}`)
       } catch (error) {
         console.warn(`Failed to import UI setting ${key}:`, error)
         failedSettings.push({ key, error: error as Error })

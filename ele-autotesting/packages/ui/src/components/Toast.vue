@@ -152,20 +152,4 @@ const { toasts, remove } = useToast()
   color: #1d4ed8;
   border-color: rgba(37, 99, 235, 0.28);
 }
-:root.dark .ds-toast--success {
-  background: rgba(22, 163, 74, 0.16);
-  color: #86efac;
-}
-:root.dark .ds-toast--error {
-  background: rgba(220, 38, 38, 0.16);
-  color: #fca5a5;
-}
-:root.dark .ds-toast--warning {
-  background: rgba(217, 119, 6, 0.18);
-  color: #fcd34d;
-}
-:root.dark .ds-toast--info {
-  background: rgba(37, 99, 235, 0.18);
-  color: #93c5fd;
-}
 </style>

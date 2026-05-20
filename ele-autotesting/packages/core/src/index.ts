@@ -64,10 +64,9 @@ export type { LLMValidationResult, ValidationError, ValidationWarning } from './
 // 导出存储键常量
 export {
   CORE_SERVICE_KEYS,
-  UI_SETTINGS_KEYS,
   MODEL_SELECTION_KEYS,
   TEMPLATE_SELECTION_KEYS,
   ALL_STORAGE_KEYS,
   ALL_STORAGE_KEYS_ARRAY,
 } from './constants/storage-keys'
-export type { CoreServiceKey, UISettingsKey, ModelSelectionKey, TemplateSelectionKey, StorageKey } from './constants/storage-keys'
+export type { CoreServiceKey, ModelSelectionKey, TemplateSelectionKey, StorageKey } from './constants/storage-keys'
