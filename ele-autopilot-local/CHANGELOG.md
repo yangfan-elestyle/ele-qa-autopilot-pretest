@@ -2,6 +2,14 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.10.0] - 2026-05-20
+
+### Changed
+
+- lockstep 同步, 与上游 gateway / ele-autopilot / ele-autotesting v1.10.0 一同发布; 本项目无业务改动 (FastAPI 路由 / browser-use 执行链路 / callback payload / `_post_with_retry` 重试策略 / `TASK_CALLBACK_SUBPATH` / `COMPLETE_CALLBACK_SUBPATH` 顶层常量 / `callback_url` rstrip normalize 全部沿用 v1.9.9). 本轮上游聚焦 gateway 把公网入口套上 Cloudflare Zero Trust Access + Google Workspace SSO. 本端无需任何配套改动: agent 调的 `callback_url` 走 `/api/jobs/:id/callback/...`, 该路径在 gateway 新加的 `QA Gateway Bypass` Application 名单内 (匿名直通, 不要求 cookie / JWT); `curl install.sh` 安装入口 (`/install.sh`) 与 R2 自更新 (`/releases/local/*`) 同样在 Bypass 名单, 本端 R2 wheel/sdist 发布链路与 `app_meta.py` 自更新协议沿用 v1.9.7-v1.9.9 不变.
+
+[1.10.0]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.9...v1.10.0
+
 ## [1.9.9] - 2026-05-20
 
 整体目标: AI 主动扫雷第七轮 — 把 callback 子路径从两处硬编码字符串提为顶层常量, 与上游 ele-autopilot `app/routes.ts` 注册的 `/api/jobs/:id/callback/{task,complete}` 形成可审计的契约绑定, 同时消除 `callback_url` 尾斜杠传入时的拼接歧义.

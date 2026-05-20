@@ -33,6 +33,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const { env } = context.cloudflare;
   const origin = new URL(request.url).origin;
   const friendLink = deriveFriendLink(origin);
+  const userEmail = context.user?.email ?? null;
   let version: string | null = null;
   try {
     const res = await env.AUTOPILOT.fetch(
@@ -45,7 +46,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   } catch {
     /* fall back to client fetch */
   }
-  return { version, origin, friendLink };
+  return { version, origin, friendLink, userEmail };
 }
 
 export default function Home({ loaderData }: Route.ComponentProps) {
@@ -81,10 +82,25 @@ export default function Home({ loaderData }: Route.ComponentProps) {
               <span className="sub">Console</span>
             </span>
           </div>
-          <span className="status" aria-label="服务运行中">
-            <span className="status-dot" aria-hidden="true" />
-            服务运行中
-          </span>
+          <div className="topbar-right">
+            {loaderData.userEmail ? (
+              <span className="userchip" title={loaderData.userEmail}>
+                <span className="userchip-avatar" aria-hidden="true">
+                  {loaderData.userEmail.charAt(0).toUpperCase()}
+                </span>
+                <span className="userchip-email">
+                  {loaderData.userEmail.split("@")[0]}
+                </span>
+                <a className="logout-link" href="/cdn-cgi/access/logout">
+                  登出
+                </a>
+              </span>
+            ) : null}
+            <span className="status" aria-label="服务运行中">
+              <span className="status-dot" aria-hidden="true" />
+              服务运行中
+            </span>
+          </div>
         </header>
 
         <section className="hero">

@@ -1,3 +1,11 @@
+# 2026.05.20 (lockstep v1.10.0)
+
+## Changed
+
+1. lockstep 同步, 与 gateway / ele-autopilot / ele-autopilot-local v1.10.0 一同发布; 本项目 (`packages/{core,ui,web,server}` / `containers/markitdown`) 业务路由 / D1 schema / Static Assets `run_worker_first` / proxyGuard SSRF 防护 / `/api/sync` owner 过滤 / V1 `device:shared-owner-v1` 身份模型 / Container `MARKITDOWN` binding 全部不变. 本轮上游聚焦 gateway 把公网入口套上 Cloudflare Zero Trust Access + Google Workspace SSO: gateway `workers/app.ts` 用 `jose` 远程 JWKS 校验 `cf-access-jwt-assertion` 并把登录邮箱注入 RR context; landing 顶栏渲染 `@elestyle.jp` 员工身份 + 登出. 副作用: 浏览器访问 `/autotest*` 现在被前置 Allow App (整域兜底) 拦截走 Google SSO, gateway strip `/autotest` 后转给本 Worker 的请求体 / header / 路径行为与之前完全一致 (CF Access 在 gateway 层处理, 本 Worker 不感知 `cf-access-jwt-assertion` / `cf-access-authenticated-user-email`); web SPA hydration / `/stream-proxy` SSE / `/http-proxy` / D1 `/api/sync` owner 过滤 / Container markdown-research 调用链全部沿用 v1.9.9.
+
+[1.10.0]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.9...v1.10.0
+
 # 2026.05.20 (lockstep v1.9.9)
 
 ## Changed

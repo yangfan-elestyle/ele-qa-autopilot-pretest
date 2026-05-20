@@ -2,6 +2,14 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.10.0] - 2026-05-20
+
+### Changed
+
+- lockstep 同步, 与 gateway / ele-autopilot-local / ele-autotesting v1.10.0 一同发布; 本项目无业务改动 (admin UI / `/api/admin/*` / D1 schema / `/screenshots/*` R2 proxy / R2 截图写入 / 本地 agent 派单链路 / `syncJobStatusFromTasks` 状态机全部沿用 v1.9.9). 本轮上游聚焦 gateway 把公网入口套上 Cloudflare Zero Trust Access + Google Workspace SSO: gateway 内 `workers/app.ts` 用 `jose` 远程 JWKS 校验 `cf-access-jwt-assertion` 并把 `{ email }` 注入 RR `AppLoadContext.user`, landing 顶栏渲染登录邮箱 + 一键登出. 副作用: 浏览器访问 `/autopilot*` 现在被前置 Allow App (整域兜底 `Emails ending in @elestyle.jp`) 拦截走 Google SSO, 但 `/api/*` 在 `QA Gateway Bypass` App 名单, 本地 agent 回调 (`/api/jobs/:id/callback/{task,complete}`) 与 admin 前端 fetch (`/api/admin/...`) 完全不感知 CF Access, R2 写入 / callback 状态机 / job 终态保护沿用 v1.9.9. autopilot 后端如未来想读当前用户身份可从透传 header `cf-access-authenticated-user-email` 取, 本期不动.
+
+[1.10.0]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.9...v1.10.0
+
 ## [1.9.9] - 2026-05-20
 
 整体目标: AI 主动扫雷第七轮 — 跨工程功能流程审计后的双线修复. 重点收两条曾在体感上"任务卡住又找不到根因"的链路: (1) callback.task 单张截图坏 base64 让整条 callback 500 → task 永卡 running; (2) admin UI 调本地 agent 三处 fetch 全无 timeout, 本地 agent hang 时 UI 一直 spinner 只能刷页. 同步在 lockstep 把 ele-autopilot-local `callback.py` 的 callback 子路径 (`/task` / `/complete`) 从硬编码字符串提为顶层常量并消除尾斜杠拼接歧义, 与 server 端 `app/routes.ts` 注册的 `/api/jobs/:id/callback/{task,complete}` 形成可审计的契约绑定.

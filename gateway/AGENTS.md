@@ -2,6 +2,18 @@
 
 Cloudflare Worker `qa`: 三个业务子项目的唯一公网入口. React Router v7 (framework mode, SSR) + `@cloudflare/vite-plugin` + React 19, Bun 包管, 无 D1 / R2 / DO / secret.
 
+## Access (Google Workspace SSO)
+
+公网入口套 Cloudflare Zero Trust Self-hosted Application + Google Workspace IdP, 仅 `@elestyle.jp` 员工可访问.
+
+- **Team Domain**: `https://yigegongjiang.cloudflareaccess.com` (wrangler `vars.TEAM_DOMAIN`).
+- **Application Audience (AUD)**: 在 wrangler `vars.POLICY_AUD`; CF 后台 `QA Gateway` → Overview 抄.
+- **Allow App `QA Gateway`**: domain `qa.<sub>.workers.dev` 整域兜底, IdP 仅勾 Google (关掉「接受所有可用的标识提供程序」), policy=Allow + `Emails ending in @elestyle.jp`.
+- **Bypass App `QA Gateway Bypass`** (CF 单 App 最多 5 条 domain): `/api/*` `/install.sh` `/releases/*` `/assets/*` `/healthz`, policy=Bypass + Everyone. 砍掉 `/screenshots/*` / PWA icons (`favicon.*` / `apple-touch-icon.png` / `icon-*.png` / `site.webmanifest`) — 登录后浏览器带 cookie 仍能加载, 仅影响匿名 SEO / 分享卡片 / iOS 加桌面.
+- worker `workers/app.ts` 用 `jose` 远程 JWKS (`<team>/cdn-cgi/access/certs`) 做深度防御; 本地 dev 无 `cf-access-jwt-assertion` header → 放行不阻塞.
+- landing 顶栏读 `context.user.email` 渲染身份 + 登出链 `/cdn-cgi/access/logout`; 未登录态不渲染用户区.
+- 修 Bypass 名单时: `workers/app.ts#isBypassPath` 与 CF 后台 `QA Gateway Bypass` Application Domain 名单必须双向锁; 任何漂移立刻让 agent callback / install.sh / agent 自更新链路死亡.
+
 ## 路径分发 (worker 处理顺序)
 
 <!-- prettier-ignore -->

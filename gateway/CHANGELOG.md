@@ -2,6 +2,24 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.10.0] - 2026-05-20
+
+整体目标: 给公网入口套 Cloudflare Zero Trust + Google Workspace SSO. 默认全站登录 (Allow App 整域兜底), 仅 `@elestyle.jp` 员工可访问业务路径; agent callback (`/api/*`) / 安装入口 (`/install.sh`) / agent 产物 (`/releases/*`) / RR client bundle (`/assets/*`) / 探活 (`/healthz`) 五条精确路径 Bypass 维持机器接口匿名直通. landing 顶栏渲染当前登录邮箱 + 一键登出. CF 后台拓扑: Team `yigegongjiang.cloudflareaccess.com`, IdP=Google (Workspace Internal + PKCE), `QA Gateway` Allow App (整域 + `Emails ending in @elestyle.jp`), `QA Gateway Bypass` App (5 条 Bypass + Everyone, 受 CF 非企业账号单 App 5 条 domain 上限约束).
+
+### Added
+
+- `workers/app.ts` 新增 `isBypassPath` + `verifyAccessJwt`: 用 `jose` (新增依赖 v6.2.3) 远程 JWKS (`<team>/cdn-cgi/access/certs`) 校验 `cf-access-jwt-assertion` header, 匹配 `vars.TEAM_DOMAIN` 与 `vars.POLICY_AUD`. 校验通过把 `{ email }` 注入 RR `AppLoadContext.user` (新增可空字段). 无 token → 放行 (兼容本地 dev 与 CF Access 临时失效兜底); 有 token 但校验失败 (伪造 / 过期 / aud 不匹配) → 直接 403. JWKS 用模块级 lazy 缓存避免 worker 冷启动重复创建 fetcher. `isBypassPath` 名单与 CF 后台 `QA Gateway Bypass` Application Domain 双向锁: `/healthz` (exact), `/install.sh` (exact), `/api/` `/releases/` `/assets/` (prefix); 任何漂移立刻让 agent callback / 一行 curl 安装 / 自更新链路死亡, 改名单前务必先改另一端.
+- `wrangler.jsonc` `vars` 段加 `TEAM_DOMAIN` (`https://yigegongjiang.cloudflareaccess.com`) 与 `POLICY_AUD` (Allow App 的 Application Audience Tag); `bun run typegen` 后 `worker-configuration.d.ts` `Env` 接口同步加入两字段, worker runtime 与 `verifyAccessJwt` 解耦于硬编码 (轮换 Team Domain / AUD 时改 vars + redeploy 即可).
+- `app/routes/home.tsx` loader 新增从 `context.user?.email` 取登录邮箱并下发到组件; topbar 加 `.userchip` 区块 (圆形 avatar 首字母 + 邮箱用户名前缀 + 登出链 `/cdn-cgi/access/logout`), 未登录态 (本地 dev) 直接不渲染避免占位. 移动端 `.userchip-email` 自动隐藏避免顶栏挤; 仍兼容现有 `friendLink` / version footer / install steps 全部逻辑.
+- `app/app.css` 新增 `.topbar-right` `.userchip` `.userchip-avatar` `.userchip-email` `.logout-link` 设计 token, 复用现有 brand gradient (`--ds-brand-500` → `--ds-brand-700`) 与 `--accent-soft` / `--accent-ring` / `--motion-fast`; 暗色模式无需额外样式 (token 已响应 `prefers-color-scheme`).
+
+### Changed
+
+- `workers/app.ts` 路径分发顺序调整: `/healthz` / `/index.html` 重定向 仍最优先; 之后**先**判 `isBypassPath` → Bypass 路径不进 JWT 校验直接转 AUTOPILOT (节省 JWKS lookup 与 jose import 开销); 不命中再做 JWT 校验 + 注入 user, 通过后才走 `/autotest` strip / `/` RR / 其他透传 AUTOPILOT 的原有分发. 与之前"先转 autotest 再判其他"的顺序相比, 现在所有需鉴权路径都集中在 `verifyAccessJwt` 之后, 行为可审计可单测.
+- `AGENTS.md` 顶部新增 "Access" 段, 列 Team Domain / AUD 来源 / 两个 Application (`QA Gateway` Allow + `QA Gateway Bypass`) 的 domain 名单与 policy / IdP 选择 / 砍掉的 PWA icons 与 `/screenshots/*` 的代价 (仅影响匿名 SEO / 分享卡片 / iOS 加桌面, 登录后浏览器带 cookie 仍能拿), 并写明 worker 内 `isBypassPath` 与 CF 后台 Bypass App domain 名单的双向锁要求 (CLAUDE.md 经 symlink 同步).
+
+[1.10.0]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.9...v1.10.0
+
 ## [1.9.9] - 2026-05-20
 
 ### Changed

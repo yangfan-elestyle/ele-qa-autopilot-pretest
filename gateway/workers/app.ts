@@ -2,17 +2,22 @@
  * qa gateway — 唯一对外公网入口.
  *
  * 路径分发 (worker 处理顺序):
- *   /healthz       → "ok" (gateway 自检, 不进 RR)
- *   /autotest/*    → AUTOTEST (strip /autotest 前缀转发到 ele-autotesting)
+ *   /healthz       → "ok" (gateway 自检, Bypass)
  *   /index.html    → 301 重定向到 /
- *   /              → React Router (SSR landing 页)
- *   其他            → AUTOPILOT (透传, 含 /autopilot, /api/*, /screenshots/*, /releases/*, /install.sh, /favicon.ico)
+ *   Bypass 路径    → 不校验 JWT, 直通 AUTOPILOT (含 /install.sh / /api/* / /releases/* / /assets/*)
+ *   其他           → 强制 CF Access JWT 校验 (Google Workspace SSO) 后路由:
+ *                    /autotest/* → strip 前缀转发 AUTOTEST
+ *                    /          → React Router SSR landing
+ *                    其余        → AUTOPILOT 透传
  *
- * 静态资源 (RR 客户端 bundle) 由 wrangler assets binding 优先命中, 命中即返回; 未命中再 fall through 到本 worker.
- * 业务 Worker 已设 workers_dev:false, 仅可经此 gateway 访问.
+ * CF Access 已在前置网关层 (Zero Trust Self-hosted Application `QA Gateway`) 拦截; 此处
+ * verifyAccessJwt 是深度防御. 本地 dev (无 cf-access-jwt-assertion header) 直接放行.
+ * Bypass 路径名单必须与 Zero Trust `QA Gateway Bypass` Application 的 Application Domain
+ * 名单逐项对齐, 见 ./README 或 AGENTS.md "Access" 段.
  */
 
 import { createRequestHandler } from "react-router";
+import { createRemoteJWKSet, jwtVerify, type JWTPayload } from "jose";
 
 declare module "react-router" {
   export interface AppLoadContext {
@@ -20,6 +25,7 @@ declare module "react-router" {
       env: Env;
       ctx: ExecutionContext;
     };
+    user: { email: string } | null;
   }
 }
 
@@ -52,8 +58,63 @@ async function forwardTo(
   }
 }
 
+// CF Access Bypass 路径: 必须与 Zero Trust `QA Gateway Bypass` Application 的
+// Application Domain 名单逐项对齐. 改这里前先改 CF 后台, 反之亦然.
+function isBypassPath(pathname: string): boolean {
+  if (pathname === "/healthz") return true;
+  if (pathname === "/install.sh") return true;
+  if (pathname.startsWith("/api/")) return true;
+  if (pathname.startsWith("/releases/")) return true;
+  if (pathname.startsWith("/assets/")) return true;
+  return false;
+}
+
+// Access 默认每 6 周轮换签名密钥, jose 内部 JWKS 有 TTL, 模块级缓存避免每次冷启动
+// 重复创建 fetcher (cf workers 在 isolate 复用期间共享此变量).
+let cachedJwks: ReturnType<typeof createRemoteJWKSet> | null = null;
+function getJwks(teamDomain: string) {
+  if (!cachedJwks) {
+    cachedJwks = createRemoteJWKSet(new URL(`${teamDomain}/cdn-cgi/access/certs`));
+  }
+  return cachedJwks;
+}
+
+async function verifyAccessJwt(
+  request: Request,
+  env: Env,
+): Promise<{ email: string } | null> {
+  const token = request.headers.get("cf-access-jwt-assertion");
+  if (!token) {
+    // 没有 header 一般只有两种场景:
+    //   1) 本地 dev: 没有 CF Access 注入 → 放行不阻塞开发;
+    //   2) production 配置漏配 (Allow App 没生效 / 整站直连 worker): 也放行
+    //      避免一次性把整站打 503; CF Access 一旦回归就会自动拦截.
+    return null;
+  }
+  try {
+    const { payload }: { payload: JWTPayload } = await jwtVerify(
+      token,
+      getJwks(env.TEAM_DOMAIN),
+      {
+        issuer: env.TEAM_DOMAIN,
+        audience: env.POLICY_AUD,
+      },
+    );
+    const email = typeof payload.email === "string" ? payload.email : "";
+    return { email };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`[gateway] CF Access JWT verify failed: ${message}`);
+    // 校验失败 = 伪造 / 过期 / aud 不匹配, 必须拒绝
+    throw new Response("Forbidden: invalid CF Access token", {
+      status: 403,
+      headers: { "content-type": "text/plain; charset=utf-8" },
+    });
+  }
+}
+
 export default {
-  async fetch(request, env, ctx) {
+  async fetch(request, env, ctx): Promise<Response> {
     const url = new URL(request.url);
     const p = url.pathname;
 
@@ -63,6 +124,26 @@ export default {
       });
     }
 
+    if (p === "/index.html") {
+      const canonical = new URL(url);
+      canonical.pathname = "/";
+      return Response.redirect(canonical.toString(), 301);
+    }
+
+    // Bypass 路径: 不校验 JWT, 直通 AUTOPILOT (install / api / releases / assets)
+    if (isBypassPath(p)) {
+      return forwardTo("AUTOPILOT", env.AUTOPILOT, request);
+    }
+
+    // 非 Bypass 路径: 走 JWT 校验, 提取 user (失败 throw Response)
+    let user: { email: string } | null;
+    try {
+      user = await verifyAccessJwt(request, env);
+    } catch (res) {
+      if (res instanceof Response) return res;
+      throw res;
+    }
+
     if (p === "/autotest" || p.startsWith("/autotest/")) {
       const stripped = p.slice("/autotest".length) || "/";
       const forwarded = new URL(url);
@@ -70,14 +151,8 @@ export default {
       return forwardTo("AUTOTEST", env.AUTOTEST, new Request(forwarded, request));
     }
 
-    if (p === "/index.html") {
-      const canonical = new URL(url);
-      canonical.pathname = "/";
-      return Response.redirect(canonical.toString(), 301);
-    }
-
     if (p === "/") {
-      return requestHandler(request, { cloudflare: { env, ctx } });
+      return requestHandler(request, { cloudflare: { env, ctx }, user });
     }
 
     return forwardTo("AUTOPILOT", env.AUTOPILOT, request);

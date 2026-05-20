@@ -7,6 +7,10 @@
   "observability": {
     "enabled": true
   },
+  "vars": {
+    "TEAM_DOMAIN": "https://yigegongjiang.cloudflareaccess.com",
+    "POLICY_AUD": "7da3d8a8012e505a268a913c45a5b840a5b6d3458878fbad7481c3db61ec48d9"
+  },
   "services": [
     { "binding": "AUTOPILOT", "service": "ele-autopilot" },
     { "binding": "AUTOTEST", "service": "ele-autotesting" }
