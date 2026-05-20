@@ -206,9 +206,16 @@ export async function updateTaskById(
   return task;
 }
 
-export async function deleteTaskById(id: Id) {
+export async function deleteTaskById(id: Id): Promise<{ changes: number; jobTaskIds: Id[] }> {
+  const jobTaskRows = await queryAll<{ id: Id }>(
+    `SELECT jt.id
+     FROM job_tasks jt
+     JOIN jobs j ON j.id = jt.job_id
+     WHERE j.task_id = ?`,
+    [id],
+  );
   const result = await queryRun(`DELETE FROM tasks WHERE id = ?`, [id]);
-  return result.changes;
+  return { changes: result.changes, jobTaskIds: jobTaskRows.map((r) => r.id) };
 }
 
 export async function deleteTasksByFolderIds(folderIds: Id[]) {

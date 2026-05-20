@@ -3,6 +3,7 @@ import type { ActionFunctionArgs, LoaderFunctionArgs } from 'react-router';
 import { deleteFolderById, getFolderById, updateFolderById } from '@/lib/db';
 import type { Id } from '@/lib/db';
 import { isValidId } from '@/lib/db/utils';
+import { deleteScreenshotsByJobTaskIds } from '@/lib/screenshots';
 import {
   jsonError,
   jsonResponse,
@@ -34,8 +35,11 @@ export async function action({ request, params }: ActionFunctionArgs) {
     const existing = await getFolderById(id);
     if (!existing) return jsonError('Not found', 404);
 
-    const changes = await deleteFolderById(id);
+    const { changes, jobTaskIds } = await deleteFolderById(id);
     if (changes === 0) return jsonError('Not found', 404);
+
+    await deleteScreenshotsByJobTaskIds(jobTaskIds);
+
     return jsonResponse(existing);
   }
 

@@ -1,3 +1,27 @@
+# 2026.05.20 (lockstep v1.9.3)
+
+整体目标: 主动扫雷 — 对 LLM 代理链路与外网代理链路两条核心数据流做后端缺陷专项排查, 修掉流式连接资源泄漏 / 代理 OOM 两类问题, 顺手抛 Toast 与 FullscreenDialog 两个组件的视觉.
+
+## Fixed
+
+1. `packages/server/src/routes/streamProxy.ts` SSE 流式代理 reader 资源回收: 之前 try/catch 包 `reader.read()` 抛错时仅 throw, 上游 fetchResponse.body 的 ReadableStream 仍处于 reading 状态, Hono stream() 返回后这个 reader 没人释放; 在长连接被客户端断开 + LLM provider 响应 stuck 的场景下, Worker 实例里会堆积半开连接, 跑久了耗尽 fetch outbound 配额触发 502. 改为 try / catch / finally 三段, finally 内强制 `reader.cancel()` 并 swallow cancel 自身可能的 throw — reader 已结束时 cancel 是 noop, 不会破坏正常路径.
+2. `packages/server/src/routes/httpProxy.ts` HTTP 代理改流式转发: 原实现 `const data = await fetchResponse.text()` 把整个上游响应 body 缓存到 Worker 内存再 `new Response(data, ...)`, 上游返回大附件 (PDF / 图床原图 / 大 JSON dump) 时直接撞 Cloudflare Workers 单实例 128MB 上限, 表现为 502 而不是预期的"原样回传". 改为 `new Response(fetchResponse.body, ...)` 直接把 ReadableStream 透传给客户端, 内存占用 O(chunk) 不再 O(total). 删除非 SSE 路径上的全量缓存.
+
+## Changed
+
+3. `packages/ui/src/components/Toast.vue` 视觉重构:
+   - 容器从 inline `flex items-start gap-2.5 px-3.5 py-2.5 rounded-lg shadow-lg backdrop-blur-md` 改完整 `.ds-toast` scoped style: position relative + min-width 240px + overflow hidden + `var(--ds-radius-lg)` + `var(--ds-shadow-md)` + `blur(12px) saturate(180%)` 双层背景.
+   - icon 从 `inline-flex h-4 w-4 mt-0.5 shrink-0` 改 `.ds-toast-icon` (22x22 + currentColor 14% 软底圆 + flex center 居中), 视觉权重从"裸图标"拉到"软底徽章".
+   - 关闭按钮从 `opacity-60 hover:opacity-100 -mt-0.5 -mr-0.5` 改 `.ds-toast-close` 完整态机 (22x22 圆角 + currentColor opacity 0.55 → 1 + hover currentColor 16% 软底 + focus-visible 双 ring + transition motion-fast).
+   - 新增 `.ds-toast-progress` 4s linear scaleX(1→0) 倒计时条 + role=status + aria-live=polite + aria-hidden 装饰元素, 与 useToast 默认 4s 自动关闭契合.
+   - success / error / warning / info 4 变体背景改 `color-mix(in srgb, var(--ds-*-soft) 92%, transparent)`, 透出 backdrop blur 层, 替代原本满底色.
+4. `packages/ui/src/components/FullscreenDialog.vue` 头部对齐 ds-modal-* 设计语言:
+   - 头部从 `p-4 border-b + h3 text-lg + 裸 × 按钮` 改 `.ds-modal-head` + `.ds-modal-head-left/-right` + `.ds-modal-title` + `.ds-modal-title-icon` (8 方向箭头 svg 表全屏) + `.ds-modal-subtitle` "Esc 关闭" hint + `.ds-icon-btn-sm` 关闭按钮, 与 Manager 弹窗一致.
+   - 容器外加 `overflow-hidden`, 内容区从 `flex-1 min-h-0 p-4` 加 `overflow-auto`, 解决长内容时整窗滚动而非内容区滚动的体验问题.
+   - title 默认值兜底 "全屏编辑", title 没传时也有正常显示.
+
+[1.9.3]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.2...v1.9.3
+
 # 2026.05.20 (lockstep v1.9.2)
 
 整体目标: 接 v1.9.1 "硌手细节抛光" Phase 1, 进入 Phase 2 —— 把 AutoTest 工作台的 3 个 Manager 弹窗 (模型 / 模板 / 数据) 与 TextDiff 视觉打磨, 让管理后台从"功能可用"拉到"高科技公司管理后台"层级.

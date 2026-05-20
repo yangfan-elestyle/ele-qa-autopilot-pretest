@@ -309,9 +309,30 @@ export async function updateJobById(
   return await getJobById(id);
 }
 
-export async function deleteJobById(id: Id): Promise<number> {
+export async function deleteJobById(id: Id): Promise<{ changes: number; jobTaskIds: Id[] }> {
+  const jobTaskRows = await queryAll<{ id: Id }>(
+    `SELECT id FROM job_tasks WHERE job_id = ?`,
+    [id],
+  );
   const result = await queryRun(`DELETE FROM jobs WHERE id = ?`, [id]);
-  return result.changes;
+  return { changes: result.changes, jobTaskIds: jobTaskRows.map((r) => r.id) };
+}
+
+/**
+ * 给级联清理 R2 截图用: 返回一组 task 关联的所有 job_task id.
+ * 内部走 jobs.task_id → job_tasks 两段查询, 跟 D1 cascade 链路一致.
+ */
+export async function getJobTaskIdsByTaskIds(taskIds: Id[]): Promise<Id[]> {
+  if (taskIds.length === 0) return [];
+  const placeholders = taskIds.map(() => '?').join(',');
+  const rows = await queryAll<{ id: Id }>(
+    `SELECT jt.id
+     FROM job_tasks jt
+     JOIN jobs j ON j.id = jt.job_id
+     WHERE j.task_id IN (${placeholders})`,
+    taskIds,
+  );
+  return rows.map((r) => r.id);
 }
 
 // ============ JobTask 相关 ============

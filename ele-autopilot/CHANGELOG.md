@@ -2,6 +2,26 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.9.3] - 2026-05-20
+
+整体目标: 主动扫雷 — 对 v1.9.x 工作台已稳定的功能流程做后端缺陷专项排查, 修掉删除链 R2 残留 / 错误码语义错位 / 列表参数 DoS 隐患三类问题, 把 UI 也顺手抛了 Tree drag indicator / Toast 进度条 / FullscreenDialog 头部三处.
+
+### Fixed
+
+- `lib/screenshots.ts` 新增 `deleteScreenshotsByJobTaskIds(ids)`: 按 `<jobTaskId>/` 前缀分页 list + batch delete R2 对象, 解决 D1 cascade 链 (folder→tasks→jobs→job_tasks) 不会跨进 R2 桶导致截图永久残留的资源泄漏. 单 job_task 可能含 N 张 step 截图, 调用方传 id 数组, 内部按对象 ≤1000 分页吃完, 失败仅 warn 不抛 — D1 行已先删, 残留 R2 比中断更可接受.
+- `lib/db/jobs.ts` `deleteJobById(id)` 返回类型从 `number` 改为 `{ changes, jobTaskIds }`, 删 D1 前先 `SELECT id FROM job_tasks WHERE job_id = ?` 把受影响的 job_task id 收齐; 新增 `getJobTaskIdsByTaskIds(taskIds)` (供 task 删除用).
+- `lib/db/tasks.ts` `deleteTaskById(id)` 同步改返回 `{ changes, jobTaskIds }`, 删 D1 前两段查询拿到 `task → jobs → job_tasks` 所有受影响 id.
+- `lib/db/folders.ts` `deleteFolderById(id)` 同步改返回 `{ changes, jobTaskIds }`, 递归 CTE 拿全部子 folder + 关联 task + 关联 job_tasks id 链; 这是删 D1 行之前唯一能拿到孤儿 R2 key 的窗口.
+- `app/routes/api.admin.{folders,tasks,jobs}.$id.tsx` DELETE handler 改为先解构 `{ changes, jobTaskIds }`, 再 `await deleteScreenshotsByJobTaskIds(jobTaskIds)` 清 R2 — 三处入口共享同一清理函数, 不再有"删 folder 残留 R2 / 删 task 残留 R2 / 删 job 残留 R2"三套各异行为.
+- `app/lib/api-shared.ts` `mapDbErrorToStatus` 新增对 D1 / SQLite `FOREIGN KEY constraint failed` / `SQLITE_CONSTRAINT_FOREIGNKEY` 错误的识别, 映射 → 409 Conflict (之前落 500). 触发场景: 误删含 task 的 folder / 含 job 的 task 时 ON DELETE RESTRICT 命中, 前端拿到正确的"资源被引用"语义.
+- `app/lib/api-shared.ts` `parseListParams` 新增 `MAX_RANGE_SPAN = 1000` 上限保护 — react-admin 默认分页 ≤100, 但前端构造 `range=[0, 1e9]` 时会被原样塞进 LIMIT/OFFSET 触发全表扫描, 现在强制截到 1000 行内, 并对 NaN / 非整数 / 负数做兜底, 不影响正常列表行为.
+
+### Changed
+
+- `app/globals.css` Ant Design Tree 拖拽视觉强化: drop indicator 默认细线 + 灰蓝改 brand-500 + 3px 高度 + 9x9 端点圆点 + 软光晕双层阴影; treenode-drop-over 整行底色切 brand-50 + 1.5px brand-500 ring + 12px brand 阴影; 正在拖拽的源节点透明度切 0.55; switcher 展开/收起 icon 加 transform rotate 过渡, 与设计 token 动效曲线一致. 视觉反馈从"几乎看不见的细线"拉到"明确锚点 + 软光晕", 解决之前用户反馈"拖拽到底是落到哪一行说不清"的硌手感.
+
+[1.9.3]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.2...v1.9.3
+
 ## [1.9.2] - 2026-05-20
 
 ### Changed

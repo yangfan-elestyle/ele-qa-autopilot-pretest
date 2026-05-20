@@ -47,8 +47,9 @@ router.all('/', async (c: Context<HonoEnv>) => {
       }
     })
 
-    const data = await fetchResponse.text()
-    return new Response(data, {
+    // 直接把上游 body 流式回传, 不要 .text() 把整个响应缓存到 Worker 内存:
+    // CF Workers 单实例 128MB 上限, 上游返回大附件 (PDF/图床) 会直接 OOM 502.
+    return new Response(fetchResponse.body, {
       status: fetchResponse.status,
       headers: responseHeaders,
     })

@@ -8,6 +8,7 @@ import {
   updateJobById,
 } from '@/lib/db';
 import type { JobStatus } from '@/lib/db';
+import { deleteScreenshotsByJobTaskIds } from '@/lib/screenshots';
 import {
   jsonError,
   jsonResponse,
@@ -45,8 +46,10 @@ export async function action({ request, params }: ActionFunctionArgs) {
     const existing = await getJobById(id);
     if (!existing) return jsonError('Not found', 404);
 
-    const changes = await deleteJobById(id);
+    const { changes, jobTaskIds } = await deleteJobById(id);
     if (changes === 0) return jsonError('Not found', 404);
+
+    await deleteScreenshotsByJobTaskIds(jobTaskIds);
 
     return jsonResponse({ code: 0, message: 'success', data: existing });
   }

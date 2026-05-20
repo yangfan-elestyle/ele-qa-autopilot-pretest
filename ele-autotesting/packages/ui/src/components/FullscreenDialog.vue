@@ -1,15 +1,30 @@
 <template>
   <Teleport to="body">
     <div v-if="modelValue" class="fixed inset-0 theme-mask z-[60] flex items-center justify-center overflow-y-auto" @click="onBackdropClick">
-      <div class="relative theme-manager-container min-h-[80vh] h-[90vh] w-[90vw] m-4 flex flex-col">
+      <div class="relative theme-manager-container min-h-[80vh] h-[90vh] w-[90vw] m-4 flex flex-col overflow-hidden">
         <!-- 标题栏 -->
-        <div class="flex items-center justify-between p-4 border-b theme-manager-border flex-none">
-          <h3 class="text-lg font-semibold theme-manager-text">{{ title }}</h3>
-          <button @click="close" class="theme-manager-text-secondary hover:theme-manager-text transition-colors text-xl">×</button>
-        </div>
+        <header class="ds-modal-head">
+          <div class="ds-modal-head-left">
+            <span class="ds-modal-title-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+              </svg>
+            </span>
+            <h3 class="ds-modal-title">{{ title || '全屏编辑' }}</h3>
+          </div>
+          <div class="ds-modal-head-right">
+            <span class="ds-modal-subtitle hidden sm:inline">Esc 关闭</span>
+            <button @click="close" class="ds-icon-btn-sm" type="button" aria-label="退出全屏">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M18 6 6 18" />
+                <path d="m6 6 12 12" />
+              </svg>
+            </button>
+          </div>
+        </header>
 
         <!-- 内容区域 -->
-        <div class="flex-1 min-h-0 p-4">
+        <div class="flex-1 min-h-0 p-4 overflow-auto">
           <slot></slot>
         </div>
       </div>

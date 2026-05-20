@@ -51,6 +51,7 @@ export {
   getJobById,
   getJobStatsByTaskIds,
   getJobTaskByIndex,
+  getJobTaskIdsByTaskIds,
   getJobTasksByJobId,
   getJobWithTasks,
   getJobWithTasksLite,

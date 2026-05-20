@@ -211,6 +211,44 @@ body {
   .ant-tree .ant-tree-switcher {
     color: var(--ds-text-tertiary);
   }
+  .ant-tree .ant-tree-switcher .ant-tree-switcher-icon {
+    transition: transform var(--ds-motion-base) var(--ds-ease-standard);
+  }
+  .ant-tree .ant-tree-switcher_close .ant-tree-switcher-icon {
+    transform: rotate(0deg);
+  }
+  .ant-tree .ant-tree-switcher_open .ant-tree-switcher-icon {
+    transform: rotate(90deg);
+  }
+
+  /* Drag & drop visual feedback (drop indicator 默认条偏弱, 强化成 brand-500 + 软光晕) */
+  .ant-tree .ant-tree-drop-indicator {
+    background-color: var(--ds-brand-500) !important;
+    height: 3px !important;
+    border-radius: 999px;
+    box-shadow:
+      0 0 0 2px rgba(99, 102, 241, 0.18),
+      0 0 8px 2px rgba(99, 102, 241, 0.32);
+  }
+  .ant-tree .ant-tree-drop-indicator::after {
+    background-color: var(--ds-brand-500) !important;
+    border-color: var(--ds-brand-500) !important;
+    width: 9px !important;
+    height: 9px !important;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+  }
+  /* 整行被作为 drop target (拖到节点上方) 时强化 */
+  .ant-tree .ant-tree-treenode-drop-over > .ant-tree-node-content-wrapper {
+    background: var(--ds-brand-50) !important;
+    box-shadow:
+      0 0 0 1.5px var(--ds-brand-500),
+      0 4px 12px rgba(99, 102, 241, 0.18);
+    color: var(--ds-brand-700) !important;
+  }
+  /* 正在被拖拽的节点轻微淡化 */
+  .ant-tree .ant-tree-treenode-dragging .ant-tree-node-content-wrapper {
+    opacity: 0.55;
+  }
 
   /* Tag — slimmer, brand-aware */
   .ant-tag {

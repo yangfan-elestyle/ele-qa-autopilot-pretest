@@ -2,6 +2,14 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.9.3] - 2026-05-20
+
+### Changed
+
+- lockstep 同步, 与上游 ele-autopilot / ele-autotesting v1.9.3 一同发布; 本项目无业务改动. 本轮上游聚焦 AI 主动扫雷 — ele-autopilot 修了"删 folder/task/job 时 R2 截图永久残留"的资源泄漏 (新增 `deleteScreenshotsByJobTaskIds` 前缀 list + batch delete, 三个 DELETE handler 改为 D1 cascade 前先抓 job_task id 链), `mapDbErrorToStatus` 新增对 D1 FOREIGN KEY constraint 的识别映射到 409 Conflict, `parseListParams` 新增 `MAX_RANGE_SPAN = 1000` 上限保护防止前端 `range=[0, 1e9]` 触发全表扫. ele-autotesting 修了 streamProxy SSE 长连接 reader 在客户端断开时未 `cancel()` 导致 Worker 实例堆积半开 fetch 连接的资源泄漏 (改 try/catch/finally + reader.cancel swallow), httpProxy 改 `new Response(fetchResponse.body, ...)` 直接透传上游 ReadableStream 替代 `.text()` 全量缓存 (避免大附件触发 Workers 128MB 单实例 OOM). 顺手抛了 ele-autopilot 的 Ant Tree drag indicator 视觉强化 (brand-500 + 软光晕 + treenode-drop-over 整行 ring), ele-autotesting 的 Toast 进度条 + ds-toast 完整态机, FullscreenDialog 头部改 .ds-modal-head 设计语言. landing 页路由分发 / `/autotest/*` strip / SSR loader / service bindings 行为不变.
+
+[1.9.3]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.2...v1.9.3
+
 ## [1.9.2] - 2026-05-20
 
 ### Changed

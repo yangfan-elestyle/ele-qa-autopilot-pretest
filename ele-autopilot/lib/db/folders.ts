@@ -204,9 +204,12 @@ export async function updateFolderById(
 }
 
 /**
- * 递归删除 folder 及其所有子 folder 和关联的 tasks/jobs
+ * 递归删除 folder 及其所有子 folder 和关联的 tasks/jobs.
+ * 返回 changes + 受影响的全部 job_task id, 调用方据此清 R2 截图 (D1 cascade 不会跨 R2).
  */
-export async function deleteFolderById(id: Id) {
+export async function deleteFolderById(
+  id: Id,
+): Promise<{ changes: number; jobTaskIds: Id[] }> {
   const descendants = await queryAll<{ id: Id; depth: number }>(
     `
       WITH RECURSIVE descendants(id, depth) AS (
@@ -221,7 +224,7 @@ export async function deleteFolderById(id: Id) {
   );
 
   const folderIds = descendants.map((row) => row.id);
-  if (folderIds.length === 0) return 0;
+  if (folderIds.length === 0) return { changes: 0, jobTaskIds: [] };
 
   const placeholders = folderIds.map(() => '?').join(',');
 
@@ -231,8 +234,17 @@ export async function deleteFolderById(id: Id) {
   );
   const taskIds = taskRows.map((row) => row.id);
 
+  let jobTaskIds: Id[] = [];
   if (taskIds.length > 0) {
     const taskPlaceholders = taskIds.map(() => '?').join(',');
+    const jobTaskRows = await queryAll<{ id: Id }>(
+      `SELECT jt.id
+       FROM job_tasks jt
+       JOIN jobs j ON j.id = jt.job_id
+       WHERE j.task_id IN (${taskPlaceholders})`,
+      taskIds,
+    );
+    jobTaskIds = jobTaskRows.map((r) => r.id);
     await queryRun(`DELETE FROM jobs WHERE task_id IN (${taskPlaceholders})`, taskIds);
   }
 
@@ -243,7 +255,7 @@ export async function deleteFolderById(id: Id) {
     const result = await queryRun(`DELETE FROM folders WHERE id = ?`, [folderId]);
     totalChanges += result.changes;
   }
-  return totalChanges;
+  return { changes: totalChanges, jobTaskIds };
 }
 
 export async function reorderFolders(folderIds: Id[], parentId: Id | null) {

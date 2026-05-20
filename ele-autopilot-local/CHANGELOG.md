@@ -2,6 +2,14 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.9.3] - 2026-05-20
+
+### Changed
+
+- lockstep 同步, 与上游 gateway / ele-autopilot / ele-autotesting v1.9.3 一同发布; 本项目无业务改动. 本轮上游聚焦 AI 主动扫雷 — ele-autopilot 修了删除链 R2 截图永久残留的资源泄漏 (`lib/screenshots.ts` 新增 `deleteScreenshotsByJobTaskIds` 前缀 list + batch delete, folder/task/job DELETE handler 全部接上), `mapDbErrorToStatus` 识别 D1 FK 错误映射 409, `parseListParams` 加 1000 行 range 上限; ele-autotesting 修了 streamProxy SSE reader 资源回收 (finally + cancel) 与 httpProxy 流式转发避免 128MB OOM. 顺手抛了 Ant Tree drag indicator 与 Toast 进度条视觉. FastAPI app / 路由 / 监听 / R2 wheel 发布链路不变.
+
+[1.9.3]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.2...v1.9.3
+
 ## [1.9.2] - 2026-05-20
 
 ### Changed

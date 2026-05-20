@@ -65,6 +65,10 @@ router.all('/', async (c: Context<HonoEnv>) => {
     return stream(c, async (s) => {
       if (!fetchResponse.body) return
       const reader = fetchResponse.body.getReader()
+      // 客户端断开 / s.write throw 时, 上游 reader 必须显式 cancel,
+      // 否则 fetchResponse 这边的 ReadableStream 仍处于 reading 状态, Worker 实例里
+      // 会留下半开连接, 长跑会耗尽 fetch outbound 配额. abort signal 这里没有
+      // (Hono stream 内部不暴露), 用 try/finally 兜底.
       try {
         while (true) {
           const { done, value } = await reader.read()
@@ -74,6 +78,12 @@ router.all('/', async (c: Context<HonoEnv>) => {
       } catch (error) {
         console.error('流式传输错误:', (error as Error)?.message || error)
         throw error
+      } finally {
+        try {
+          await reader.cancel()
+        } catch {
+          /* reader 已结束, 忽略 */
+        }
       }
     })
   }
