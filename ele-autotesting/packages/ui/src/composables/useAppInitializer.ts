@@ -29,9 +29,11 @@ import type { IPreferenceService } from '../types/services'
  */
 
 /**
- * 迁移标志: 各 owner 一份, 防止登录身份切换后旧标志锁死本地→云端的一次性数据迁移.
- * 浏览器侧拿不到真正的 email (服务端才能 decode JWT), 故仅用固定字符串 `cf-access`
- * 作占位 — 旧 SHARED_OWNER_ID 时代的 `shared-owner-v1` flag 不会命中, 用户首启自动重走一次迁移.
+ * 迁移标志 (localStorage key) 用的占位 owner. 浏览器侧拿不到真正的 email
+ * (服务端才能 decode JWT), 用固定字符串 `cf-access` 作占位即可:
+ * 同浏览器只对首次登录的账号迁移一次本地 Dexie → 云端, 后续切账号不重迁
+ * (避免把 A 的本地残留误送到 B 的云端配置).
+ * 旧 SHARED_OWNER_ID 时代的 `shared-owner-v1` flag 不会命中, 用户首启自动重走一次迁移.
  */
 const MIGRATION_OWNER_KEY = 'cf-access'
 

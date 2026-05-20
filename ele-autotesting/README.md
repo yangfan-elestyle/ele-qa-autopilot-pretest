@@ -50,7 +50,7 @@ pnpm run dev
 | `QA_IMAGE_RESEARCH_GEMINI_API_KEY` | Gemini Vision Key | `wrangler secret put` |
 | `QA_IMAGE_RESEARCH_GEMINI_VISION_MODEL` | Gemini Vision Model | `wrangler.jsonc#vars` |
 
-本地 `wrangler dev` 通过 `--env-file ../../.env` 加载仓库根 `.env` (脚本在 `packages/server/package.json`). 生产 secrets 用 `wrangler secret put <NAME>`.
+本地 `wrangler dev` 通过 `--env-file ../../.env` 加载 `ele-autotesting/.env` (相对 `packages/server`, `../../` 即 ele-autotesting 根; 脚本在 `packages/server/package.json`). 生产 secrets 用 `wrangler secret put <NAME>`.
 
 可选 `MARKITDOWN_DEV_URL`: 详见 `packages/server/src/types/env.ts`.
 
