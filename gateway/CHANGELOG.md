@@ -2,6 +2,20 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.9.7] - 2026-05-20
+
+整体目标: AI 主动扫雷第五轮 — service binding 失败的可观测性补全, 与 lockstep 联调 ele-autopilot Job 时间戳修正 / ele-autotesting 外部 fetch 超时 / ele-autopilot-local callback 重试一起发版.
+
+### Fixed
+
+- `workers/app.ts` 给 `env.AUTOPILOT.fetch` / `env.AUTOTEST.fetch` 两条 service binding 调用包了一层 `forwardTo(name, binding, req)`: 此前两条调用裸跑, 下游 Worker 不可达 (deploy 中断 / 配置漂移 / DO 启动失败) 时异常会冒到 CF 平台层变成无文案 5xx, 运维只能根据出错路径 (`/autotest/*` vs 其他) 猜是哪个下游故障. 现在 try/catch 内显式 `console.error("[gateway] AUTOPILOT/AUTOTEST fetch failed: ...")` 写到 Worker tail, 同时返回 `502 Bad Gateway` + `statusText: "AUTOPILOT/AUTOTEST unreachable"` + `x-gateway-upstream` 响应头, body 也带可读文案. landing 页 SSR loader 自带回退 (`new URL(request.url).origin` 客户端兜底), 不依赖 gateway 给 503; 改动只影响 service binding fetch 路径, `/healthz` / `/index.html` / `/` RR SSR 三条本地路径不动.
+
+### Changed
+
+- lockstep 同步, 与上游 ele-autopilot / ele-autopilot-local / ele-autotesting v1.9.7 一同发布. 上游本轮改动: ele-autopilot 把 `jobs.started_at` 在 createJob 时强写 `now` 的遗留 bug 修掉, 改为 `syncJobStatusFromTasks` 首次推进到非 pending 时回填; ele-autotesting 给 Figma / Confluence 上游 fetch 加 `AbortSignal.timeout(25s)`; ele-autopilot-local `CallbackClient` 加 3 次指数退避重试 + 关闭 CORS allow_credentials.
+
+[1.9.7]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.6...v1.9.7
+
 ## [1.9.6] - 2026-05-20
 
 ### Changed

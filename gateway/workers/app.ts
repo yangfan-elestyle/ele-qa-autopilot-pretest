@@ -28,6 +28,30 @@ const requestHandler = createRequestHandler(
   import.meta.env.MODE,
 );
 
+// service binding fetch 出错时, CF runtime 默认会让异常冒到平台层变成无文案 5xx,
+// 运维看到 gateway 报错却不知道是 AUTOPILOT 还是 AUTOTEST 故障. 这里包一层,
+// 把目标名标在 status text + 自定义头 + body 里, 同时把堆栈写到 Worker tail.
+async function forwardTo(
+  name: "AUTOPILOT" | "AUTOTEST",
+  binding: Fetcher,
+  req: Request,
+): Promise<Response> {
+  try {
+    return await binding.fetch(req);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`[gateway] ${name} fetch failed: ${message}`);
+    return new Response(`Bad Gateway: ${name} unreachable`, {
+      status: 502,
+      statusText: `${name} unreachable`,
+      headers: {
+        "content-type": "text/plain; charset=utf-8",
+        "x-gateway-upstream": name,
+      },
+    });
+  }
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -43,7 +67,7 @@ export default {
       const stripped = p.slice("/autotest".length) || "/";
       const forwarded = new URL(url);
       forwarded.pathname = stripped;
-      return env.AUTOTEST.fetch(new Request(forwarded, request));
+      return forwardTo("AUTOTEST", env.AUTOTEST, new Request(forwarded, request));
     }
 
     if (p === "/index.html") {
@@ -56,6 +80,6 @@ export default {
       return requestHandler(request, { cloudflare: { env, ctx } });
     }
 
-    return env.AUTOPILOT.fetch(request);
+    return forwardTo("AUTOPILOT", env.AUTOPILOT, request);
   },
 } satisfies ExportedHandler<Env>;

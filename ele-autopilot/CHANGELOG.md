@@ -2,6 +2,17 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.9.7] - 2026-05-20
+
+整体目标: AI 主动扫雷第五轮 — Job 时间戳真实性修正. 此前 `jobs.started_at` 在 `createJob` 时硬写成 `now`, 与 `status='pending'` 同时落地, 任务后续真正开始执行时 server 端再无写入入口, 导致前端任何"耗时 = completed_at - started_at"算式都把 local agent 接收 callback 到第一次 task running 之间的等待时长 (取决于 local agent 负载 / 浏览器冷启动, 可能几十秒) 算进去, 用户排查"这条任务为什么跑这么久"会得到错误结论. 配套修 `syncJobStatusFromTasks` 在状态首次推进到非 pending 时回填该字段.
+
+### Fixed
+
+- `lib/db/jobs.ts` `createJob`: `INSERT INTO jobs` 的 `started_at` 列从 `now` 改成 `null`. D1 schema (`migrations/0001_init.sql`) 的 `started_at TEXT` 本就可空, 之前写入 `now` 是初次实现时把"创建时间"和"启动时间"语义混在一起的遗留 bug; 此版回到正确语义 — pending 阶段没启动就没 started_at, 与 `job_tasks` 同字段语义对齐. 历史已有 `jobs` 行的 `started_at` 不动 (向后兼容, 不写 migration 回填, 旧数据耗时仍偏长但不再继续产新错数据).
+- `lib/db/jobs.ts` `syncJobStatusFromTasks`: 推导新 status 之后, 若新状态非 pending 且 `jobs.started_at IS NULL`, 拿 `getJobTasksByJobId` 的 task 列表里最早一个有 `started_at` 的时间回填; 全部 task 都还没 started_at (理论上 sync 触发时必有至少一个 task 进入过 running, 但兜底保险) 时退化到 `new Date().toISOString()`. 已写入的 `jobs.started_at` 永不覆盖, 保留首次启动时间 — 同一 job 后续多次 callback 触发 sync 是幂等的. 这一步把"何时回填"绑在 callback.task / callback.complete 两条 server 端唯一信源上, 不需要新加 callback 字段或改 local 端 callback 协议.
+
+[1.9.7]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.6...v1.9.7
+
 ## [1.9.6] - 2026-05-20
 
 整体目标: AI 主动扫雷第四轮 — 后台列表 sort/order 链路审计, 修掉 react-admin 列表头点排序在后端被静默忽略的功能缺陷, 顺手 lockstep 对齐 ele-autotesting 业务 API 鉴权收紧.

@@ -39,6 +39,10 @@ const MIN_DIMENSION = 100
 const MAX_ASPECT_RATIO = 5
 const PNG_SCALE_FACTOR = 1
 const MAX_IMAGES = 50
+// 单次上游 (Figma API / Figma 静态资源 CDN) 调用超时. CF Workers 默认 30s subrequest
+// 上限, 这里再加显式 AbortSignal 防止上游慢响应吃满 Worker invocation 配额; 命中后
+// 客户端收到 504, Worker 立刻释放连接.
+const FIGMA_FETCH_TIMEOUT_MS = 25_000
 
 const normalizeNodeId = (value: string) => value.replace(/-/g, ':')
 
@@ -84,7 +88,7 @@ const findNodeById = (node: FigmaNode | undefined, targetId: string): FigmaNode 
 }
 
 const fetchSvgAndConvertToBase64Png = async (url: string, width?: number, height?: number) => {
-  const response = await fetch(url)
+  const response = await fetch(url, { signal: AbortSignal.timeout(FIGMA_FETCH_TIMEOUT_MS) })
   if (!response.ok) {
     throw new Error(`Failed to download SVG: HTTP ${response.status}`)
   }
@@ -117,7 +121,10 @@ router.post('/', async (c: Context<HonoEnv>) => {
 
   let fileJson: FigmaFileResponse
   try {
-    const fileResponse = await fetch(`https://api.figma.com/v1/files/${parsed.fileKey}?depth=3`, { headers })
+    const fileResponse = await fetch(`https://api.figma.com/v1/files/${parsed.fileKey}?depth=3`, {
+      headers,
+      signal: AbortSignal.timeout(FIGMA_FETCH_TIMEOUT_MS),
+    })
     if (!fileResponse.ok) {
       // Figma 上游错误响应体可能含 token hint / 请求 ID / 内部栈 — 仅写 Worker 日志, 不回写客户端,
       // 与 confluenceParse.ts 同口径; 客户端只看到 status code, 避免泄漏给浏览器 console.
@@ -132,8 +139,9 @@ router.post('/', async (c: Context<HonoEnv>) => {
     }
     fileJson = (await fileResponse.json()) as FigmaFileResponse
   } catch (err: any) {
+    const isTimeout = err?.name === 'TimeoutError' || err?.name === 'AbortError'
     console.error('Figma file request error:', err?.message || err)
-    return c.json({ error: 'Failed to fetch Figma file' }, 502)
+    return c.json({ error: isTimeout ? 'Figma file request timed out' : 'Failed to fetch Figma file' }, isTimeout ? 504 : 502)
   }
 
   const targetNode = findNodeById(fileJson.document, parsed.nodeId)
@@ -166,7 +174,10 @@ router.post('/', async (c: Context<HonoEnv>) => {
       ids: childNodes.map((child) => child.id).join(','),
       format: 'svg',
     })
-    const imagesResponse = await fetch(`https://api.figma.com/v1/images/${parsed.fileKey}?${params.toString()}`, { headers })
+    const imagesResponse = await fetch(`https://api.figma.com/v1/images/${parsed.fileKey}?${params.toString()}`, {
+      headers,
+      signal: AbortSignal.timeout(FIGMA_FETCH_TIMEOUT_MS),
+    })
     if (!imagesResponse.ok) {
       const errorText = await imagesResponse.text()
       console.error(
@@ -179,8 +190,9 @@ router.post('/', async (c: Context<HonoEnv>) => {
     }
     imagesJson = (await imagesResponse.json()) as FigmaImagesResponse
   } catch (err: any) {
+    const isTimeout = err?.name === 'TimeoutError' || err?.name === 'AbortError'
     console.error('Figma images request error:', err?.message || err)
-    return c.json({ error: 'Failed to fetch Figma images' }, 502)
+    return c.json({ error: isTimeout ? 'Figma images request timed out' : 'Failed to fetch Figma images' }, isTimeout ? 504 : 502)
   }
 
   if (imagesJson.err) {

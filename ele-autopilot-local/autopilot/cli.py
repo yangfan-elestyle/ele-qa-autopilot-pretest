@@ -34,7 +34,10 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    # 不开 credentials: 本地 API 无 session / cookie 鉴权, 浏览器规范也不允许
+    # `allow_origins=["*"]` 与 `allow_credentials=True` 同时生效 (cookie 仍发不出去),
+    # 关闭后明确这一事实, 同时避免在路由层误以为可凭跨站 cookie 鉴权.
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

@@ -256,13 +256,15 @@ export async function createJob(input: { task_id: Id; config?: JobConfig }): Pro
 
   // D1 batch: 整个 job + job_tasks 链原子写入. 任一条失败整体回滚, 避免
   // 半成品 job (jobs 写入但 job_tasks 缺失) 留在表里.
+  // started_at 留空: pending 阶段还未真正启动, 由 syncJobStatusFromTasks 在状态
+  // 首次推进到 running 时回填, 避免前端把"创建 -> 启动"的等待时长算进任务耗时.
   const db = getDb();
   const statements: D1PreparedStatement[] = [
     db
       .prepare(
         `INSERT INTO jobs (id, task_id, status, config, created_at, started_at) VALUES (?, ?, ?, ?, ?, ?)`,
       )
-      .bind(jobId, taskId, 'pending', JSON.stringify(config), now, now),
+      .bind(jobId, taskId, 'pending', JSON.stringify(config), now, null),
   ];
   for (let i = 0; i < flatTasks.length; i++) {
     const ft = flatTasks[i];
@@ -461,7 +463,23 @@ export async function syncJobStatusFromTasks(jobId: Id): Promise<JobRow | null> 
     newStatus = 'pending';
   }
 
-  return await updateJobById(jobId, { status: newStatus });
+  const patch: { status: JobStatus; started_at?: string } = { status: newStatus };
+
+  // jobs.started_at 在创建时留空, 这里第一次推进到非 pending 时回填:
+  // 优先用最早一个有 started_at 的 task 时间, 缺失时退化到 now. 已写入的不动,
+  // 保留首次启动时间.
+  if (newStatus !== 'pending') {
+    const job = await getJobById(jobId);
+    if (job && !job.started_at) {
+      const earliest = tasks
+        .map((t) => t.started_at)
+        .filter((v): v is string => typeof v === 'string' && v.length > 0)
+        .sort()[0];
+      patch.started_at = earliest ?? new Date().toISOString();
+    }
+  }
+
+  return await updateJobById(jobId, patch);
 }
 
 // ============ Job 统计 ============

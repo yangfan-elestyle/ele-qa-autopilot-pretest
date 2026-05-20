@@ -1,3 +1,14 @@
+# 2026.05.20 (lockstep v1.9.7)
+
+整体目标: AI 主动扫雷第五轮 — 把外部依赖 (Figma API / Atlassian Cloud) 的 fetch 调用全部加上显式 AbortSignal 超时. 此前裸 fetch 仅靠 CF 平台层 subrequest 30s 兜底超时, 命中后 Worker 进入"待回收"状态收到的客户端响应是无文案 524, 排查难; 同时若 client 已断开但 Worker 仍在 await 上游响应, 那个 invocation slot 是被无端占用的, 对 free / paid 配额都是浪费.
+
+## Fixed
+
+1. `packages/server/src/routes/figmaParse.ts` 三处对外 fetch (Figma `v1/files`, Figma `v1/images`, SVG 静态 CDN 下载) 统一加 `signal: AbortSignal.timeout(FIGMA_FETCH_TIMEOUT_MS)` (25s, 留 5s 给 Worker 自身 IO + 平台层 30s 上限). catch 分支用 `err.name === 'TimeoutError' || 'AbortError'` 区分超时 vs 普通失败, 命中超时返回 504 + 文案 `Figma file/images request timed out`, 普通失败保持原 502; SVG download 走 `fetchSvgAndConvertToBase64Png` 内部 throw, 被外层 image research loop 的 try/catch 捕获后写到 `analyses[i].error`, 不需要单独 504 路径 — Figma 单 node 失败不阻塞其他 node 分析.
+2. `packages/server/src/routes/confluenceParse.ts` 新增 `CONFLUENCE_FETCH_TIMEOUT_MS = 25_000` 常量, 唯一对 Atlassian Cloud 的 fetch 加 `signal: AbortSignal.timeout(...)`. catch 分支同样 `err.name === 'TimeoutError' || 'AbortError'` 走 504 + 文案 `Confluence request timed out`, 其余仍 500; 与 figmaParse 保持响应口径一致. 没改 LLM proxy (`/stream-proxy` / `/http-proxy`) — 那些路由由 LLM SDK 内部 fetch 发起, SDK 自带 streaming + 业务侧 600s 超时, 跟 page parsing 的同步语义不一样.
+
+[1.9.7]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.6...v1.9.7
+
 # 2026.05.20 (lockstep v1.9.6)
 
 整体目标: AI 主动扫雷第四轮 — 把"靠服务端凭据 / LLM API key 跑外部资源"的四条业务路由从全裸奔状态收回到 V1 身份模型背后, 顺手把 figmaParse 上游错误响应体的信息泄漏点跟 confluenceParse 拉齐, 给后端排查留 ownerId 维度.

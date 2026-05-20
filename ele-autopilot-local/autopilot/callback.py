@@ -4,8 +4,16 @@
 职责：
 - 上报单个 task 状态（包含完整执行结果）
 - 上报 Job 完成状态
+
+可靠性：
+- 默认 3 次尝试 + 指数退避 (1s/2s/4s).
+- 仅对网络错误 / 5xx / 408 / 429 重试; 4xx (含 400/404/422) 即时返回,
+  防止 client 端 schema 不匹配反复打 server.
+- 重试期间维持 30s 单次超时, 总最坏 ~37s; 任务执行链路对回调失败已是
+  "尽力而为" (job.py / task.py 仍会继续推进), 多撑一会更稳但不必无限.
 """
 
+import asyncio
 import logging
 from datetime import datetime
 from typing import Any
@@ -13,6 +21,10 @@ from typing import Any
 import httpx
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_RETRIES = 3
+RETRY_BACKOFF_BASE_SECONDS = 1.0
+RETRYABLE_STATUS = {408, 429, 500, 502, 503, 504}
 
 
 class CallbackClient:
@@ -28,6 +40,61 @@ class CallbackClient:
         """
         self.callback_url = callback_url
         self.client = httpx.AsyncClient(timeout=30.0) if callback_url else None
+
+    async def _post_with_retry(
+        self, url: str, payload: dict[str, Any], label: str
+    ) -> bool:
+        """指数退避重试 POST. 成功返回 True; 4xx 不可重试时直接返回 False."""
+        assert self.client is not None
+        last_status: int | None = None
+        for attempt in range(1, DEFAULT_RETRIES + 1):
+            try:
+                response = await self.client.post(url, json=payload)
+                last_status = response.status_code
+                if response.status_code == 200:
+                    return True
+                if response.status_code not in RETRYABLE_STATUS:
+                    logger.warning(
+                        "%s returned non-retryable %d (attempt %d): %s",
+                        label,
+                        response.status_code,
+                        attempt,
+                        response.text[:500],
+                    )
+                    return False
+                logger.warning(
+                    "%s returned retryable %d (attempt %d/%d): %s",
+                    label,
+                    response.status_code,
+                    attempt,
+                    DEFAULT_RETRIES,
+                    response.text[:500],
+                )
+            except httpx.HTTPError as e:
+                logger.warning(
+                    "%s network error (attempt %d/%d): %s",
+                    label,
+                    attempt,
+                    DEFAULT_RETRIES,
+                    e,
+                )
+            except Exception as e:  # noqa: BLE001
+                logger.warning(
+                    "%s unexpected error (attempt %d/%d): %s",
+                    label,
+                    attempt,
+                    DEFAULT_RETRIES,
+                    e,
+                )
+            if attempt < DEFAULT_RETRIES:
+                await asyncio.sleep(RETRY_BACKOFF_BASE_SECONDS * (2 ** (attempt - 1)))
+        logger.warning(
+            "%s gave up after %d attempts (last status: %s)",
+            label,
+            DEFAULT_RETRIES,
+            last_status,
+        )
+        return False
 
     async def report_task_update(
         self,
@@ -70,21 +137,8 @@ class CallbackClient:
             "completed_at": completed_at.isoformat() if completed_at else None,
         }
 
-        try:
-            url = f"{self.callback_url}/task"
-            response = await self.client.post(url, json=payload)
-            if response.status_code != 200:
-                logger.warning(
-                    "Task callback returned non-200 status: %d, body: %s",
-                    response.status_code,
-                    response.text[:500],
-                )
-                return False
-            return True
-        except Exception as e:
-            # 回调失败不影响任务执行，仅记录日志
-            logger.warning("Task callback failed: %s", e)
-            return False
+        url = f"{self.callback_url}/task"
+        return await self._post_with_retry(url, payload, f"Task callback ({status})")
 
     async def report_job_complete(
         self,
@@ -112,20 +166,8 @@ class CallbackClient:
             "completed_at": completed_at.isoformat() if completed_at else None,
         }
 
-        try:
-            url = f"{self.callback_url}/complete"
-            response = await self.client.post(url, json=payload)
-            if response.status_code != 200:
-                logger.warning(
-                    "Job complete callback returned non-200 status: %d, body: %s",
-                    response.status_code,
-                    response.text[:500],
-                )
-                return False
-            return True
-        except Exception as e:
-            logger.warning("Job complete callback failed: %s", e)
-            return False
+        url = f"{self.callback_url}/complete"
+        return await self._post_with_retry(url, payload, f"Job complete callback ({status})")
 
     async def close(self) -> None:
         """关闭 HTTP 客户端"""

@@ -2,6 +2,17 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.9.7] - 2026-05-20
+
+整体目标: AI 主动扫雷第五轮 — local 端 callback 链路可靠性 + CORS 收紧. 此前 `CallbackClient` 单次 POST 失败直接 `logger.warning` + 返回 False, 网络抖动 (本机 wifi 切换 / gateway 偶发 5xx / Cloudflare cold start) 会让 server 端 `jobs` 永远停在 pending 或缺中间 task 状态, 而 local 端任务实际已完成 — 用户在 admin UI 看到 job 假死. CORS 同时把 `allow_origins=["*"]` 与 `allow_credentials=True` 混用是浏览器规范禁止的组合, 实际 cookie 也发不出去, 删掉这一伪配置避免后续路由层误以为可凭跨站 cookie 鉴权.
+
+### Fixed
+
+- `autopilot/callback.py` 重写为 `_post_with_retry`: 默认 3 次尝试 + 指数退避 `1s / 2s / 4s`, 仅对网络错误 (`httpx.HTTPError`) + 5xx + 408 / 429 重试; 4xx (含 400/404/422) 即时返回 False — 这些是 client 端 schema 错配 (task_index 越界 / job 已被删 / payload 结构变), 反复 retry 只会刷 server 日志. 单次 POST 仍 30s timeout 不变, 总最坏 ~37s; `report_task_update` / `report_job_complete` 各自的协议字段不变, 仅把原"组装 payload → 单次 POST → 处理结果"压扁成"组装 payload → `_post_with_retry`", server 端 callback 路由不需要任何配套改动.
+- `autopilot/cli.py` CORSMiddleware `allow_credentials=True` → `False`: 本地 API 全程无 session / cookie, V1 / V2 鉴权均走显式 header (callback_url + LLM API key 走 env / request body), `allow_credentials=True` 在 `allow_origins=["*"]` 同时存在时 W3C 规范禁止浏览器发送 cookie, FastAPI 也会把 `Access-Control-Allow-Origin` 强制改成 `null` 触发 CORS 报错. 关闭后行为更接近现实 — 业务层就当没 cookie, 不会再有人尝试通过浏览器跨站 cookie 调本机 API 的奇怪路径.
+
+[1.9.7]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.6...v1.9.7
+
 ## [1.9.6] - 2026-05-20
 
 ### Changed

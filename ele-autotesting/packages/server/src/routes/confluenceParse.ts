@@ -14,6 +14,10 @@ interface ConfluencePageResponse {
 
 const router = new Hono<HonoEnv>()
 
+// 上游 (Atlassian Cloud) 调用超时. CF Workers subrequest 上限 30s, 显式 AbortSignal
+// 提前止血, 命中后返回 504 而非 Worker 平台层 524.
+const CONFLUENCE_FETCH_TIMEOUT_MS = 25_000
+
 router.get('/', async (c: Context<HonoEnv>) => {
   const pageId = c.req.query('page_id')
   if (!pageId) return c.json({ error: 'Missing page_id parameter' }, 400)
@@ -30,7 +34,10 @@ router.get('/', async (c: Context<HonoEnv>) => {
   const apiUrl = `https://elestyle.atlassian.net/wiki/api/v2/pages/${pageId}?body-format=view`
 
   try {
-    const response = await fetch(apiUrl, { headers })
+    const response = await fetch(apiUrl, {
+      headers,
+      signal: AbortSignal.timeout(CONFLUENCE_FETCH_TIMEOUT_MS),
+    })
 
     if (!response.ok) {
       // 上游响应体可能含 Atlassian 内部错误堆栈 / token hint, 仅记到服务端日志,
@@ -75,12 +82,13 @@ router.get('/', async (c: Context<HonoEnv>) => {
       200,
     )
   } catch (error: any) {
+    const isTimeout = error?.name === 'TimeoutError' || error?.name === 'AbortError'
     console.error(`Error fetching Confluence page ${pageId}:`, error?.message || error)
     return c.json(
       {
-        error: 'Failed to fetch Confluence page',
+        error: isTimeout ? 'Confluence request timed out' : 'Failed to fetch Confluence page',
       },
-      500,
+      isTimeout ? 504 : 500,
     )
   }
 })
