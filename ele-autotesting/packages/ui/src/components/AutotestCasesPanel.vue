@@ -391,6 +391,13 @@ async function callApi<T = any>(method: 'GET' | 'POST', path: string, body?: unk
     const msg = json?.error || json?.message || `HTTP ${resp.status}`
     throw new Error(`${msg}`)
   }
+  // 上游 (MS / 自家 ingest) 多走 `{ code, message, data }`, 0/200 为成功; HTTP 200 + code 非成功
+  // 当前会被前端误判. 仅当 code 字段存在且为数字时校验, 兼容 harness 等不带 code 的自家响应.
+  const code = json?.code
+  if (typeof code === 'number' && code !== 0 && code !== 200) {
+    const msg = json?.message || json?.error || `business code ${code}`
+    throw new Error(`${msg} (code=${code})`)
+  }
   return json as T
 }
 

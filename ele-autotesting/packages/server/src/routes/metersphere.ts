@@ -13,7 +13,6 @@ import { buildMsSignedHeaders } from '../lib/metersphere/sign.ts'
  *
  * 路由:
  *   GET  /api/ms/_smoke                  链路烟雾, 不需 AK/SK
- *   GET  /api/ms/orgs                    当前 AK 关联用户的组织列表
  *   POST /api/ms/projects                项目分页
  *   GET  /api/ms/modules                 功能用例模块树
  *   POST /api/ms/cases                   功能用例分页
@@ -99,18 +98,6 @@ router.get('/_smoke', async (c: Context<HonoEnv>) => {
   } catch (e: any) {
     console.error('ms smoke error:', e?.message || e)
     return c.json({ error: 'vpc fetch failed', detail: String(e?.message || e) }, 502)
-  }
-})
-
-router.get('/orgs', async (c: Context<HonoEnv>) => {
-  const ak = getAkSk(c)
-  if (ak instanceof Response) return ak
-  try {
-    // GET /user/key/info: 返回当前 AK 对应用户基本信息 (含可访问组织); 字段以实际响应为准, 由前端解析.
-    return callMeterSphere(c, { method: 'GET', path: '/user/key/info', ak: ak.ak, sk: ak.sk })
-  } catch (e: any) {
-    console.error('ms orgs error:', e?.message || e)
-    return c.json({ error: String(e?.message || e) }, 500)
   }
 })
 

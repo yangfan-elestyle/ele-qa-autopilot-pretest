@@ -28,6 +28,7 @@ interface OneshotEvent {
     blocks?: Array<{ type: string; text?: string }>
   }
   text?: string
+  sessionId?: string
 }
 
 function extractLastAssistantText(events: OneshotEvent[]): string {
@@ -106,10 +107,8 @@ router.post('/oneshot', async (c: Context<HonoEnv>) => {
   }
 
   // 取 request_start 第一个事件里的 sessionId, 便于排错时去 harness sessions 库捞.
-  const sessionId =
-    typeof events.find((e) => e?.type === 'request_start')?.['sessionId' as any] === 'string'
-      ? ((events.find((e) => e?.type === 'request_start') as any).sessionId as string)
-      : undefined
+  const requestStart = events.find((e) => e?.type === 'request_start')
+  const sessionId = typeof requestStart?.sessionId === 'string' ? requestStart.sessionId : undefined
 
   const lastText = extractLastAssistantText(events)
   if (!lastText.trim()) {
