@@ -47,9 +47,16 @@ export function buildFolderTree(folders: Folder[], options: FolderTreeOptions) {
   };
 
   const renderNodeTitle = (folder: Folder) => (
-    <span className="-my-1 -ml-1 flex min-h-[28px] w-full items-center justify-between gap-2 py-1 pr-2 pl-1">
-      <span className="min-w-0 flex-1 truncate">{highlight(folder.name)}</span>
-      <span className="text-xs text-(--ant-color-text-secondary)">{folder.task_count}</span>
+    <span
+      className="-my-1 -ml-1 flex min-h-[28px] w-full items-center justify-between gap-2 py-1 pr-2 pl-1"
+      title={folder.name}
+    >
+      <span className="min-w-0 flex-1 break-words whitespace-normal leading-snug">
+        {highlight(folder.name)}
+      </span>
+      <span className="shrink-0 text-xs text-(--ant-color-text-secondary)">
+        {folder.task_count}
+      </span>
     </span>
   );
 

@@ -223,7 +223,7 @@ export default function FolderSider({
               if (!folder) return resolvedTitle;
               return (
                 <span className="group/node relative flex min-h-[28px] w-full items-center pr-1">
-                  <span className="min-w-0 flex-1 truncate text-[13px]">
+                  <span className="min-w-0 flex-1 text-[13px]">
                     {resolvedTitle as React.ReactNode}
                   </span>
                   <span
