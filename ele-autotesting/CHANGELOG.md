@@ -2,6 +2,12 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.12.0] - 2026-05-21
+
+### Added
+
+- AutoTest 用例面板新增「送至 Autopilot」入口: 勾选多条用例后, 走 harness 做一次原文回写, 审阅 / 编辑后按 "=== CASE N: <title> ===" 切片, 一次性把 n 条用例录入到 Autopilot 工作台 (source=`autotesting`). 弹框分 "聚合预览 → harness 处理中 → 审阅录入 → 完成" 四步, 录入成功展示 folder_id 与 task ids.
+
 ## [1.11.8] - 2026-05-21
 
 ### Removed

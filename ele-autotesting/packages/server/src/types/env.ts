@@ -13,6 +13,22 @@ export interface Env {
    */
   METERSPHERE: Fetcher
 
+  /**
+   * Cloudflare Workers VPC service binding 反向到 ele-fly 上的 agentic-loop:3000
+   * (即 ele-harness 的后端 HTTP API). 复用 harness 的 service `agentic-loop-backend`,
+   * service_id 在 wrangler.jsonc 写明; 这条 binding 让 autotesting Worker 直连 agentic-loop
+   * 容器, 绕过 harness Worker + CF Access. 本期为打通链路 (传话人) 用; 后续真要套权限层时
+   * 切回公网 `harness.<account>.workers.dev` + CF Access service token 即可.
+   */
+  AGENTIC_LOOP: Fetcher
+
+  /**
+   * autopilot ingest API 公网入口 base URL. 实际请求路径 `${BASE}/api/v1/ingest/tasks`,
+   * 契约见 ele-autopilot/docs/ingest-api.md. 走 gateway (`/api/*` 已 Bypass CF Access),
+   * 默认值在 wrangler.jsonc `vars.QA_AUTOPILOT_INGEST_BASE` 写明.
+   */
+  QA_AUTOPILOT_INGEST_BASE: string
+
   QA_ALTASSIAN_API_KEY?: string
   QA_ALTASSIAN_EMAIL?: string
 

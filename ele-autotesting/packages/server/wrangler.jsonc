@@ -37,6 +37,15 @@
       "binding": "METERSPHERE",
       "service_id": "019e45a0-58be-7323-b61d-72d7a2ed27e6",
       "remote": true
+    },
+    {
+      // 复用 ele-harness 的 VPC service `agentic-loop-backend` (cloudflared tunnel
+      // `ele-server` → ele-fly docker agentic-loop:3000). 让 autotesting Worker
+      // 直连后端做 oneshot 调用, 绕过 harness Worker + CF Access.
+      // service_id 与 ele-harness/agentic-loop-ui/wrangler.jsonc 同值.
+      "binding": "AGENTIC_LOOP",
+      "service_id": "019e3fe7-f3c9-7842-9ecb-3218d81d430a",
+      "remote": true
     }
   ],
   "rules": [
@@ -80,6 +89,9 @@
     "QA_IMAGE_RESEARCH_OPENAI_VISION_MODEL": "gpt-4o",
     "QA_IMAGE_RESEARCH_GEMINI_VISION_MODEL": "gemini-3-flash-preview",
     "TEAM_DOMAIN": "https://yigegongjiang.cloudflareaccess.com",
-    "POLICY_AUD": "7da3d8a8012e505a268a913c45a5b840a5b6d3458878fbad7481c3db61ec48d9"
+    "POLICY_AUD": "7da3d8a8012e505a268a913c45a5b840a5b6d3458878fbad7481c3db61ec48d9",
+    // autopilot ingest 走 gateway 公网入口; `/api/*` 在 gateway 已 Bypass CF Access.
+    // 修改 hostname 时同步 gateway/wrangler.jsonc 与 ele-autopilot 部署目标.
+    "QA_AUTOPILOT_INGEST_BASE": "https://qa.fan-yang2019.workers.dev"
   }
 }
