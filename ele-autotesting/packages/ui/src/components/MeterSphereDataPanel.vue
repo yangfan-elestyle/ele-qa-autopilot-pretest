@@ -198,10 +198,12 @@ interface MsCaseDetail {
 interface MsStepItem { id?: string; num?: number; desc?: string; result?: string }
 
 // AK/SK 走通用浏览器缓存, 与 AutotestCasesPanel 共享同一组 localStorage key.
+// projectId / moduleId 同走 useBrowserCache: 用户上次选过的项目与模块刷新后自动恢复,
+// 配合 onMounted 自动联动可一路拉到该模块的 cases, 减少重复点击.
 const ak = useBrowserCache<string>('metersphere.ak', '')
 const sk = useBrowserCache<string>('metersphere.sk', '')
-const projectId = ref('')
-const moduleId = ref('')
+const projectId = useBrowserCache<string>('metersphere.projectId', '')
+const moduleId = useBrowserCache<string>('metersphere.moduleId', '')
 const moduleKeyword = ref('')
 const caseKeyword = ref('')
 
@@ -403,11 +405,26 @@ watch(caseKeyword, () => {
   }, 350)
 })
 
-// 挂载时如果浏览器已缓存 AK/SK, 直接拉项目 — 减少 "打开面板再点拉项目" 一步操作.
-onMounted(() => {
-  if (ak.value.trim() && sk.value.trim()) {
-    loadProjects()
+// 挂载时基于浏览器缓存自动联动:
+//   AK/SK 缓存 → 拉项目 → 命中缓存 projectId → 拉模块 + 用例 (用例用缓存 moduleId, 若有效)
+// 任一缓存失效 (上游已删 / 换组织等), 清掉该层缓存避免下次再误命中;
+// watch(projectId) 已处理"项目变 → 重置 modules/cases", 失效时设 projectId.value=''
+// 即可触发清空, 不必在此重复.
+onMounted(async () => {
+  if (!ak.value.trim() || !sk.value.trim()) return
+  await loadProjects()
+  const cachedPid = projectId.value
+  if (!cachedPid) return
+  if (!projects.value.find((p) => p.id === cachedPid)) {
+    projectId.value = ''
+    return
   }
+  // 缓存项目仍有效: 不会触发 watch(projectId) (值没变), 手动并发拉模块 + 用例.
+  await loadModules()
+  if (moduleId.value && !modulesFlat.value.find((m) => m.id === moduleId.value)) {
+    moduleId.value = ''
+  }
+  loadCases(1)
 })
 
 function formatTs(ts?: number) {
