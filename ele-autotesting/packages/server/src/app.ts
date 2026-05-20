@@ -7,6 +7,7 @@ import confluenceParseRouter from './routes/confluenceParse.ts'
 import markdownResearchRouter from './routes/markdownResearch.ts'
 import figmaParseRouter from './routes/figmaParse.ts'
 import syncRouter from './routes/sync.ts'
+import metersphereRouter from './routes/metersphere.ts'
 import { resolveOwner } from './middleware/auth.ts'
 import type { HonoEnv } from './types/env.ts'
 
@@ -37,6 +38,8 @@ app.use('/confluence-parse', resolveOwner)
 app.use('/confluence-parse/*', resolveOwner)
 app.use('/figma-parse', resolveOwner)
 app.use('/figma-parse/*', resolveOwner)
+// AK/SK 走 X-MS-AK / X-MS-SK header, 服务端不持久化; ownerId 仅作访问审计, 与 D1 无耦合.
+app.use('/api/ms/*', resolveOwner)
 
 app.route('/image-research', imageResearchRouter)
 app.route('/http-proxy', httpProxyRouter)
@@ -45,6 +48,7 @@ app.route('/confluence-parse', confluenceParseRouter)
 app.route('/markdown-research', markdownResearchRouter)
 app.route('/figma-parse', figmaParseRouter)
 app.route('/api/sync', syncRouter)
+app.route('/api/ms', metersphereRouter)
 
 // API 范围 404 (静态 SPA fallback 由平台层 ASSETS `not_found_handling` 接管, 见 index.ts).
 app.notFound((c: Context<HonoEnv>) =>

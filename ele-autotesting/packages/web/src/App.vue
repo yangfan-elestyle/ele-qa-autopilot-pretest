@@ -91,6 +91,14 @@
             </svg>
           </template>
         </ActionButtonUI>
+        <ActionButtonUI text="联动" @click="showDataLinkage = true">
+          <template #icon>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+            </svg>
+          </template>
+        </ActionButtonUI>
         <ThemeToggleUI />
       </template>
 
@@ -192,6 +200,7 @@
       @deleteChain="promptHistory.handleDeleteChain"
     />
     <DataManagerUI v-if="isReady" v-model:show="showDataManager" @imported="handleDataImported" />
+    <DataLinkagePanelUI v-if="isReady" v-model:show="showDataLinkage" />
 
     <!-- ToastUI已在MainLayoutUI中包含，无需重复渲染 -->
   </template>
@@ -209,6 +218,7 @@ import {
   TemplateManagerUI,
   HistoryDrawerUI,
   DataManagerUI,
+  DataLinkagePanelUI,
   InputPanelUI,
   PromptPanelUI,
   OptimizationModeSelectorUI,
@@ -251,6 +261,7 @@ const isReady = computed(() => services.value !== null && !isInitializing.value)
 const promptService = shallowRef<IPromptService | null>(null)
 const selectedOptimizationMode = ref<OptimizationMode>('context')
 const showDataManager = ref(false)
+const showDataLinkage = ref(false)
 const templateSelectRef = ref<{ refresh?: () => void } | null>(null)
 const promptPanelRef = ref<{
   refreshIterateTemplateSelect?: () => void

@@ -2,6 +2,12 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.11.0] - 2026-05-21
+
+### Added
+
+- 顶栏新增「联动」入口, 弹出数据联动面板 (左侧 Excel 源数据演示用例, 右侧通过 MeterSphere Access Key / Secret Key 直接拉取并浏览组织内的项目 / 模块树 / 功能用例).
+
 ## [1.10.5] - 2026-05-20
 
 ### Fixed

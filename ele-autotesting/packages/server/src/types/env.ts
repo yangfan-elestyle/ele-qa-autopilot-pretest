@@ -5,6 +5,14 @@ export interface Env {
   MARKITDOWN: DurableObjectNamespace<Container>
   DB: D1Database
 
+  /**
+   * Cloudflare Workers VPC service binding 反向到 MeterSphere (`qa.elepay.link`).
+   * 资源 ID / 拓扑 / 复用 harness tunnel `ele-server` 的细节见 PLAN-vpc.md.
+   * 调用形态: `env.METERSPHERE.fetch('https://backend/{ms-path}', { method, headers, body })`.
+   * Host 部分是 binding placeholder, 不进 origin; VPC service 改写到 qa.elepay.link:443.
+   */
+  METERSPHERE: Fetcher
+
   QA_ALTASSIAN_API_KEY?: string
   QA_ALTASSIAN_EMAIL?: string
 

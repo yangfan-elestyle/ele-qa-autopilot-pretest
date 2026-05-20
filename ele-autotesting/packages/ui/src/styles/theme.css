@@ -2258,6 +2258,241 @@ html * {
     text-decoration-color: rgba(220, 38, 38, 0.45);
     box-shadow: inset 0 0 0 1px rgba(220, 38, 38, 0.22);
   }
+
+  /* ===== DataLinkagePanel (autotesting <-> MeterSphere) ===== */
+  .ds-ms-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 8px 16px 0;
+    border-bottom: 1px solid var(--ds-border);
+  }
+  .ds-ms-tab {
+    padding: 8px 14px;
+    border-radius: 6px 6px 0 0;
+    background: transparent;
+    color: var(--ds-text-secondary);
+    border: 1px solid transparent;
+    border-bottom: none;
+    cursor: pointer;
+    font-size: 13px;
+    transition: background-color var(--ds-motion-fast) var(--ds-ease-standard);
+  }
+  .ds-ms-tab:hover {
+    background: var(--ds-surface-subtle);
+    color: var(--ds-text-primary);
+  }
+  .ds-ms-tab--active {
+    background: var(--ds-surface);
+    color: var(--ds-brand-700);
+    border-color: var(--ds-border);
+    border-bottom-color: var(--ds-surface);
+    margin-bottom: -1px;
+  }
+
+  .ds-ms-body {
+    overflow: auto;
+    min-height: 360px;
+  }
+  .ds-ms-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .ds-ms-controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 8px 12px;
+    padding: 12px;
+    border: 1px solid var(--ds-border);
+    border-radius: 8px;
+    background: var(--ds-surface-subtle);
+  }
+  .ds-ms-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--ds-text-secondary);
+  }
+  .ds-ms-field label {
+    font-weight: 500;
+  }
+  .ds-ms-field input,
+  .ds-ms-field select {
+    height: 32px;
+    padding: 0 8px;
+    border: 1px solid var(--ds-border);
+    border-radius: 6px;
+    background: var(--ds-surface);
+    color: var(--ds-text-primary);
+    font-size: 13px;
+  }
+  .ds-ms-field input:focus,
+  .ds-ms-field select:focus {
+    outline: none;
+    box-shadow: var(--ds-focus-ring);
+    border-color: var(--ds-brand-500, #6366f1);
+  }
+  .ds-ms-actions {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .ds-ms-btn {
+    height: 32px;
+    padding: 0 14px;
+    border-radius: 6px;
+    border: 1px solid var(--ds-border);
+    background: var(--ds-surface);
+    color: var(--ds-text-primary);
+    cursor: pointer;
+    font-size: 13px;
+    transition: background-color var(--ds-motion-fast) var(--ds-ease-standard);
+  }
+  .ds-ms-btn:hover:not(:disabled) {
+    background: var(--ds-surface-subtle);
+  }
+  .ds-ms-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .ds-ms-btn--primary {
+    background: var(--ds-brand-600, #4f46e5);
+    color: #fff;
+    border-color: transparent;
+  }
+  .ds-ms-btn--primary:hover:not(:disabled) {
+    background: var(--ds-brand-700, #4338ca);
+  }
+  .ds-ms-btn--mini {
+    height: 28px;
+    padding: 0 10px;
+    font-size: 12px;
+  }
+
+  .ds-ms-error {
+    padding: 8px 12px;
+    border: 1px solid color-mix(in srgb, var(--ds-danger) 30%, transparent);
+    background: color-mix(in srgb, var(--ds-danger) 8%, transparent);
+    color: #b91c1c;
+    border-radius: 6px;
+    font-size: 12px;
+    word-break: break-all;
+  }
+
+  .ds-ms-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2px;
+  }
+  .ds-ms-toolbar-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ds-text-primary);
+  }
+  .ds-ms-toolbar-meta {
+    font-size: 12px;
+    color: var(--ds-text-secondary);
+  }
+
+  .ds-ms-table-wrap {
+    overflow: auto;
+    border: 1px solid var(--ds-border);
+    border-radius: 8px;
+    background: var(--ds-surface);
+  }
+  .ds-ms-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  .ds-ms-table th {
+    text-align: left;
+    padding: 8px 10px;
+    background: var(--ds-surface-subtle);
+    color: var(--ds-text-secondary);
+    border-bottom: 1px solid var(--ds-border);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .ds-ms-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--ds-border);
+    color: var(--ds-text-primary);
+    vertical-align: top;
+  }
+  .ds-ms-table tr:last-child td {
+    border-bottom: none;
+  }
+  .ds-ms-empty {
+    text-align: center;
+    color: var(--ds-text-secondary);
+    padding: 24px;
+  }
+
+  .ds-ms-case-name {
+    font-weight: 500;
+    color: var(--ds-text-primary);
+  }
+  .ds-ms-tags {
+    margin-top: 4px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .ds-ms-tag {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: var(--ds-brand-50, #eef2ff);
+    color: var(--ds-brand-700, #4338ca);
+    font-size: 11px;
+    margin-right: 4px;
+  }
+  .ds-ms-prio {
+    display: inline-flex;
+    align-items: center;
+    padding: 0 6px;
+    height: 18px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .ds-ms-prio--p0 {
+    background: color-mix(in srgb, var(--ds-danger) 14%, transparent);
+    color: #b91c1c;
+  }
+  .ds-ms-prio--p1 {
+    background: color-mix(in srgb, #f59e0b 18%, transparent);
+    color: #b45309;
+  }
+  .ds-ms-prio--p2 {
+    background: color-mix(in srgb, #10b981 18%, transparent);
+    color: #047857;
+  }
+  .ds-ms-prio--p3 {
+    background: var(--ds-surface-subtle);
+    color: var(--ds-text-secondary);
+  }
+  .ds-ms-pre {
+    margin: 0;
+    font-family: inherit;
+    font-size: 12px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: var(--ds-text-secondary);
+  }
+  .ds-ms-pager {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: flex-end;
+    padding: 4px 2px;
+    font-size: 12px;
+    color: var(--ds-text-secondary);
+  }
 }
 
 /* ===== Pulse keyframes (loading) ===== */

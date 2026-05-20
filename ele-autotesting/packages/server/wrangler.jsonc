@@ -32,6 +32,13 @@
       "/mcps/*"
     ]
   },
+  "vpc_services": [
+    {
+      "binding": "METERSPHERE",
+      "service_id": "019e45a0-58be-7323-b61d-72d7a2ed27e6",
+      "remote": true
+    }
+  ],
   "rules": [
     {
       "type": "CompiledWasm",
