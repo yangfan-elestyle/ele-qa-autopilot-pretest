@@ -24,22 +24,6 @@
               <slot name="title">AutoTest</slot>
             </h1>
           </a>
-          <span
-            class="hidden md:inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 ml-2 text-[10.5px] font-semibold uppercase"
-            style="background: var(--ds-surface-subtle); color: var(--ds-text-tertiary); box-shadow: inset 0 0 0 1px var(--ds-border-soft); letter-spacing: 0.08em"
-            aria-hidden="true"
-          >
-            <span class="inline-block h-1.5 w-1.5 rounded-full" style="background: var(--ds-brand-500)"></span>
-            AutoTest
-          </span>
-          <span
-            class="hidden lg:inline-flex ds-status-pill ds-status-pill-success ml-1"
-            title="Studio 已就绪"
-            aria-label="Studio 已就绪"
-          >
-            <span class="ds-status-dot-pulse" aria-hidden="true"></span>
-            Studio 就绪
-          </span>
         </div>
         <div class="flex items-center gap-1.5 sm:gap-2">
           <slot name="actions"></slot>

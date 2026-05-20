@@ -2,6 +2,12 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.10.4] - 2026-05-20
+
+### Removed
+
+- 顶栏移除装饰性的「AutoTest」环境标签与「Studio 就绪」标记 (无实际就绪检测, 仅误导).
+
 ## [1.10.2] - 2026-05-20
 
 ### Removed

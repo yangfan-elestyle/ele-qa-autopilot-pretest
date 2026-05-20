@@ -238,22 +238,6 @@ export default function AppHeader({
         </span>
       </a>
 
-      <span className="ds-pill-env hidden items-center gap-1.5 rounded-full px-2 py-0.5 text-[10.5px] font-semibold tracking-wide uppercase md:inline-flex"
-        style={{
-          background: 'var(--ds-surface-subtle)',
-          color: 'var(--ds-text-tertiary)',
-          boxShadow: 'inset 0 0 0 1px var(--ds-border-soft)',
-          letterSpacing: '0.08em',
-        }}
-        aria-hidden="true"
-      >
-        <span
-          className="inline-block h-1.5 w-1.5 rounded-full"
-          style={{ background: 'var(--ds-brand-500)' }}
-        />
-        AutoPilot
-      </span>
-
       {subtitle && (
         <>
           <span className="ds-vrule hidden sm:inline-block" aria-hidden="true" />

@@ -96,10 +96,6 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                 </a>
               </span>
             ) : null}
-            <span className="status" aria-label="服务运行中">
-              <span className="status-dot" aria-hidden="true" />
-              服务运行中
-            </span>
           </div>
         </header>
 

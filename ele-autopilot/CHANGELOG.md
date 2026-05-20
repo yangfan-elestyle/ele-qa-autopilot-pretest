@@ -2,6 +2,12 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.10.4] - 2026-05-20
+
+### Removed
+
+- 后台顶栏移除装饰性的「AutoPilot」环境标签, 保留真实「本地 Agent」状态徽章.
+
 ## [1.10.0] - 2026-05-20
 
 ### Changed
