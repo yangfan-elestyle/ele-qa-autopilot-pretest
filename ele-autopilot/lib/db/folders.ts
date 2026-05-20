@@ -1,6 +1,22 @@
 import type { FolderRow, Id, ListPageArgs } from './types';
-import { escapeLike, generateId, isRecord, isValidId, queryAll, queryGet, queryRun } from './utils';
+import {
+  buildOrderBy,
+  escapeLike,
+  generateId,
+  isRecord,
+  isValidId,
+  queryAll,
+  queryGet,
+  queryRun,
+} from './utils';
 import { pruneSubIdReferencesUnsafe } from './tasks';
+
+const FOLDER_SORT_FIELDS = ['id', 'name', 'parent_id', 'order_index', 'created_at'] as const;
+
+// 默认排序: 显式 order_index 优先 (NULL 排在最后), 再按 created_at DESC 兜底. 这是设计的稳定顺序,
+// 当 react-admin 未传 sort / 传入未知字段时回落到此, 避免 reorderFolders 之后 UI 看不出顺序变化.
+const FOLDER_DEFAULT_ORDER =
+  'CASE WHEN f.order_index IS NOT NULL THEN 0 ELSE 1 END, f.order_index ASC, f.created_at DESC';
 
 export async function ensureParentFolderValid(folderId: Id, parentId: Id | null) {
   if (parentId === null) return;
@@ -68,7 +84,7 @@ export async function getFoldersByIds(ids: Id[]) {
 }
 
 export async function listFoldersPage(args: ListPageArgs) {
-  const { limit, offset } = args;
+  const { limit, offset, sort, order } = args;
   const filter = isRecord(args.filter) ? args.filter : {};
 
   const where: string[] = [];
@@ -91,6 +107,9 @@ export async function listFoldersPage(args: ListPageArgs) {
   }
 
   const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+  // sort 命中白名单时改用单字段排序; 不命中回退到 reorderFolders 友好的稳定默认顺序
+  const explicit = buildOrderBy(sort, order, FOLDER_SORT_FIELDS, '');
+  const orderBy = explicit ? `f.${explicit}` : FOLDER_DEFAULT_ORDER;
   params.push(Math.max(1, limit));
   params.push(Math.max(0, offset));
 
@@ -105,10 +124,7 @@ export async function listFoldersPage(args: ListPageArgs) {
         (SELECT COUNT(1) FROM tasks t WHERE t.folder_id = f.id) AS task_count
       FROM folders f
       ${whereSql}
-      ORDER BY
-        CASE WHEN f.order_index IS NOT NULL THEN 0 ELSE 1 END,
-        f.order_index ASC,
-        f.created_at DESC
+      ORDER BY ${orderBy}
       LIMIT ? OFFSET ?
     `,
     params,

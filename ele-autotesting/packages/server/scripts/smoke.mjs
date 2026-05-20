@@ -23,6 +23,11 @@ async function step(name, fn) {
 
 const json = (r) => r.json()
 
+// 业务路由 (/confluence-parse / /image-research / /markdown-research / /figma-parse) 已统一过 resolveOwner.
+// smoke 跑这些用例时复用一个稳定 device id (含 'smoke-' 前缀, 与 SYNC_DEVICE_ID 区分但匹配同一 8-64 char 正则).
+const BUSINESS_DEVICE_ID = `smoke-${Date.now().toString(36)}-business`
+const BUSINESS_AUTH = { 'X-Device-Id': BUSINESS_DEVICE_ID }
+
 await step('GET /healthz', async () => {
   const r = await fetch(`${ENDPOINT}/healthz`)
   if (r.status !== 200) throw new Error(`status=${r.status}`)
@@ -47,18 +52,34 @@ await step('GET /unknown/spa-route (SPA fallback)', async () => {
   return 'served index.html'
 })
 
-await step('GET /confluence-parse (validation)', async () => {
+await step('GET /confluence-parse (auth missing → 401)', async () => {
   const r = await fetch(`${ENDPOINT}/confluence-parse`)
+  if (r.status !== 401) throw new Error(`status=${r.status}`)
+  return '401 as expected'
+})
+
+await step('GET /confluence-parse (validation)', async () => {
+  const r = await fetch(`${ENDPOINT}/confluence-parse`, { headers: BUSINESS_AUTH })
   if (r.status !== 400) throw new Error(`status=${r.status}`)
   const body = await json(r)
   if (!body?.error?.includes('page_id')) throw new Error(`unexpected error: ${JSON.stringify(body)}`)
   return body.error
 })
 
-await step('POST /image-research/analyze (validation)', async () => {
+await step('POST /image-research/analyze (auth missing → 401)', async () => {
   const r = await fetch(`${ENDPOINT}/image-research/analyze`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  })
+  if (r.status !== 401) throw new Error(`status=${r.status}`)
+  return '401 as expected'
+})
+
+await step('POST /image-research/analyze (validation)', async () => {
+  const r = await fetch(`${ENDPOINT}/image-research/analyze`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...BUSINESS_AUTH },
     body: JSON.stringify({}),
   })
   if (r.status !== 400) throw new Error(`status=${r.status}`)
@@ -70,7 +91,7 @@ await step('POST /image-research/analyze (validation)', async () => {
 await step('POST /markdown-research (no images passthrough)', async () => {
   const r = await fetch(`${ENDPOINT}/markdown-research`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...BUSINESS_AUTH },
     body: JSON.stringify({ markdown: '# title\n\nplain content' }),
   })
   if (r.status !== 200) throw new Error(`status=${r.status}`)
@@ -79,10 +100,20 @@ await step('POST /markdown-research (no images passthrough)', async () => {
   return `${body.text.length} bytes`
 })
 
-await step('POST /figma-parse (validation)', async () => {
+await step('POST /figma-parse (auth missing → 401)', async () => {
   const r = await fetch(`${ENDPOINT}/figma-parse`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  })
+  if (r.status !== 401) throw new Error(`status=${r.status}`)
+  return '401 as expected'
+})
+
+await step('POST /figma-parse (validation)', async () => {
+  const r = await fetch(`${ENDPOINT}/figma-parse`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...BUSINESS_AUTH },
     body: JSON.stringify({}),
   })
   if (r.status !== 400) throw new Error(`status=${r.status}`)

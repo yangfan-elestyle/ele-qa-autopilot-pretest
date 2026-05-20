@@ -1,5 +1,16 @@
 import type { Id, ListPageArgs, TaskDbRow, TaskRow } from './types';
-import { escapeLike, isRecord, generateId, isValidId, queryAll, queryGet, queryRun } from './utils';
+import {
+  buildOrderBy,
+  escapeLike,
+  generateId,
+  isRecord,
+  isValidId,
+  queryAll,
+  queryGet,
+  queryRun,
+} from './utils';
+
+const TASK_SORT_FIELDS = ['id', 'folder_id', 'title', 'created_at'] as const;
 
 async function ensureFolderExists(folderId: Id) {
   const exists = await queryGet<{ ok: 1 }>(`SELECT 1 as ok FROM folders WHERE id = ?`, [folderId]);
@@ -82,11 +93,14 @@ export async function getTasksByIds(ids: Id[]) {
 }
 
 export async function listTasksPage(args: ListPageArgs) {
-  const { limit, offset } = args;
+  const { limit, offset, sort, order } = args;
   const filter = isRecord(args.filter) ? args.filter : {};
 
   const { where, params, withClause } = buildTasksFilterParts(filter);
   const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+  // 白名单字段以 t.* 限定到 tasks 表, 避免与 WITH RECURSIVE descendants(id) CTE 内 id 列重名歧义
+  const explicit = buildOrderBy(sort, order, TASK_SORT_FIELDS, '');
+  const orderBy = explicit ? `t.${explicit}` : 't.created_at DESC';
   const finalParams = [...params, Math.max(1, limit), Math.max(0, offset)];
 
   const rows = await queryAll<TaskDbRow>(
@@ -95,7 +109,7 @@ export async function listTasksPage(args: ListPageArgs) {
       SELECT t.id, t.folder_id, t.title, t.text, t.sub_ids, t.created_at
       FROM tasks t
       ${whereSql}
-      ORDER BY t.created_at DESC
+      ORDER BY ${orderBy}
       LIMIT ? OFFSET ?
     `,
     finalParams,

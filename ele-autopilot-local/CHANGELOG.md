@@ -2,6 +2,14 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.9.6] - 2026-05-20
+
+### Changed
+
+- lockstep 同步, 与上游 gateway / ele-autopilot / ele-autotesting v1.9.6 一同发布; 本项目无业务改动 (FastAPI app / 路由 / browser-use 执行链路 / callback 上行格式不变). 本轮上游聚焦 AI 主动扫雷第四轮: ele-autopilot 修了 react-admin 列表头点排序按钮在 D1 层被静默忽略的功能缺陷 (`lib/db/utils.ts` 新增 `buildOrderBy` 字段白名单 + 方向归一化共享 helper, jobs/tasks/folders 三处 list*Page 接入); ele-autotesting 给 `/confluence-parse` / `/figma-parse` / `/markdown-research` / `/image-research/*` 四条服务端资源敏感路由统一加 `resolveOwner` 中间件, 收回此前任意访客可枚举服务端 Atlassian token / LLM API key 的开放面, 同时把 figmaParse 上游错误响应体回写客户端的信息泄漏点拉齐 confluenceParse 防线; core 包新增 `setAuthHeaders/getAuthHeaders` 让 UI fetch 业务路由时统一注入 X-Device-Id. 本项目 R2 wheel 发布链路不变, `_update_status` 状态机沿用 v1.9.5 规则.
+
+[1.9.6]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.5...v1.9.6
+
 ## [1.9.5] - 2026-05-20
 
 整体目标: 与 ele-autopilot v1.9.5 状态机同步; 本轮 local 仅改 `_update_status` 聚合规则, FastAPI app / 路由 / browser-use 执行链路 / callback 上行格式不变.

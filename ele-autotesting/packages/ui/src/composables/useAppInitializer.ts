@@ -13,6 +13,7 @@ import {
   DataManager,
   createPreferenceService,
   setProxyBasePath,
+  setAuthHeaders,
 } from '../' // 从UI包的index导入所有核心模块
 import type { AppServices } from '../types/services'
 import type { IModelManager, ITemplateManager, IHistoryManager, ILLMService, IPromptService, IDataManager } from '@prompt-optimizer/core'
@@ -139,6 +140,10 @@ export function useAppInitializer(apiBase: string = '') {
   // 必须早于任何 createLLMService 调用, onMounted 内已经够早 (composable 顺序保证).
   const normalizedBase = apiBase.replace(/\/+$/, '')
   setProxyBasePath(normalizedBase)
+  // 同步注册业务 API 鉴权头 (V1 SHARED_OWNER_ID): UI 组件后续 fetch `/confluence-parse` /
+  // `/figma-parse` / `/image-research/analyze` / `/markdown-research` 时, 拿 getAuthHeaders()
+  // 注入, 让后端 resolveOwner 中间件能识别身份并对齐 RemoteStorageProvider 的同一 owner.
+  setAuthHeaders({ 'X-Device-Id': SHARED_OWNER_ID })
 
   const services = ref<AppServices | null>(null)
   const isInitializing = ref(true)

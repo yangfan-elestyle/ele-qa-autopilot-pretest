@@ -12,7 +12,7 @@ import type {
   ListPageArgs,
   TaskActionResult,
 } from './types';
-import { generateId, isRecord, isValidId, queryAll, queryGet, queryRun } from './utils';
+import { buildOrderBy, generateId, isRecord, isValidId, queryAll, queryGet, queryRun } from './utils';
 import { getDb } from './connection';
 import { getTaskById } from './tasks';
 
@@ -169,8 +169,10 @@ export async function getJobWithTasksLite(id: Id): Promise<JobWithTasksLite | nu
   };
 }
 
+const JOB_SORT_FIELDS = ['id', 'task_id', 'status', 'created_at', 'started_at', 'completed_at'] as const;
+
 export async function listJobsPage(args: ListPageArgs): Promise<JobRow[]> {
-  const { limit, offset, filter } = args;
+  const { limit, offset, filter, sort, order } = args;
   const where: string[] = [];
   const params: unknown[] = [];
 
@@ -189,6 +191,7 @@ export async function listJobsPage(args: ListPageArgs): Promise<JobRow[]> {
   }
 
   const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+  const orderBy = buildOrderBy(sort, order, JOB_SORT_FIELDS, 'created_at DESC');
   const finalParams = [...params, Math.max(1, limit), Math.max(0, offset)];
 
   const rows = await queryAll<JobDbRow>(
@@ -196,7 +199,7 @@ export async function listJobsPage(args: ListPageArgs): Promise<JobRow[]> {
       SELECT id, task_id, status, config, created_at, started_at, completed_at, error
       FROM jobs
       ${whereSql}
-      ORDER BY created_at DESC
+      ORDER BY ${orderBy}
       LIMIT ? OFFSET ?
     `,
     finalParams,

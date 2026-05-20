@@ -2,6 +2,14 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.9.6] - 2026-05-20
+
+### Changed
+
+- lockstep 同步, 与上游 ele-autopilot / ele-autopilot-local / ele-autotesting v1.9.6 一同发布; 本项目无业务改动. 本轮上游聚焦 AI 主动扫雷第四轮: ele-autopilot 修了后台列表 sort/order 链路在 D1 层被静默吞掉的功能缺陷 — 此前 `api.admin.{jobs,tasks,folders}.tsx` 把 parseListParams 解析到的 sort/order 透传进 list*Page, 但 SQL 里 `ORDER BY` 写死忽略 args, 表现是 react-admin 列表头点排序按钮无效. 现 `lib/db/utils.ts` 新增 `buildOrderBy(sort, order, allowed, fallback)` 共享 helper, jobs/tasks/folders 三处接入字段白名单 + 方向归一化, 不命中回退原默认顺序. ele-autotesting 把 `/confluence-parse` / `/figma-parse` / `/markdown-research` / `/image-research/*` 四条服务端资源敏感路由统一收回 `resolveOwner` 中间件背后 — 此前裸奔, 任意访客可枚举 page_id 经服务端 Atlassian token 拉公司 Confluence 全量 wiki, 或消耗服务端 LLM API key 跑视觉/文本任务; 同步收紧 figmaParse 上游错误响应体回写客户端的信息泄漏点 (拉齐 confluenceParse 防线), `core/utils/environment.ts` 新增 `setAuthHeaders/getAuthHeaders` 二人组让 UI fetch 业务路由时统一注入 X-Device-Id 头. `/stream-proxy` / `/http-proxy` / `/mcps/markitdown/*` 因 LLM SDK / MCP 协议无法注入业务自定义头, 保留 open + 走 proxyGuard SSRF 黑名单兜底. 本项目 landing 页路由分发 / `/autotest/*` strip / SSR loader / service bindings 行为不变.
+
+[1.9.6]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.5...v1.9.6
+
 ## [1.9.5] - 2026-05-20
 
 ### Changed

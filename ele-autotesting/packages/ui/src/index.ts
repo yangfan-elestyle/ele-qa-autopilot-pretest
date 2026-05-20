@@ -58,6 +58,8 @@ export {
   createCompareService,
   setProxyBasePath,
   getApiBasePath,
+  setAuthHeaders,
+  getAuthHeaders,
 } from '@prompt-optimizer/core'
 
 // 导出类型

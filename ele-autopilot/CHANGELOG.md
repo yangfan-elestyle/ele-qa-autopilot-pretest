@@ -2,6 +2,19 @@
 
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
 
+## [1.9.6] - 2026-05-20
+
+整体目标: AI 主动扫雷第四轮 — 后台列表 sort/order 链路审计, 修掉 react-admin 列表头点排序在后端被静默忽略的功能缺陷, 顺手 lockstep 对齐 ele-autotesting 业务 API 鉴权收紧.
+
+### Fixed
+
+- `lib/db/utils.ts` 新增 `buildOrderBy(sort, order, allowed, fallback)` helper: D1 prepared statement 仅支持值占位符, 列名 / 方向只能字符串拼接, 直接拿前端传的 sort 字段拼 `ORDER BY ${col} ${dir}` 是显式注入面 — 这里强制字段白名单 + 方向归一化 (`ASC` / `DESC`, 默认 `DESC`), 不命中回退到调用方给的 fallback 表达式. 三处列表 (jobs / tasks / folders) 共用一份, 避免各 list*Page 各自实现走样.
+- `lib/db/jobs.ts` `listJobsPage` 真正实施 sort/order: 此前 `app/routes/api.admin.jobs.tsx` 把 `parseListParams` 解析到的 `sort` / `order` 透传进 `listJobsPage(args)`, 但 SQL 里写死 `ORDER BY created_at DESC` 完全无视 args — 表现是 react-admin 列表头任意点列排序按钮都不生效, 永远是 created_at DESC. 现接入 `buildOrderBy` + 白名单 `id / task_id / status / created_at / started_at / completed_at`, 命中即按字段+方向拼装, 不命中回退 `created_at DESC` 兜底.
+- `lib/db/tasks.ts` `listTasksPage` 同上修复: `ORDER BY t.created_at DESC` 写死无视前端 sort. 现接入 `buildOrderBy` + 白名单 `id / folder_id / title / created_at`, 命中后自动用 `t.` 前缀避免与 `WITH RECURSIVE descendants(id)` CTE 里 `id` 列重名歧义; 不命中保持 `t.created_at DESC` 兜底.
+- `lib/db/folders.ts` `listFoldersPage` 同上修复: 此前默认 `CASE WHEN order_index IS NOT NULL ... f.order_index ASC, f.created_at DESC` 是 reorderFolders 友好的稳定排序, 但 sort/order 完全失效. 现 sort 命中白名单 `id / name / parent_id / order_index / created_at` 时改用单字段 + `f.` 前缀; 未传 sort / 不命中保留原默认顺序, 不破坏 drag reorder 之后 UI 顺序的直观性.
+
+[1.9.6]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.5...v1.9.6
+
 ## [1.9.5] - 2026-05-20
 
 整体目标: AI 主动扫雷第三轮 — 把 Job 创建链路 + callback 状态同步链路两条 server-side 数据流的并发缺陷收齐, 闭环"半成品 job 残留 / 终态被乱序覆盖 / 状态机过早判 failed"三类问题.

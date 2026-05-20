@@ -1,3 +1,18 @@
+# 2026.05.20 (lockstep v1.9.6)
+
+整体目标: AI 主动扫雷第四轮 — 把"靠服务端凭据 / LLM API key 跑外部资源"的四条业务路由从全裸奔状态收回到 V1 身份模型背后, 顺手把 figmaParse 上游错误响应体的信息泄漏点跟 confluenceParse 拉齐, 给后端排查留 ownerId 维度.
+
+## Fixed
+
+1. `packages/server/src/app.ts` 给四条服务端资源敏感路由统一挂 `resolveOwner` 中间件: `/confluence-parse` / `/figma-parse` / `/markdown-research` / `/image-research/*`. 此前这些路由全裸奔 — 任意访客 GET `/autotest/confluence-parse?page_id=12345` 就能让 Worker 用服务端配置的 `QA_ALTASSIAN_API_KEY` 拉 elestyle Confluence 任意 page (page_id 是顺序数字, 可枚举), 直接外泄全公司 wiki; `/image-research/analyze` / `/markdown-research` 消耗服务端 `QA_IMAGE_RESEARCH_OPENAI_API_KEY` / `QA_IMAGE_RESEARCH_GEMINI_API_KEY` 跑视觉 / 文本任务, 没人挡; `/figma-parse` 虽然 token 是 client 自带, 但内部调用 LLM 分析也是服务端 key. 现统一收回到 V1 owner 模型背后 (V1 仍是 shared-owner, 没做横向隔离, 但至少给后端日志 / 限流 / 滥用排查留出 ownerId 维度, V2 接入 Google id_token 后自动按用户隔离). 注意: `/stream-proxy` / `/http-proxy` 由 LLM SDK 内部 fetch 发起, SDK 无法注入业务自定义头, 这两个路径继续 open + 走 `proxyGuard` SSRF 黑名单兜底; `/mcps/markitdown/*` 同理保留 open (MCP 协议跨 auth header 不友好).
+2. `packages/core/src/utils/environment.ts` 新增 `setAuthHeaders(headers)` / `getAuthHeaders()` 二人组, `packages/core/src/index.ts` 与 `packages/ui/src/index.ts` 同步 re-export. 与 `setProxyBasePath` 一样的 module-level 注入模式, web 端在 `useAppInitializer` 同一处统一注入 `{ 'X-Device-Id': SHARED_OWNER_ID }`, UI 组件 fetch 业务路由时 `headers: { ..., ...getAuthHeaders() }` 即可拿到, 不需要每个调用点重复硬编码 device id. V2 接入 Google 登录时把这里改成动态返回 `Authorization: Bearer <id_token>`, UI 调用方零改动.
+3. `packages/ui/src/composables/useAppInitializer.ts` 早期 setup 阶段同步调 `setAuthHeaders({ 'X-Device-Id': SHARED_OWNER_ID })`, 与 `setProxyBasePath` 并列. 紧跟在 `setProxyBasePath` 后面是有意为之 — UI 组件 fetch 时机不一定保证 onMounted 之后, module-level 状态在 setup 同步段落落定可避免竞态.
+4. `packages/ui/src/components/PromptTypeSelector.vue` 4 处直接 fetch 业务路由的调用点 (`/confluence-parse`, `/markdown-research`, `/figma-parse`, `/image-research/analyze`) 全部接入 `getAuthHeaders()`, 头部 `{ 'Content-Type': 'application/json', ...getAuthHeaders() }`. 这是新 auth middleware 落地后浏览器侧能继续工作的前提.
+5. `packages/server/src/routes/figmaParse.ts` 拉齐 confluenceParse 的信息泄漏防线: 此前 Figma 上游 4xx / 5xx 响应体 (`fileResponse.text()` / `imagesResponse.text()`) 直接 slice(0, 2000) 塞进 client 的 `details` 字段, Figma API 错误响应可能含 token hint / 请求 ID / 用户上下文, 暴露给浏览器 console 不可控. 现 errorText 仅写 Worker 日志 (前 2000 字便于运维查), client 只看到 `Failed to fetch Figma file/images: HTTP <status>`; catch 分支同步收紧不再回 `details: error.message`; `imagesJson.err` 业务层错误也改为只写日志.
+6. `packages/server/scripts/smoke.mjs` 新增 BUSINESS_DEVICE_ID 复用常量, 4 个原 validation 测试改为先验证 "auth missing → 401" 再用带 X-Device-Id 头测 "validation 400", 把新 middleware 与原 handler 校验同时覆盖在 smoke 上.
+
+[1.9.6]: https://github.com/elestyle-org/ele-qa-autopilot/compare/v1.9.5...v1.9.6
+
 # 2026.05.20 (lockstep v1.9.5)
 
 整体目标: 收一处对外响应里上游 errorText 直接回传的信息泄漏点; 与 ele-autopilot 本轮 callback / 状态机加固一并 lockstep 发布.

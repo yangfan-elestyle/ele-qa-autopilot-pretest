@@ -7,6 +7,7 @@ import confluenceParseRouter from './routes/confluenceParse.ts'
 import markdownResearchRouter from './routes/markdownResearch.ts'
 import figmaParseRouter from './routes/figmaParse.ts'
 import syncRouter from './routes/sync.ts'
+import { resolveOwner } from './middleware/auth.ts'
 import type { HonoEnv } from './types/env.ts'
 
 export const app = new Hono<HonoEnv>()
@@ -22,6 +23,20 @@ app.use('*', async (c: Context<HonoEnv>, next: Next) => {
 })
 
 app.get('/healthz', (c: Context<HonoEnv>) => c.text('ok'))
+
+// 服务端资源 / 凭据敏感路由统一过 resolveOwner: 必须带 `X-Device-Id` 头才能进, 否则 401.
+// 旧版这几个路由全裸奔, 任意访客都能让 Worker 用服务端 Atlassian token 拉公司 Confluence,
+// 或消耗服务端 LLM API key 跑视觉 / 文本任务. 现统一收回到 V1 owner 模型背后, 即使 V1
+// 还是 shared-owner 没做横向隔离, 至少给后端日志 / 速率限制 / 滥用排查留出 ownerId 维度.
+// 注意: `/stream-proxy` / `/http-proxy` 由 LLM SDK 内部 fetch 发起, SDK 无法注入业务自定义头,
+// 这两个路径继续 open + 走 `proxyGuard` SSRF 黑名单兜底; `/mcps/markitdown/*` 同理.
+app.use('/image-research/*', resolveOwner)
+app.use('/markdown-research', resolveOwner)
+app.use('/markdown-research/*', resolveOwner)
+app.use('/confluence-parse', resolveOwner)
+app.use('/confluence-parse/*', resolveOwner)
+app.use('/figma-parse', resolveOwner)
+app.use('/figma-parse/*', resolveOwner)
 
 app.route('/image-research', imageResearchRouter)
 app.route('/http-proxy', httpProxyRouter)

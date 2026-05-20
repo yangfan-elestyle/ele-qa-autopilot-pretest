@@ -6,6 +6,16 @@
 let configuredBasePath = ''
 
 /**
+ * 业务 API 鉴权头. 由宿主 (web/ui) 在初始化早期通过 `setAuthHeaders` 注入,
+ * 现阶段 V1 固定 `X-Device-Id: shared-owner-v1` (与 useAppInitializer 共享同一 owner).
+ * UI 组件直接调 `/confluence-parse`、`/figma-parse`、`/image-research/analyze`、
+ * `/markdown-research` 等业务路由时必须把这套头带上, 否则后端 resolveOwner 中间件
+ * 直接 401. LLM proxy (`/stream-proxy` / `/http-proxy`) 由 LLM SDK 内部 fetch 发起,
+ * 这里不参与注入 — 这些路由保持 open 由 `proxyGuard` SSRF 黑名单兜底.
+ */
+let configuredAuthHeaders: Record<string, string> = {}
+
+/**
  * 由宿主 (web) 在初始化早期调用, 告知 core 当前 SPA 挂载的子路径前缀.
  * 影响 `getProxyUrl` 的返回值: 后续走 `${origin}${basePath}/{stream,http}-proxy?...`,
  * 命中 gateway 的 `/autotest/*` 路由后剥前缀转 AUTOTEST.
@@ -19,6 +29,17 @@ export const setProxyBasePath = (basePath: string): void => {
  * 错路由到 AUTOPILOT, 需改成 `${getApiBasePath()}/foo`.
  */
 export const getApiBasePath = (): string => configuredBasePath
+
+/**
+ * 注册业务 API 鉴权头. 后续 UI 组件 `fetch(..., { headers: getAuthHeaders() })`
+ * 即可同步拿到. V2 切 Google 登录时把这里换成动态返回 `Authorization: Bearer ...` 即可.
+ */
+export const setAuthHeaders = (headers: Record<string, string>): void => {
+  configuredAuthHeaders = { ...headers }
+}
+
+/** 读取当前注册的业务 API 鉴权头. 未注册时返回空对象, 调用方可安全 spread. */
+export const getAuthHeaders = (): Record<string, string> => ({ ...configuredAuthHeaders })
 
 /**
  * 获取API代理URL

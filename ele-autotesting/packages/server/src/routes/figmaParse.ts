@@ -119,16 +119,21 @@ router.post('/', async (c: Context<HonoEnv>) => {
   try {
     const fileResponse = await fetch(`https://api.figma.com/v1/files/${parsed.fileKey}?depth=3`, { headers })
     if (!fileResponse.ok) {
-      const details = await fileResponse.text()
+      // Figma 上游错误响应体可能含 token hint / 请求 ID / 内部栈 — 仅写 Worker 日志, 不回写客户端,
+      // 与 confluenceParse.ts 同口径; 客户端只看到 status code, 避免泄漏给浏览器 console.
+      const errorText = await fileResponse.text()
+      console.error(
+        `Figma file ${parsed.fileKey} HTTP ${fileResponse.status}: ${errorText.slice(0, 2000)}`,
+      )
       return c.json(
-        { error: 'Failed to fetch Figma file', status: fileResponse.status, details: details.slice(0, 2000) },
+        { error: `Failed to fetch Figma file: HTTP ${fileResponse.status}` },
         fileResponse.status === 404 ? 404 : 400,
       )
     }
     fileJson = (await fileResponse.json()) as FigmaFileResponse
   } catch (err: any) {
     console.error('Figma file request error:', err?.message || err)
-    return c.json({ error: 'Failed to fetch Figma file', details: err?.message || String(err) }, 502)
+    return c.json({ error: 'Failed to fetch Figma file' }, 502)
   }
 
   const targetNode = findNodeById(fileJson.document, parsed.nodeId)
@@ -163,20 +168,26 @@ router.post('/', async (c: Context<HonoEnv>) => {
     })
     const imagesResponse = await fetch(`https://api.figma.com/v1/images/${parsed.fileKey}?${params.toString()}`, { headers })
     if (!imagesResponse.ok) {
-      const details = await imagesResponse.text()
+      const errorText = await imagesResponse.text()
+      console.error(
+        `Figma images ${parsed.fileKey} HTTP ${imagesResponse.status}: ${errorText.slice(0, 2000)}`,
+      )
       return c.json(
-        { error: 'Failed to fetch Figma images', status: imagesResponse.status, details: details.slice(0, 2000) },
+        { error: `Failed to fetch Figma images: HTTP ${imagesResponse.status}` },
         imagesResponse.status === 404 ? 404 : 400,
       )
     }
     imagesJson = (await imagesResponse.json()) as FigmaImagesResponse
   } catch (err: any) {
     console.error('Figma images request error:', err?.message || err)
-    return c.json({ error: 'Failed to fetch Figma images', details: err?.message || String(err) }, 502)
+    return c.json({ error: 'Failed to fetch Figma images' }, 502)
   }
 
   if (imagesJson.err) {
-    return c.json({ error: 'Figma images API responded with error', details: imagesJson.err }, 400)
+    // imagesJson.err 来自 Figma API 业务层, 不像 HTTP body 那样会带内部栈, 但同样可能含 file key 等
+    // 用户上下文 — 收到 Worker 日志便于排查, 客户端仅看到通用错误信息.
+    console.error(`Figma images API error for ${parsed.fileKey}:`, imagesJson.err)
+    return c.json({ error: 'Figma images API responded with error' }, 400)
   }
 
   const images = imagesJson.images || {}

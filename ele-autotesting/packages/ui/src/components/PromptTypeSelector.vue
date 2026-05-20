@@ -180,7 +180,7 @@
 
 <script setup lang="ts">
 import { nextTick, onMounted, ref, type PropType, watch } from 'vue'
-import { type ContentType, getApiBasePath } from '@prompt-optimizer/core'
+import { type ContentType, getApiBasePath, getAuthHeaders } from '@prompt-optimizer/core'
 import { createMcpServiceFor, getMcpTextContents } from '../services/mcp-client'
 import type { ContextConfig } from '@/composables'
 import { useToast } from '../composables/useToast'
@@ -282,8 +282,10 @@ const handleUrlEnter = async () => {
       return
     }
 
-    // 调用服务端的 confluence-parse API
-    const response = await fetch(`${getApiBasePath()}/confluence-parse?page_id=${encodeURIComponent(pageId)}`)
+    // 调用服务端的 confluence-parse API; 后端 resolveOwner 中间件强制 X-Device-Id 头
+    const response = await fetch(`${getApiBasePath()}/confluence-parse?page_id=${encodeURIComponent(pageId)}`, {
+      headers: { ...getAuthHeaders() },
+    })
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
@@ -323,7 +325,7 @@ const handleUrlEnter = async () => {
       try {
         const resp = await fetch(`${getApiBasePath()}/markdown-research`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
           body: JSON.stringify({ markdown, isConfluence: true }),
         })
         const data = await resp.json().catch(() => ({}))
@@ -370,7 +372,7 @@ const handleFigmaEnter = async () => {
 
     const response = await fetch(`${getApiBasePath()}/figma-parse`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
       body: JSON.stringify(payload),
     })
     const data = await response.json().catch(() => ({}))
@@ -557,7 +559,7 @@ const handleImageSelect = async (event: Event) => {
 
       const resp = await fetch(`${getApiBasePath()}/image-research/analyze`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify(payload),
       })
       const data = await resp.json().catch(() => ({}))
