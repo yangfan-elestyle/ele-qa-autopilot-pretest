@@ -2,6 +2,16 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.11.4] - 2026-05-21
+
+### Fixed
+
+- MeterSphere 面板拉项目仍报 `TLS handshake failed [TLSV1_ALERT_UNRECOGNIZED_NAME]`: root cause 不在 Worker 代码, 而在 VPC service 上游目标配置 — 原本 `--hostname qa.elepay.link`, Cloudflare 边缘自身做 DNS 解析时走公网 (公网 `qa.elepay.link` CNAME 到 AWS sandbox IP), 边缘把流量发到那台 AWS 机器, 它的 nginx server_name 不含 `qa.elepay.link` 抛 TLS UNRECOGNIZED. 改为 `--ipv4 172.21.139.237` (Tailscale subnet route 上的 MeterSphere 内网 IP) + `--cert-verification-mode disabled`, Cloudflare 边缘跳过 DNS 直 dial IP, 经 tunnel 到达内网 nginx, SNI 由 Worker fetch URL hostname 决定, 匹配 server_name 成功.
+
+### Added
+
+- MeterSphere AK / SK 在浏览器本地缓存 (localStorage), 刷新 / 重新打开面板不必重复输入. 通用 composable `useBrowserCache` (`packages/ui/src/composables/useBrowserCache.ts`) 可被后续其他需要本地持久化的字段复用.
+
 ## [1.11.3] - 2026-05-21
 
 ### Fixed

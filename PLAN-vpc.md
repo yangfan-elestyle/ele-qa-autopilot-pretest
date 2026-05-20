@@ -45,9 +45,13 @@ ele-autotesting Worker (CF)
 ```bash
 npx wrangler vpc service create metersphere-backend \
   --type http --tunnel-id 67063b31-3703-4214-aed5-9febf3ba5576 \
-  --hostname qa.elepay.link --https-port 443 \
-  --cert-verification-mode verify_full
+  --ipv4 172.21.139.237 --https-port 443 \
+  --cert-verification-mode disabled
 ```
+
+> **必须 `--ipv4`, 不能 `--hostname qa.elepay.link`**: cloudflared 在 ele-fly 上做 origin DNS 解析时**不走 Tailscale magicDNS**, 走系统 / Cloudflare 公网 resolver, `qa.elepay.link` 公网解析到 AWS sandbox IP (`easyqr.sandbox-elepay.com` CNAME → `52.68.50.89` 等), 那台服务器收到 SNI=`qa.elepay.link` 抛 `TLSV1_ALERT_UNRECOGNIZED_NAME`. 用 ipv4 直接 dial 内网 IP (Tailscale subnet route 暴露的 `172.21.139.237`), SNI 由 worker fetch URL hostname 决定, nginx server_name 匹配.
+>
+> `--cert-verification-mode disabled` 配套: 直接 dial IP 时 cloudflared 拿到的证书 CN 仍是 `qa.elepay.link`, 但 origin 这台 nginx 用的是自签 / 内部 CA, 公网 CA 链验不过. 链路 worker → CF → tunnel → 内网都受 Cloudflare + Tailscale 加密, origin TLS 终止于内网 nginx, 此处放宽是合理边界.
 
 回滚: `npx wrangler vpc service delete 019e45a0-58be-7323-b61d-72d7a2ed27e6`.
 
@@ -104,8 +108,8 @@ curl -fsS https://qa.<account>.workers.dev/autotest/api/ms/_smoke   # 200, body 
 | 取舍 | 选择 | 理由 |
 |---|---|---|
 | Tunnel 数量 | 复用 `ele-server`, 不新建 | cloudflared launchd 已稳态, 一个 tunnel 多 VPC service 是官方推荐用法 |
-| 目标定位 | `--hostname qa.elepay.link` 而非 `--ipv4 172.21.139.237` | cloudflared 在 ele-fly 走 Tailscale magicDNS 解析, 自动跟随 IP 变更; SNI / Host header 一致, TLS 验证更干净 |
-| fetch URL hostname | 直接写真实 `https://qa.elepay.link/...`, **不要**写 placeholder | VPC binding 不改写 hostname; SNI / Host 来自 URL, 写 placeholder 会触发 TLSV1_ALERT_UNRECOGNIZED_NAME |
-| TLS | `verify_full` | 公共 CA 链已签, 无需放宽 |
+| 目标定位 | `--ipv4 172.21.139.237`, 不用 `--hostname qa.elepay.link` | cloudflared origin DNS 不走 Tailscale magicDNS, 公网解析 `qa.elepay.link` 到 AWS sandbox IP 抛 `TLSV1_ALERT_UNRECOGNIZED_NAME`; ipv4 直 dial 跳过 DNS 这一步, SNI 仍由 worker fetch URL 决定. 代价: 内网 IP 变了得手动改 VPC service (Tailscale subnet route 配置很稳, 风险低) |
+| fetch URL hostname | 直接写真实 `https://qa.elepay.link/...`, **不要**写 placeholder | VPC binding 不改写 hostname; SNI / Host 来自 URL, 写 placeholder 会让 nginx server_name 不匹配, 触发 `TLSV1_ALERT_UNRECOGNIZED_NAME` |
+| TLS | `disabled` (origin) | origin nginx 用内部签 / 自签证书, 公网 CA 验不过; tunnel 内全程 Cloudflare + Tailscale 加密, 此处放宽是合理边界 |
 | harness 调用方 | 走公网 `https://harness.<account>.workers.dev` + CF Access service token, 不再创第三个 VPC service | autotesting Worker 经 harness Worker 入口能复用既有 CF Access + JWT 校验; 直连 `agentic-loop-backend` 会绕过权限层 |
 | 与 harness 隔离 | 两个 VPC service binding 各自只绑到对应 Worker | autotesting Worker 拿不到 `agentic-loop-backend` binding, 不会误访 |

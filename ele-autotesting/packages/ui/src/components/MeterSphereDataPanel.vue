@@ -87,6 +87,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { getApiBasePath } from '@prompt-optimizer/core'
+import { useBrowserCache } from '../composables/useBrowserCache'
 
 interface MsProject { id: string; name: string; organizationId?: string }
 interface MsModuleNode { id: string; name: string; parentId: string; children?: MsModuleNode[] }
@@ -102,8 +103,9 @@ interface MsCase {
   createUserName?: string
 }
 
-const ak = ref('')
-const sk = ref('')
+// AK/SK 走通用浏览器缓存, 刷新后自动恢复; 清空输入即从 localStorage 移除.
+const ak = useBrowserCache<string>('metersphere.ak', '')
+const sk = useBrowserCache<string>('metersphere.sk', '')
 const projectId = ref('')
 const moduleId = ref('')
 
