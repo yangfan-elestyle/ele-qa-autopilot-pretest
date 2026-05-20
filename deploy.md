@@ -23,7 +23,8 @@
 
 - 写: 新功能 / 行为修复 / 体验改进 / 安全 / 命令与入口迁移.
 - 不写: 文件路径 / 组件名 / CSS class / 重构细节 / 元叙述 / "跟随版本同步发布" 之类占位条目.
-- 单条 ≤ 2 行, 单版本 ≤ 5 条; 该子项目本次无用户可感知改动则**完全省略本版本段** (版本号可跳过, manifest 仍 lockstep).
+- 单条 ≤ 2 行, 单版本 ≤ 5 条.
+- **完全省略本版本段** 仅限该子项目本次纯版本号 bump (无代码 / 公开 API / 配置 / CLI 行为变化, manifest 仍 lockstep); 公开 API 导出 / 配置入口 / 开发者命令的增删按 Added / Removed / Changed 写, 即便最终用户层透明.
 - 遵循 Keep a Changelog (Added / Changed / Fixed / Removed / Security); 中文行文, 术语保留原文.
 
 ## 2. 本地验证
