@@ -1,8 +1,6 @@
 # Changelog
 
-面向使用者的公开更新记录: 写可见的新功能、修复与体验变化, 不写内部实现.
-
-格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + [SemVer](https://semver.org/).
+本子项目变更. 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
 ## [1.10.0] - 2026-05-20
 

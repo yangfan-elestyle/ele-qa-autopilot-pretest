@@ -46,12 +46,7 @@ macOS 本地浏览器自动化 HTTP 服务。FastAPI + `browser-use` + Gemini (`
 
 ## 命令
 
-```bash
-uv sync
-uv run ele-autopilot
-uv build
-uv run python -c "from autopilot.app_meta import project_version; print(project_version())"
-```
+日常开发命令见 [README.md](./README.md#开发); 发布前验证 (`uv build` + version 自检) 见 [deploy.md §本地验证](../deploy.md#2-本地验证).
 
 ## 编码
 

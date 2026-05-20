@@ -37,21 +37,13 @@ React Router v7 Framework mode Web 后台。React 19 + Ant Design + Tailwind, Bu
 - Schema 只做向后兼容迁移: `ALTER TABLE ... ADD COLUMN`; 禁止 `DROP` / `RENAME` 已有列.
 - 新迁移用 `wrangler d1 migrations create ele-autopilot <desc>`; deploy 自动 `wrangler d1 migrations apply ele-autopilot --remote`.
 - D1 prepared statement 只支持 `?` 位置绑定: `db.prepare(sql).bind(...).all()/first()/run()`.
-- R2 buckets: `SCREENSHOTS=ele-autopilot-screenshots`, `RELEASES=ele-autopilot-releases`.
+- R2 binding 名与 bucket 名见 `wrangler.jsonc`.
 - `/screenshots/*` 只读代理 R2, 1 年 immutable cache; `r2KeyFromRelPath()` 必须防 `..` / 控制字符 / 非法字符.
 - Job 状态机权威源在 `lib/db/jobs.ts#syncJobStatusFromTasks`; `ele-autopilot-local/autopilot/job.py#_update_status` 必须与之一致.
 
 ## 命令
 
-```bash
-bun install
-bun dev
-bunx wrangler d1 migrations apply ele-autopilot --local
-bun run lint
-bun run typecheck
-bun run build
-bunx wrangler deploy --dry-run
-```
+日常开发命令见 [README.md](./README.md#开发); 发布前验证 (lint / typecheck / build / wrangler deploy --dry-run) 见 [deploy.md §本地验证](../deploy.md#2-本地验证).
 
 ## 编码
 

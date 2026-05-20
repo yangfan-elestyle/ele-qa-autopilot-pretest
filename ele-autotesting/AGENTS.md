@@ -29,14 +29,14 @@ AI 测试用例生成工具。pnpm 10 monorepo, Vue 3 前端, Hono Worker, Cloud
 
 ## 命令
 
+日常开发 / smoke / migration 命令见 [README.md](./README.md#本地开发); 发布前验证见 [deploy.md §本地验证](../deploy.md#2-本地验证).
+
+子包测试:
+
 ```bash
-pnpm install --frozen-lockfile
-pnpm run build:cf
 pnpm -F @prompt-optimizer/core test
 pnpm -F @prompt-optimizer/ui test
 pnpm -F @prompt-optimizer/web test
-pnpm --filter @prompt-optimizer/server exec wrangler d1 migrations apply DB --local
-pnpm --filter @prompt-optimizer/server smoke
 ```
 
 本项目只用 pnpm; 不用 npm / yarn 安装依赖。根 `package.json#engines.node` 要求 Node >= 24.

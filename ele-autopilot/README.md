@@ -10,9 +10,9 @@ LLM 约束见 [AGENTS.md](./AGENTS.md); 发布流程见根 [deploy.md](../deploy
 bun install
 bunx wrangler d1 migrations apply ele-autopilot --local   # 首次: 初始化 miniflare D1 schema
 bun dev                                                    # http://localhost:3000
-bun run typecheck && bun run lint && bun run format
-bun run build && bun run preview                           # wrangler dev 模拟生产
 ```
+
+发布前验证 (lint / typecheck / build / wrangler deploy --dry-run) 见 [deploy.md §本地验证](../deploy.md#2-本地验证).
 
 React DevTools 独立窗口: 必须先 `bunx react-devtools` 再 `bun dev`, 反序无效.
 

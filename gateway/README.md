@@ -46,10 +46,8 @@ RR 客户端 hydration bundle (`/assets/*`) 由 wrangler `assets` binding 优先
 
 ```bash
 bun install
-bun run dev                     # react-router dev (Vite HMR, Workers runtime)
-bun run typegen                 # wrangler types + react-router typegen
-bun run typecheck               # typegen + tsc -b
-bun run build                   # 产物到 build/{client,server}
-bunx wrangler deploy --dry-run  # 验证 service bindings + 体积
-bunx wrangler deploy            # 常规走 Actions
+bun run dev       # react-router dev (Vite HMR, Workers runtime)
+bun run typegen   # wrangler types + react-router typegen
 ```
+
+发布前验证 (typecheck / build / wrangler deploy --dry-run) 见 [deploy.md §本地验证](../deploy.md#2-本地验证); 生产部署走 Actions.
