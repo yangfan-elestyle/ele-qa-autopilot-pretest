@@ -160,17 +160,12 @@ export default function FolderSider({
         className="shrink-0"
       />
 
-      <Button
-        type="primary"
-        icon={<FolderAddOutlined />}
-        onClick={onCreateRoot}
-        block
-      >
+      <Button type="primary" icon={<FolderAddOutlined />} onClick={onCreateRoot} block>
         新建路径
       </Button>
 
       <div
-        className="min-h-0 flex-1 overflow-auto rounded-lg pr-1 pt-1"
+        className="min-h-0 flex-1 overflow-auto rounded-lg pt-1 pr-1"
         style={{ background: 'transparent' }}
       >
         {treeData.length === 0 ? (
@@ -222,51 +217,57 @@ export default function FolderSider({
               const folder = folderById.get(folderId);
               if (!folder) return resolvedTitle;
               return (
-                <span className="group/node relative flex min-h-[28px] w-full items-center pr-1">
-                  <span className="min-w-0 flex-1 text-[13px]">
-                    {resolvedTitle as React.ReactNode}
+                <Tooltip
+                  title={folder.name}
+                  placement="right"
+                  mouseEnterDelay={0.4}
+                  destroyTooltipOnHide
+                >
+                  <span className="group/node relative flex min-h-[28px] w-full items-center whitespace-nowrap">
+                    <span className="text-[13px]">{resolvedTitle as React.ReactNode}</span>
+                    <span
+                      className="sticky right-0 ml-auto inline-flex shrink-0 items-center gap-0.5 rounded-md px-1 opacity-0 transition-opacity group-hover/node:opacity-100"
+                      style={{
+                        background: 'var(--ds-surface-elevated)',
+                        boxShadow: 'var(--ds-shadow-xs)',
+                        zIndex: 1,
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Tooltip title="新建子路径">
+                        <Button
+                          size="small"
+                          type="text"
+                          className="!h-6 !w-6 !min-w-0 !p-0"
+                          icon={<PlusOutlined className="!text-[12px]" />}
+                          onClick={() => onCreateChild(folder.id)}
+                        />
+                      </Tooltip>
+                      <Tooltip title="重命名">
+                        <Button
+                          size="small"
+                          type="text"
+                          className="!h-6 !w-6 !min-w-0 !p-0"
+                          icon={<EditOutlined className="!text-[12px]" />}
+                          onClick={() => onRename(folder)}
+                        />
+                      </Tooltip>
+                      <Tooltip title="删除">
+                        <Button
+                          size="small"
+                          type="text"
+                          danger
+                          className="!h-6 !w-6 !min-w-0 !p-0"
+                          icon={<DeleteOutlined className="!text-[12px]" />}
+                          onClick={() => void onDelete(folder)}
+                        />
+                      </Tooltip>
+                    </span>
                   </span>
-                  <span
-                    className="ml-2 inline-flex shrink-0 items-center gap-0.5 rounded-md px-1 opacity-0 transition-opacity group-hover/node:opacity-100"
-                    style={{
-                      background: 'var(--ds-surface-elevated)',
-                      boxShadow: 'var(--ds-shadow-xs)',
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <Tooltip title="新建子路径">
-                      <Button
-                        size="small"
-                        type="text"
-                        className="!h-6 !w-6 !min-w-0 !p-0"
-                        icon={<PlusOutlined className="!text-[12px]" />}
-                        onClick={() => onCreateChild(folder.id)}
-                      />
-                    </Tooltip>
-                    <Tooltip title="重命名">
-                      <Button
-                        size="small"
-                        type="text"
-                        className="!h-6 !w-6 !min-w-0 !p-0"
-                        icon={<EditOutlined className="!text-[12px]" />}
-                        onClick={() => onRename(folder)}
-                      />
-                    </Tooltip>
-                    <Tooltip title="删除">
-                      <Button
-                        size="small"
-                        type="text"
-                        danger
-                        className="!h-6 !w-6 !min-w-0 !p-0"
-                        icon={<DeleteOutlined className="!text-[12px]" />}
-                        onClick={() => void onDelete(folder)}
-                      />
-                    </Tooltip>
-                  </span>
-                </span>
+                </Tooltip>
               );
             }}
-            className="[&_.ant-tree-indent-unit]:w-3 [&_.ant-tree-switcher]:mr-0"
+            className="[&_.ant-tree-indent-unit]:w-3 [&_.ant-tree-list-holder-inner]:!w-max [&_.ant-tree-list-holder-inner]:!min-w-full [&_.ant-tree-node-content-wrapper]:!w-full [&_.ant-tree-switcher]:mr-0 [&_.ant-tree-treenode]:!w-full"
             style={{ background: 'transparent' }}
           />
         )}

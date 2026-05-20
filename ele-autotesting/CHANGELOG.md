@@ -2,6 +2,12 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.10.5] - 2026-05-20
+
+### Fixed
+
+- PWA manifest 在 Cloudflare Access 保护下加载不再被拦截, 浏览器收藏 / 安装入口的图标与名称恢复正常.
+
 ## [1.10.4] - 2026-05-20
 
 ### Removed
