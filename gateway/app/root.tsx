@@ -15,7 +15,7 @@ export const links: Route.LinksFunction = () => [
   { rel: "alternate icon", href: "/favicon.ico", sizes: "any" },
   { rel: "apple-touch-icon", href: "/apple-touch-icon.png", sizes: "180x180" },
   { rel: "mask-icon", href: "/favicon.svg", color: "#0969da" },
-  { rel: "manifest", href: "/site.webmanifest" },
+  { rel: "manifest", href: "/site.webmanifest", crossOrigin: "use-credentials" },
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
   {
     rel: "preconnect",
