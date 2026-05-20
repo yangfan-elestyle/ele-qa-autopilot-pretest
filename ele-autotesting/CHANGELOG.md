@@ -2,6 +2,17 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.11.6] - 2026-05-21
+
+### Added
+
+- MeterSphere 面板自动联动, 减少手动按钮操作: 打开面板若浏览器已缓存 AK/SK 立即拉项目; 选项目后并发拉模块 + 当前项目全部用例; 用户选模块后立即拉该模块用例. 原 "拉项目 / 拉模块 / 拉用例" 按钮保留作为手动刷新入口.
+
+### Changed
+
+- MeterSphere 用例单页数量 20 → 100, 同时 Worker `/api/ms/cases` 默认 pageSize 50 → 100 (上限提到 500), 一次能看到更多用例, 减少翻页.
+- 用例搜索框改走上游 MS `/functional/case/page` 的 `keyword` 字段 (按名称 / num / id / tag 模糊匹配, 跨页生效), 替代原本仅过滤当前页的客户端 filter. 输入 350ms debounce 后自动重拉.
+
 ## [1.11.5] - 2026-05-21
 
 ### Added

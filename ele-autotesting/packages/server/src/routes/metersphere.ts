@@ -218,7 +218,10 @@ router.post('/cases', async (c: Context<HonoEnv>) => {
   }
   const moduleIds = Array.isArray(body?.moduleIds) ? body.moduleIds.filter((x: any) => typeof x === 'string') : []
   const current = Number(body?.current ?? 1)
-  const pageSize = Math.min(200, Math.max(1, Number(body?.pageSize ?? 50)))
+  const pageSize = Math.min(500, Math.max(1, Number(body?.pageSize ?? 100)))
+  // keyword: 上游 FunctionalCasePageRequest 支持的模糊搜索字段 (name / num / id / tag),
+  // 仅在非空时透传, 空串等同未传, 上游兼容.
+  const keyword = typeof body?.keyword === 'string' ? body.keyword.trim() : ''
   try {
     return callMeterSphere(c, {
       method: 'POST',
@@ -232,6 +235,7 @@ router.post('/cases', async (c: Context<HonoEnv>) => {
         pageSize,
         sort: body?.sort ?? { pos: 'desc' },
         excludeIds: [],
+        ...(keyword ? { keyword } : {}),
       },
     })
   } catch (e: any) {

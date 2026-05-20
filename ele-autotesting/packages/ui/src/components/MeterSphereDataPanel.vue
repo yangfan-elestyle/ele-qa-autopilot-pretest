@@ -27,7 +27,7 @@
           :disabled="!modulesFlat.length"
           style="max-width: none; margin-bottom: 4px"
         />
-        <select v-model="moduleId" :disabled="!modulesFlat.length">
+        <select v-model="moduleId" :disabled="!modulesFlat.length" @change="onModuleChange">
           <option value="">{{ modulesFlat.length ? '全部' : '尚未加载' }}</option>
           <option v-for="m in modulesFiltered" :key="m.id" :value="m.id">
             {{ '— '.repeat(m.depth) }}{{ m.name }}
@@ -59,7 +59,7 @@
         placeholder="搜索 名称 / 标签 / 创建人"
       />
       <span class="ds-ms-toolbar-meta">
-        {{ casesFiltered.length }} / {{ caseTotal || cases.length }} 条
+        {{ cases.length }} / {{ caseTotal || cases.length }} 条
         <template v-if="caseTotal">· 第 {{ casePage }} 页 / {{ Math.max(1, Math.ceil(caseTotal / casePageSize)) }}</template>
         <template v-if="selectedIds.size">· 已选 {{ selectedIds.size }}</template>
       </span>
@@ -88,7 +88,7 @@
           </tr>
         </thead>
         <tbody>
-          <template v-for="row in casesFiltered" :key="row.id">
+          <template v-for="row in cases" :key="row.id">
             <tr :class="{ 'ds-ms-row--selected': selectedIds.has(row.id) }">
               <td>
                 <input
@@ -148,8 +148,8 @@
               </td>
             </tr>
           </template>
-          <tr v-if="!casesFiltered.length">
-            <td colspan="8" class="ds-ms-empty">{{ loading.cases ? '加载中…' : (cases.length ? '无匹配' : '尚未拉取或无数据') }}</td>
+          <tr v-if="!cases.length">
+            <td colspan="8" class="ds-ms-empty">{{ loading.cases ? '加载中…' : (caseKeyword.trim() ? '无匹配' : '尚未拉取或无数据') }}</td>
           </tr>
         </tbody>
       </table>
@@ -164,7 +164,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { getApiBasePath } from '@prompt-optimizer/core'
 import { useBrowserCache } from '../composables/useBrowserCache'
 
@@ -210,7 +210,9 @@ const modulesFlat = ref<MsFlatModule[]>([])
 const cases = ref<MsCase[]>([])
 const caseTotal = ref(0)
 const casePage = ref(1)
-const casePageSize = ref(20)
+// 100 是经验值: 表格仍可流畅渲染, 上游 MS `/functional/case/page` pageSize 在 200 内稳定;
+// server 端 clamp 至 500 上限. 用户嫌一次 20 太少 → 调到 100.
+const casePageSize = ref(100)
 
 const loading = ref({ projects: false, modules: false, cases: false })
 const error = ref('')
@@ -227,18 +229,10 @@ const modulesFiltered = computed(() => {
   return modulesFlat.value.filter((m) => m.name.toLowerCase().includes(kw))
 })
 
-const casesFiltered = computed(() => {
-  const kw = caseKeyword.value.trim().toLowerCase()
-  if (!kw) return cases.value
-  return cases.value.filter((c) => {
-    const tags = (c.tags ?? []).join(' ')
-    return [c.name, tags, c.createUserName ?? '', c.createUser ?? '', String(c.num)]
-      .some((s) => s.toLowerCase().includes(kw))
-  })
-})
-
-const allSelected = computed(() => casesFiltered.value.length > 0 && casesFiltered.value.every((c) => selectedIds.value.has(c.id)))
-const someSelected = computed(() => casesFiltered.value.some((c) => selectedIds.value.has(c.id)))
+// 用例检索改走上游 MS `/functional/case/page` 的 keyword 字段 (按 name/num/id/tag 模糊匹配),
+// 不再仅过滤本页. 客户端只渲染上游返回结果.
+const allSelected = computed(() => cases.value.length > 0 && cases.value.every((c) => selectedIds.value.has(c.id)))
+const someSelected = computed(() => cases.value.some((c) => selectedIds.value.has(c.id)))
 
 const parsedSteps = computed<MsStepItem[]>(() => {
   const raw = detail.value?.steps
@@ -257,7 +251,7 @@ function toggleOne(id: string, on: boolean) {
 
 function toggleAll(on: boolean) {
   const next = new Set(selectedIds.value)
-  for (const c of casesFiltered.value) {
+  for (const c of cases.value) {
     if (on) next.add(c.id); else next.delete(c.id)
   }
   selectedIds.value = next
@@ -339,6 +333,7 @@ async function loadCases(page: number) {
       moduleIds: moduleId.value ? [moduleId.value] : [],
       current: page,
       pageSize: casePageSize.value,
+      keyword: caseKeyword.value.trim(),
     })
     const list: MsCase[] = res?.data?.list ?? []
     cases.value = list
@@ -377,7 +372,9 @@ async function toggleDetail(id: string) {
   }
 }
 
-watch(projectId, () => {
+// projectId 变化 -> 清依赖状态; 新值非空时并发拉模块 + 用例 (全部, moduleId 已 reset 为 '').
+// loadModules 与 loadCases 都只依赖 projectId, 不必排序; 各自处理 loading / error.
+watch(projectId, (next) => {
   modulesFlat.value = []
   moduleId.value = ''
   cases.value = []
@@ -385,6 +382,32 @@ watch(projectId, () => {
   selectedIds.value = new Set()
   expandedId.value = null
   detail.value = null
+  if (next) {
+    loadModules()
+    loadCases(1)
+  }
+})
+
+// 用户主动选模块 -> 拉该模块用例. 走 @change 而非 watch(moduleId), 避免 projectId reset
+// 时同步重置 moduleId 误触发. v-model 先更新 ref 再触发 @change, 此处 moduleId.value 已是新值.
+function onModuleChange() {
+  if (projectId.value) loadCases(1)
+}
+
+// 关键词搜索走上游 MS keyword 字段, 翻页时也保留过滤. debounce 350ms 避免敲键瞬时刷.
+let caseKeywordTimer: ReturnType<typeof setTimeout> | null = null
+watch(caseKeyword, () => {
+  if (caseKeywordTimer) clearTimeout(caseKeywordTimer)
+  caseKeywordTimer = setTimeout(() => {
+    if (projectId.value) loadCases(1)
+  }, 350)
+})
+
+// 挂载时如果浏览器已缓存 AK/SK, 直接拉项目 — 减少 "打开面板再点拉项目" 一步操作.
+onMounted(() => {
+  if (ak.value.trim() && sk.value.trim()) {
+    loadProjects()
+  }
 })
 
 function formatTs(ts?: number) {
