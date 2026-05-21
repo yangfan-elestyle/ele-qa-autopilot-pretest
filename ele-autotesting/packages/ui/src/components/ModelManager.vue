@@ -111,6 +111,16 @@
                     </svg>
                     <span class="hidden md:inline">编辑</span>
                   </button>
+                  <button @click="duplicateModel(model.key)" class="text-sm inline-flex items-center gap-1 theme-manager-button-edit">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75"
+                      />
+                    </svg>
+                    <span class="hidden md:inline">复制</span>
+                  </button>
                   <button
                     @click="model.enabled ? disableModel(model.key) : enableModel(model.key)"
                     class="text-sm inline-flex items-center gap-1"
@@ -784,6 +794,45 @@ const disableModel = async (key) => {
   } catch (error) {
     console.error('禁用模型失败:', error)
     toast.error(`禁用失败：${error.message}`)
+  }
+}
+
+// 复制模型: 直接生成一份新配置, 自动避开 key 冲突
+const duplicateModel = async (key) => {
+  try {
+    const source = await modelManager.getModel(key)
+    if (!source) throw new Error('源模型不存在')
+
+    const existingKeys = new Set(models.value.map((m) => m.key))
+    const baseKey = `${key}-copy`
+    let newKey = baseKey
+    let i = 1
+    while (existingKeys.has(newKey)) {
+      i += 1
+      newKey = `${baseKey}-${i}`
+    }
+
+    const defaultModelValue =
+      typeof source.defaultModel === 'string' ? source.defaultModel : source.defaultModel?.value || source.defaultModel?.id || ''
+
+    const config = {
+      name: `${source.name} 副本`,
+      baseURL: source.baseURL,
+      apiKey: source.apiKey || '',
+      defaultModel: defaultModelValue,
+      models: Array.isArray(source.models) && source.models.length > 0 ? [...source.models] : defaultModelValue ? [defaultModelValue] : [],
+      provider: source.provider || 'custom',
+      enabled: source.enabled ?? false,
+      llmParams: source.llmParams ? JSON.parse(JSON.stringify(source.llmParams)) : {},
+    }
+
+    await modelManager.addModel(newKey, config)
+    await loadModels()
+    emit('modelsUpdated', newKey)
+    toast.success(`已复制为「${config.name}」`)
+  } catch (error) {
+    console.error('复制模型失败:', error)
+    toast.error(`复制失败：${error.message}`)
   }
 }
 

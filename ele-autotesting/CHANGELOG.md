@@ -2,6 +2,12 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.17.0] - 2026-05-21
+
+### Added
+
+- 集成中心 LLM 模型卡片新增「复制」按钮: 一键基于现有模型生成一份新配置 (key 自动加 `-copy` 后缀避免冲突, name 加「副本」后缀, baseURL / apiKey / 默认模型 / 高级参数全部沿用), 适合在同一 provider 下快速派生多套模型 / 多 key 配置.
+
 ## [1.16.0] - 2026-05-21
 
 ### Added
