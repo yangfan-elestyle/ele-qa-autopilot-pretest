@@ -494,10 +494,10 @@ async function callApi<T = any>(method: 'GET' | 'POST', path: string, body?: unk
     const msg = json?.error || json?.message || `HTTP ${resp.status}`
     throw new Error(`${msg}`)
   }
-  // 上游 MS 走 `{ code, message, data }`, 0/200 为成功; HTTP 200 + code 非成功当前会被前端误判.
-  // 仅当 code 字段存在且为数字时校验, 兼容无 code 字段的边界响应.
+  // 上游 MS 走 `{ code, message, data }`. 成功码: MS v3 = 100200 (MsHttpResultCode.SUCCESS), v2 = 0;
+  // 200 仅做历史兜底. 仅当 code 字段存在且为数字时校验, 兼容无 code 字段的边界响应.
   const code = json?.code
-  if (typeof code === 'number' && code !== 0 && code !== 200) {
+  if (typeof code === 'number' && code !== 0 && code !== 200 && code !== 100200) {
     const msg = json?.message || json?.error || `business code ${code}`
     throw new Error(`${msg} (code=${code})`)
   }

@@ -2,6 +2,12 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.13.3] - 2026-05-21
+
+### Fixed
+
+- 数据联动面板拉项目 / 模块 / 用例等 MeterSphere 接口实际成功仍报 `business code 100200 (code=100200)`: MS v3 统一返回 `code=100200` 表示成功 (`MsHttpResultCode.SUCCESS`), 之前的业务码白名单只覆盖 `0/200` 误判为失败. 现已加入 100200, MS v3 / v2 (`0`) 与自家 ingest 响应均能正确识别.
+
 ## [1.13.2] - 2026-05-21
 
 ### Changed
