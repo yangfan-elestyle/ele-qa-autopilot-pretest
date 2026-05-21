@@ -12,8 +12,8 @@
             </svg>
           </span>
           <h2 class="ds-modal-title">
-            模型管理
-            <span class="ds-modal-subtitle hidden sm:inline">管理 LLM API 密钥与可用模型</span>
+            集成中心
+            <span class="ds-modal-subtitle hidden sm:inline">统一管理 LLM 模型与第三方平台凭证</span>
           </h2>
         </div>
         <div class="ds-modal-head-right">
@@ -26,8 +26,25 @@
         </div>
       </header>
 
+      <!-- 集成 Tab -->
+      <nav class="ds-integration-tabs" role="tablist" aria-label="集成中心分类">
+        <button
+          v-for="tab in tabs"
+          :key="tab.id"
+          type="button"
+          role="tab"
+          :aria-selected="activeTab === tab.id"
+          :class="['ds-integration-tab', { 'is-active': activeTab === tab.id }]"
+          @click="activeTab = tab.id"
+        >
+          {{ tab.label }}
+        </button>
+      </nav>
+
       <!-- 可滚动内容区域 -->
       <div class="ds-modal-body">
+        <!-- LLM 模型 Tab -->
+        <template v-if="activeTab === 'llm'">
         <!-- 已启用模型列表 -->
         <div class="space-y-3">
           <div class="flex justify-between items-center">
@@ -588,6 +605,17 @@
             </div>
           </div>
         </Teleport>
+        </template>
+
+        <!-- Figma Tab -->
+        <template v-else-if="activeTab === 'figma'">
+          <FigmaIntegrationPanel />
+        </template>
+
+        <!-- MeterSphere Tab -->
+        <template v-else-if="activeTab === 'metersphere'">
+          <MeterSphereIntegrationPanel />
+        </template>
       </div>
     </div>
   </div>
@@ -598,6 +626,16 @@ import { ref, onMounted, watch, computed, inject } from 'vue'
 import { advancedParameterDefinitions } from '@prompt-optimizer/core'
 import { useToast } from '../composables/useToast'
 import InputWithSelect from './InputWithSelect.vue'
+import FigmaIntegrationPanel from './FigmaIntegrationPanel.vue'
+import MeterSphereIntegrationPanel from './MeterSphereIntegrationPanel.vue'
+
+// 集成中心 Tab 定义
+const tabs = [
+  { id: 'llm', label: 'LLM 模型' },
+  { id: 'figma', label: 'Figma' },
+  { id: 'metersphere', label: 'MeterSphere' },
+]
+const activeTab = ref('llm')
 
 const toast = useToast()
 const emit = defineEmits(['modelsUpdated', 'close', 'select', 'update:show'])

@@ -40,12 +40,6 @@
           </div>
         </div>
       </div>
-      <div class="theme-dropdown-section">
-        <button @click="$emit('config')" class="theme-dropdown-config-button">
-          <span>⚙️</span>
-          <span>配置模型</span>
-        </button>
-      </div>
     </div>
   </div>
 </template>
@@ -67,7 +61,7 @@ const props = defineProps({
   // modelManager现在通过inject获取，不再需要props
 })
 
-const emit = defineEmits(['update:modelValue', 'config'])
+const emit = defineEmits(['update:modelValue'])
 
 const isOpen = ref(false)
 const refreshTrigger = ref(0)

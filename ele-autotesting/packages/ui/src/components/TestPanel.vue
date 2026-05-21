@@ -18,7 +18,6 @@
             :modelValue="selectedTestModel"
             @update:modelValue="updateSelectedModel"
             :disabled="isTesting"
-            @config="$emit('showConfig')"
           />
           <button @click="handleTest" :disabled="isTesting || !selectedTestModel" class="h-10 px-4 text-sm font-medium theme-button-primary inline-flex items-center gap-1">
             <span>{{ isTesting ? '生成中...' : '开始生成' }}</span>
@@ -171,7 +170,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['showConfig', 'update:modelValue'])
+const emit = defineEmits(['update:modelValue'])
 const testModelSelect = ref(null)
 const selectedTestModel = ref(props.modelValue || '')
 

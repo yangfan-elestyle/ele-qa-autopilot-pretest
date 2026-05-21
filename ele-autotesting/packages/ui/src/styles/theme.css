@@ -2502,6 +2502,84 @@ html * {
   .ds-ms-detail-steps li {
     line-height: 1.5;
   }
+
+  /* ============================== Integration hub (集成中心 Tab) ============================== */
+  .ds-integration-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 0 20px;
+    border-bottom: 1px solid var(--ds-border-soft);
+    background: var(--ds-surface-elevated);
+    flex-shrink: 0;
+  }
+  .ds-integration-tab {
+    appearance: none;
+    background: transparent;
+    border: none;
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ds-text-secondary);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition:
+      color var(--ds-motion-fast) var(--ds-ease-standard),
+      border-color var(--ds-motion-fast) var(--ds-ease-standard);
+  }
+  .ds-integration-tab:hover:not(.is-active) {
+    color: var(--ds-text-primary);
+  }
+  .ds-integration-tab:focus-visible {
+    outline: none;
+    box-shadow: var(--ds-focus-ring);
+    border-radius: var(--ds-radius-sm);
+  }
+  .ds-integration-tab.is-active {
+    color: var(--ds-brand-700);
+    border-bottom-color: var(--ds-brand-500);
+  }
+  .ds-integration-intro {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .ds-integration-intro-text {
+    font-size: 12.5px;
+    color: var(--ds-text-secondary);
+    line-height: 1.55;
+    margin: 0;
+  }
+  .ds-integration-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .ds-integration-status-tag {
+    display: inline-flex;
+    align-items: center;
+    height: 22px;
+    padding: 0 8px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 500;
+    border: 1px solid transparent;
+  }
+  .ds-integration-status-tag--ok {
+    background: color-mix(in srgb, var(--ds-success, #16a34a) 12%, transparent);
+    color: var(--ds-success, #16a34a);
+    border-color: color-mix(in srgb, var(--ds-success, #16a34a) 28%, transparent);
+  }
+  .ds-integration-status-tag--off {
+    background: var(--ds-surface-subtle);
+    color: var(--ds-text-tertiary);
+    border-color: var(--ds-border-soft);
+  }
+  .ds-integration-status-tag--warn {
+    background: color-mix(in srgb, var(--ds-warning, #d97706) 14%, transparent);
+    color: var(--ds-warning, #d97706);
+    border-color: color-mix(in srgb, var(--ds-warning, #d97706) 30%, transparent);
+  }
 }
 
 /* ===== Pulse keyframes (loading) ===== */
