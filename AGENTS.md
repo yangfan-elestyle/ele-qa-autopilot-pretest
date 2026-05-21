@@ -1,6 +1,15 @@
 # AGENTS
 
-LLM 约束. 工程说明见 [README.md](./README.md), 发布流程见 [deploy.md](./deploy.md).
+LLM 约束. 工程定位见下, 拓扑 / 子项目见 [README.md](./README.md), 发布流程见 [deploy.md](./deploy.md).
+
+## 工程定位
+
+端到端 **QA 测试用例自动化** 仓库. 四步链路:
+
+1. **上下文化**: Figma / 纯文本 / Confluence 等公司资产 → Agent 可用 context.
+2. **用例生成**: [`ele-autotesting/`](./ele-autotesting) AI 生成测试用例, 与 **MeterSphere** 测试平台双向打通.
+3. **智能调度**: 外部 [`ele-harness`](../ele-harness) (同级独立仓库, Agent 并发调度平台) 并行跑用例, 产出预期结果.
+4. **录入 + 执行**: 结果回灌 [`ele-autopilot/`](./ele-autopilot) 任务中心, 再下发 [`ele-autopilot-local/`](./ele-autopilot-local) 驱动本机浏览器完成实际操作.
 
 ## 优先级
 
