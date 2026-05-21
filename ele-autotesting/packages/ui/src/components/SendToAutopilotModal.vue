@@ -51,15 +51,19 @@
               <label style="display: block; font-size: 12px; opacity: 0.8; margin-bottom: 4px">
                 prompt 模板 (preset 一键填入, 也可自由编辑; 模板尾部会自动拼接聚合后的用例文本)
               </label>
-              <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px">
+              <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; align-items: center">
                 <button
-                  v-for="p in PROMPT_PRESETS"
+                  v-for="p in promptPresets"
                   :key="p.key"
                   class="ds-ms-btn ds-ms-btn--mini"
                   type="button"
                   :title="p.tip"
                   @click="applyPreset(p.key)"
                 >{{ p.label }}</button>
+                <span
+                  v-if="!promptPresets.length"
+                  style="font-size: 12px; opacity: 0.6"
+                >尚无模板, 去【集成中心 → Autopilot 模板】配置</span>
               </div>
               <textarea
                 v-model="promptTemplate"
@@ -220,6 +224,10 @@
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { getApiBasePath } from '@prompt-optimizer/core'
 import { useBrowserCache } from '../composables/useBrowserCache'
+import {
+  usePromptPresets,
+  AUTOPILOT_DEFAULT_PROMPT_TEMPLATE,
+} from '../composables/usePromptPresets'
 
 // ── 类型 ─────────────────────────────────────────────────────────────────────
 // 源条目: caseIndex 是 1-based, 与聚合产物里的 "CASE N" 头一一对应.
@@ -253,59 +261,15 @@ interface IngestSourceRow {
   sourceLabel: string
 }
 
-interface PromptPreset {
-  key: string
-  label: string
-  tip: string
-  template: string
-}
-
 type FetchProgressCb = (fetched: number, failed: number) => void
 export type FetchSourcesFn = (onProgress: FetchProgressCb) => Promise<{ items: SourceItem[] }>
 
 // ── 默认 ─────────────────────────────────────────────────────────────────────
 const AP_CASE_HEADER_RE = /^===\s*CASE\s+(\d+):\s*(.*?)\s*===\s*$/i
 const AP_FOLDER_HISTORY_MAX = 8
-const AP_DEFAULT_PROMPT_TEMPLATE = `你是"传话人". 请把【】内的内容原样复述出来, 不要做任何改动 / 解读 / 归纳 / 评价 / 增删字符 / 翻译.
-保持分隔头 "=== CASE N: <title> ===" 原样, 不要去掉, 不要换行错位.
-不要在前后添加任何解释 / 寒暄 / 摘要; 只输出原文.`
 
-// 4 个 preset 与之前 MS panel 内置一致, 现作为共用资产暴露给两个 tab.
-const PROMPT_PRESETS: PromptPreset[] = [
-  {
-    key: 'passthrough',
-    label: '传话人 (原文)',
-    tip: '让 harness 把内容原样吐回, 不做任何改写',
-    template: AP_DEFAULT_PROMPT_TEMPLATE,
-  },
-  {
-    key: 'distill',
-    label: '梳理 (合并去重)',
-    tip: '让 harness 合并重复 / 极相似 case, 输出仍按 CASE N 分隔',
-    template: `你是测试用例梳理助手. 请阅读【】内的多条测试用例, 合并重复 / 极相似的, 去掉冗余描述,
-保留必要的步骤与期望. 输出仍按 "=== CASE N: <title> ===" 头切分, N 从 1 开始重新编号,
-分隔头独占一行, 不允许去掉.
-仅输出整理后的用例文本, 不要附加任何解释 / 寒暄 / 摘要.`,
-  },
-  {
-    key: 'translate-en',
-    label: '翻译为英文',
-    tip: '把每条 case 翻成英文, 严格保留 CASE N 分隔头',
-    template: `请把【】内的每条测试用例翻译为英文.
-严格保留 "=== CASE N: <title> ===" 行不被翻译 / 不被去掉, N 与原文一一对应, 标题部分翻译.
-其他内容 (模块 / 步骤 / 期望) 翻译为自然的技术英文.
-仅输出翻译后的全文, 不要附加任何前言 / 寒暄 / 解释.`,
-  },
-  {
-    key: 'fill-expected',
-    label: '补充期望结果',
-    tip: '给缺期望或期望过简的 case 补充更具体的 expected',
-    template: `你是测试评审助手. 阅读【】内的每条测试用例, 对期望 / expected 缺失或过于简略的,
-基于步骤推断出更可执行的期望结果并补全 (尽量具体到 UI 反馈 / 状态码 / 文案).
-不要改步骤 / 模块 / 标签 / 标题. 严格保留 "=== CASE N: <title> ===" 头与原编号.
-仅输出补全后的全文, 不要附加任何解释 / 寒暄 / 摘要.`,
-  },
-]
+// presets 现由用户在【集成中心 → Autopilot 模板】配置, 内置 4 个仅作默认.
+const { presets: promptPresets } = usePromptPresets()
 
 // ── Props / Emits ─────────────────────────────────────────────────────────────
 const props = withDefaults(defineProps<{
@@ -356,7 +320,7 @@ const ingestResult = ref<IngestResult | null>(null)
 const ingestSourceMap = reactive<IngestSourceRow[]>([])
 const error = ref('')
 
-const promptTemplate = useBrowserCache<string>(props.promptStorageKey, AP_DEFAULT_PROMPT_TEMPLATE)
+const promptTemplate = useBrowserCache<string>(props.promptStorageKey, AUTOPILOT_DEFAULT_PROMPT_TEMPLATE)
 const folderPath = useBrowserCache<string>(props.folderPathStorageKey, '')
 const folderHistoryRaw = useBrowserCache<string>(props.folderHistoryStorageKey, '')
 
@@ -408,7 +372,7 @@ function taskPreviewUrl(taskId: string): string {
 
 // ── 业务 ─────────────────────────────────────────────────────────────────────
 function applyPreset(key: string) {
-  const preset = PROMPT_PRESETS.find((p) => p.key === key)
+  const preset = promptPresets.value.find((p) => p.key === key)
   if (preset) promptTemplate.value = preset.template
 }
 

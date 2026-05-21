@@ -2,6 +2,12 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.16.0] - 2026-05-21
+
+### Added
+
+- 集成中心新增「Autopilot 模板」tab: 「送至 Autopilot」弹窗的 4 个 prompt preset (传话人 / 梳理 / 翻译为英文 / 补充期望结果) 现在可由用户增删改 / 排序 / 一键恢复默认, 仍仅保存在浏览器本地. 此前为硬编码不可调整.
+
 ## [1.15.0] - 2026-05-21
 
 ### Changed

@@ -616,6 +616,11 @@
         <template v-else-if="activeTab === 'metersphere'">
           <MeterSphereIntegrationPanel />
         </template>
+
+        <!-- Autopilot 模板 Tab -->
+        <template v-else-if="activeTab === 'autopilot-prompts'">
+          <AutopilotPromptsIntegrationPanel />
+        </template>
       </div>
     </div>
   </div>
@@ -628,12 +633,14 @@ import { useToast } from '../composables/useToast'
 import InputWithSelect from './InputWithSelect.vue'
 import FigmaIntegrationPanel from './FigmaIntegrationPanel.vue'
 import MeterSphereIntegrationPanel from './MeterSphereIntegrationPanel.vue'
+import AutopilotPromptsIntegrationPanel from './AutopilotPromptsIntegrationPanel.vue'
 
 // 集成中心 Tab 定义
 const tabs = [
   { id: 'llm', label: 'LLM 模型' },
   { id: 'figma', label: 'Figma' },
   { id: 'metersphere', label: 'MeterSphere' },
+  { id: 'autopilot-prompts', label: 'Autopilot 模板' },
 ]
 const activeTab = ref('llm')
 
