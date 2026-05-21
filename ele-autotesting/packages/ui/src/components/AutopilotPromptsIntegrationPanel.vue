@@ -6,7 +6,7 @@
         送至 Autopilot · prompt 模板
       </h3>
       <p class="ds-integration-intro-text">
-        在「AutoTest 用例」与「MeterSphere」tab 的「送至 Autopilot」弹窗里, 这里配置的模板会作为 preset 按钮一键填入 prompt 输入框. 仅存当前浏览器本地, 不上传服务端.
+        在「AutoTest 用例」与「MeterSphere」tab 的「送至 Autopilot」弹窗里, 这里配置的模板会作为 preset 按钮一键填入 prompt 输入框. 已按账号同步到云端 (D1), 多端共用.
       </p>
     </div>
 
@@ -22,7 +22,7 @@
 
     <div v-if="list.length === 0" class="theme-manager-card p-6 text-center space-y-3">
       <p class="theme-manager-text-secondary">尚无模板. 弹窗里的 preset 按钮区会显示空态提示, 但 prompt 仍可手动编辑.</p>
-      <button class="ds-pill-btn ds-pill-btn--primary" type="button" @click="onReset">一键恢复默认 (4 个)</button>
+      <button class="ds-pill-btn ds-pill-btn--primary" type="button" @click="onReset">一键恢复默认 ({{ DEFAULT_PROMPT_PRESETS.length }} 个)</button>
     </div>
 
     <ul v-else class="space-y-3">
@@ -112,7 +112,7 @@ function onAdd() {
 function onReset() {
   resetToDefaults()
   list.value = deepCopy(DEFAULT_PROMPT_PRESETS)
-  toast.success('已恢复默认 4 个模板')
+  toast.success(`已恢复默认 ${DEFAULT_PROMPT_PRESETS.length} 个模板`)
 }
 
 function remove(idx: number) {

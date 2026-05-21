@@ -1,5 +1,5 @@
-import { computed, type WritableComputedRef } from 'vue'
-import { useBrowserCache } from './useBrowserCache'
+import { computed, onMounted, ref, type WritableComputedRef } from 'vue'
+import { getApiBasePath } from '@prompt-optimizer/core'
 
 export interface PromptPreset {
   key: string
@@ -21,33 +21,6 @@ export const DEFAULT_PROMPT_PRESETS: PromptPreset[] = [
     tip: '让 harness 把内容原样吐回, 不做任何改写',
     template: AUTOPILOT_DEFAULT_PROMPT_TEMPLATE,
   },
-  {
-    key: 'distill',
-    label: '梳理 (合并去重)',
-    tip: '让 harness 合并重复 / 极相似 case, 输出仍按 CASE N 分隔',
-    template: `你是测试用例梳理助手. 请阅读【】内的多条测试用例, 合并重复 / 极相似的, 去掉冗余描述,
-保留必要的步骤与期望. 输出仍按 "=== CASE N: <title> ===" 头切分, N 从 1 开始重新编号,
-分隔头独占一行, 不允许去掉.
-仅输出整理后的用例文本, 不要附加任何解释 / 寒暄 / 摘要.`,
-  },
-  {
-    key: 'translate-en',
-    label: '翻译为英文',
-    tip: '把每条 case 翻成英文, 严格保留 CASE N 分隔头',
-    template: `请把【】内的每条测试用例翻译为英文.
-严格保留 "=== CASE N: <title> ===" 行不被翻译 / 不被去掉, N 与原文一一对应, 标题部分翻译.
-其他内容 (模块 / 步骤 / 期望) 翻译为自然的技术英文.
-仅输出翻译后的全文, 不要附加任何前言 / 寒暄 / 解释.`,
-  },
-  {
-    key: 'fill-expected',
-    label: '补充期望结果',
-    tip: '给缺期望或期望过简的 case 补充更具体的 expected',
-    template: `你是测试评审助手. 阅读【】内的每条测试用例, 对期望 / expected 缺失或过于简略的,
-基于步骤推断出更可执行的期望结果并补全 (尽量具体到 UI 反馈 / 状态码 / 文案).
-不要改步骤 / 模块 / 标签 / 标题. 严格保留 "=== CASE N: <title> ===" 头与原编号.
-仅输出补全后的全文, 不要附加任何解释 / 寒暄 / 摘要.`,
-  },
 ]
 
 function sanitize(list: unknown): PromptPreset[] | null {
@@ -66,6 +39,72 @@ function sanitize(list: unknown): PromptPreset[] | null {
   return out
 }
 
+// localStorage 仅作 cold-start cache 让 UI 立即可用; 真正的事实源是 D1
+// (`/api/sync/items/:key`), bootstrap 期 GET 覆盖, 写入时 PUT 推送.
+function loadLocalRaw(): string {
+  if (typeof window === 'undefined' || !window.localStorage) return ''
+  try {
+    return window.localStorage.getItem(AUTOPILOT_PROMPT_PRESETS_STORAGE_KEY) ?? ''
+  } catch {
+    return ''
+  }
+}
+
+function saveLocalRaw(value: string) {
+  if (typeof window === 'undefined' || !window.localStorage) return
+  try {
+    if (value) window.localStorage.setItem(AUTOPILOT_PROMPT_PRESETS_STORAGE_KEY, value)
+    else window.localStorage.removeItem(AUTOPILOT_PROMPT_PRESETS_STORAGE_KEY)
+  } catch {
+    // quota / 隐私模式静默
+  }
+}
+
+// 模块级单例: 所有调用方共享同一 ref, panel 改了 modal 即时可见.
+const rawValue = ref<string>(loadLocalRaw())
+
+let bootstrapped = false
+async function bootstrapFromRemote(): Promise<void> {
+  if (bootstrapped) return
+  bootstrapped = true
+  const apiBase = getApiBasePath()
+  const url = `${apiBase}/api/sync/items/${encodeURIComponent(AUTOPILOT_PROMPT_PRESETS_STORAGE_KEY)}`
+  try {
+    const res = await fetch(url, { credentials: 'include' })
+    if (!res.ok) return
+    const data = (await res.json()) as { value: string | null }
+    if (typeof data.value === 'string' && data.value.length > 0) {
+      rawValue.value = data.value
+      saveLocalRaw(data.value)
+    } else if (data.value === null && rawValue.value) {
+      // 云端首次接入: 把本地已有的自定义模板 seed 上去.
+      await pushRemote(rawValue.value)
+    }
+  } catch {
+    // 鉴权 / 网络失败静默, 已有 localStorage fallback.
+  }
+}
+
+async function pushRemote(value: string): Promise<void> {
+  const apiBase = getApiBasePath()
+  const url = `${apiBase}/api/sync/items/${encodeURIComponent(AUTOPILOT_PROMPT_PRESETS_STORAGE_KEY)}`
+  try {
+    if (value === '') {
+      await fetch(url, { method: 'DELETE', credentials: 'include' })
+    } else {
+      await fetch(url, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ value }),
+      })
+    }
+  } catch {
+    // push 失败不阻塞 UI; 下次启动 bootstrap 仍会 GET 一次. 多端并发编辑当前
+    // 业务接受 last-write-wins.
+  }
+}
+
 export interface UsePromptPresetsReturn {
   presets: WritableComputedRef<PromptPreset[]>
   setPresets: (list: PromptPreset[]) => void
@@ -73,13 +112,15 @@ export interface UsePromptPresetsReturn {
 }
 
 export function usePromptPresets(): UsePromptPresetsReturn {
-  const raw = useBrowserCache<string>(AUTOPILOT_PROMPT_PRESETS_STORAGE_KEY, '')
+  onMounted(() => {
+    void bootstrapFromRemote()
+  })
 
   const presets = computed<PromptPreset[]>({
     get() {
-      if (!raw.value) return DEFAULT_PROMPT_PRESETS
+      if (!rawValue.value) return DEFAULT_PROMPT_PRESETS
       try {
-        const parsed = JSON.parse(raw.value)
+        const parsed = JSON.parse(rawValue.value)
         const clean = sanitize(parsed)
         if (!clean || clean.length === 0) return DEFAULT_PROMPT_PRESETS
         return clean
@@ -89,7 +130,10 @@ export function usePromptPresets(): UsePromptPresetsReturn {
     },
     set(list) {
       const clean = sanitize(list) ?? []
-      raw.value = clean.length === 0 ? '' : JSON.stringify(clean)
+      const next = clean.length === 0 ? '' : JSON.stringify(clean)
+      rawValue.value = next
+      saveLocalRaw(next)
+      void pushRemote(next)
     },
   })
 
@@ -98,7 +142,7 @@ export function usePromptPresets(): UsePromptPresetsReturn {
   }
 
   function resetToDefaults() {
-    raw.value = ''
+    presets.value = []
   }
 
   return { presets, setPresets, resetToDefaults }

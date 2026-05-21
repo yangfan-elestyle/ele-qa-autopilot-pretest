@@ -268,7 +268,8 @@ export type FetchSourcesFn = (onProgress: FetchProgressCb) => Promise<{ items: S
 const AP_CASE_HEADER_RE = /^===\s*CASE\s+(\d+):\s*(.*?)\s*===\s*$/i
 const AP_FOLDER_HISTORY_MAX = 8
 
-// presets 现由用户在【集成中心 → Autopilot 模板】配置, 内置 4 个仅作默认.
+// presets 现由用户在【集成中心 → Autopilot 模板】配置 (账号同步到云端 D1),
+// 内置仅【传话人】1 个作默认.
 const { presets: promptPresets } = usePromptPresets()
 
 // ── Props / Emits ─────────────────────────────────────────────────────────────
