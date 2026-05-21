@@ -66,9 +66,9 @@ async function callMeterSphere(
   }
 
   const upstream = await c.env.METERSPHERE.fetch(url, { method: init.method, headers, body })
-  // MeterSphere 正常返 200 + body { code: 0|200, data, message }.
-  // 直接透传 status + body, 给前端展示能力. 透传时去掉 set-cookie 等敏感 header,
-  // 留 content-type 即可.
+  // MeterSphere v3 正常返 HTTP 200 + body { code: 100200 (MsHttpResultCode.SUCCESS), data, message };
+  // 错误时 code 为 1004xx / 1005xx, 后三位 == HTTP status. 本 Worker 不校验 code,
+  // 直接透传 status + body 给前端. 透传时去掉 set-cookie 等敏感 header, 留 content-type 即可.
   const respBody = await upstream.text()
   return new Response(respBody, {
     status: upstream.status,
