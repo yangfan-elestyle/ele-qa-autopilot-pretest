@@ -2,6 +2,17 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.15.0] - 2026-05-21
+
+### Changed
+
+- 「送至 Autopilot」入口在 AutoTest 用例与 MeterSphere 两个 tab 下统一走同一弹框组件, 行为 / UI / 状态机完全一致, 修复此前 AutoTest 入口缺少 prompt 编辑能力的退化.
+
+### Added
+
+- AutoTest 用例的「送至 Autopilot」现支持 prompt 模板编辑 (传话人 / 梳理合并 / 翻译英文 / 补充期望 4 个 preset + 自由 textarea), 与 MeterSphere 一致并共享浏览器本地缓存, 一处编辑两处生效.
+- AutoTest 用例的「送至 Autopilot」新增目标 folder_path 历史下拉 (最近 8 项), 与 MeterSphere 共享, 重开面板自动恢复.
+
 ## [1.14.0] - 2026-05-21
 
 ### Added

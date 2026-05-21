@@ -153,155 +153,26 @@
       </div>
     </Teleport>
 
-    <!-- 送至 Autopilot 弹框: 聚合 -> harness 传话 -> 拆分 -> 调 autopilot ingest -->
-    <Teleport to="body">
-      <div v-if="ap.open" class="fixed inset-0 theme-mask z-50 flex items-center justify-center p-4" @click="closeSendAutopilot">
-        <div
-          class="theme-manager-container w-full mx-auto flex flex-col overflow-hidden"
-          style="max-width: 880px; max-height: 92vh"
-          @click.stop
-        >
-          <header class="ds-modal-head">
-            <div class="ds-modal-head-left">
-              <h3 class="ds-modal-title">送至 Autopilot · {{ apStepLabel }}</h3>
-            </div>
-            <div class="ds-modal-head-right">
-              <button class="ds-icon-btn-sm" type="button" @click="closeSendAutopilot" :disabled="ap.callingHarness || ap.ingesting" aria-label="关闭">
-                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M18 6 6 18" />
-                  <path d="m6 6 12 12" />
-                </svg>
-              </button>
-            </div>
-          </header>
-
-          <div class="ds-modal-body" style="padding: 16px; overflow: auto">
-            <!-- 步骤 1: 聚合预览 -->
-            <section v-if="ap.step === 'preview'">
-              <div style="font-size: 13px; opacity: 0.8; margin-bottom: 8px">
-                将 <strong>{{ selectedIds.size }}</strong> 条用例聚合成一段文本, 加 "传话人" 提示后调 harness 原文返回.
-                返回成功后可编辑, 再按用例切片录入到 Autopilot (n 条用例 → n 条 task).
-              </div>
-              <details style="margin-bottom: 12px" open>
-                <summary style="cursor: pointer; font-size: 13px; padding: 4px 0">聚合预览 ({{ apAggregatedText.length }} chars)</summary>
-                <pre class="ds-ms-pre" style="max-height: 360px; overflow: auto; font-size: 12px; white-space: pre-wrap; padding: 8px; background: rgba(0,0,0,0.04); border-radius: 4px">{{ apAggregatedText }}</pre>
-              </details>
-              <div v-if="ap.error" class="ds-ms-error" style="margin-bottom: 8px">{{ ap.error }}</div>
-              <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px">
-                <button class="ds-ms-btn" type="button" @click="closeSendAutopilot">取消</button>
-                <button class="ds-ms-btn ds-ms-btn--primary" @click="callHarness" :disabled="!selectedIds.size">
-                  调 harness (传话人)
-                </button>
-              </div>
-            </section>
-
-            <!-- 步骤 2: 调用 harness 中 -->
-            <section v-if="ap.step === 'calling'">
-              <div style="display: flex; align-items: center; gap: 12px; padding: 24px 8px">
-                <div class="ds-ms-spinner"></div>
-                <div>
-                  <div style="font-weight: 500">harness 处理中…</div>
-                  <div style="font-size: 13px; opacity: 0.7; margin-top: 4px">
-                    需等待 AI 完成 oneshot 推理, 通常 10–90 秒. 已用 {{ ap.elapsed }}s
-                  </div>
-                </div>
-              </div>
-              <div v-if="ap.error" class="ds-ms-error" style="margin-bottom: 8px">{{ ap.error }}</div>
-            </section>
-
-            <!-- 步骤 3: 编辑 + 录入 -->
-            <section v-if="ap.step === 'edit'">
-              <div style="font-size: 13px; opacity: 0.8; margin-bottom: 8px">
-                harness 返回原文已展示. 你可以直接编辑下方文本; 切片按 "=== CASE N: " 头进行,
-                解析得到 <strong>{{ apParsedTasks.length }}</strong> 条 task.
-              </div>
-              <label style="display: block; font-size: 12px; opacity: 0.8; margin-bottom: 4px">harness 返回 (可编辑)</label>
-              <textarea
-                v-model="ap.harnessText"
-                style="width: 100%; min-height: 240px; max-height: 360px; font-size: 12px; font-family: ui-monospace, monospace; padding: 8px; border-radius: 4px; border: 1px solid var(--theme-border, #ccc); resize: vertical"
-              />
-
-              <div style="margin-top: 8px; font-size: 13px">
-                解析出的 tasks (按解析顺序):
-                <ul style="margin: 4px 0 0 16px; padding: 0">
-                  <li v-for="(t, idx) in apParsedTasks" :key="idx" style="font-size: 12px; opacity: 0.85">
-                    {{ idx + 1 }}. <strong>{{ t.title }}</strong> ({{ t.text.length }} chars)
-                  </li>
-                  <li v-if="!apParsedTasks.length" style="color: var(--theme-danger, #b00); font-size: 12px">
-                    未解析到任何 task. 请检查文本是否包含 "=== CASE N: &lt;title&gt; ===" 头.
-                  </li>
-                </ul>
-              </div>
-
-              <div style="margin-top: 12px">
-                <label style="display: block; font-size: 12px; opacity: 0.8; margin-bottom: 4px">
-                  目标 folder_path (按 "/" 分段, autopilot 会逐级 upsert)
-                </label>
-                <input v-model="ap.folderPath" type="text" style="width: 100%; padding: 6px 8px; border-radius: 4px; border: 1px solid var(--theme-border, #ccc); font-size: 13px"
-                  placeholder='例: AutoTest / 传话人验证'
-                />
-              </div>
-
-              <div v-if="ap.error" class="ds-ms-error" style="margin-top: 8px">{{ ap.error }}</div>
-
-              <div style="display: flex; justify-content: space-between; gap: 8px; margin-top: 16px">
-                <button class="ds-ms-btn" type="button" @click="apResetToPreview" :disabled="ap.ingesting">
-                  重新聚合 / 再调一次
-                </button>
-                <div style="display: flex; gap: 8px">
-                  <button class="ds-ms-btn" type="button" @click="closeSendAutopilot" :disabled="ap.ingesting">取消</button>
-                  <button
-                    class="ds-ms-btn ds-ms-btn--primary"
-                    :disabled="!apParsedTasks.length || !ap.folderPath.trim() || ap.ingesting"
-                    @click="callIngest"
-                  >{{ ap.ingesting ? '录入中…' : `录入 ${apParsedTasks.length} 条到 Autopilot` }}</button>
-                </div>
-              </div>
-            </section>
-
-            <!-- 步骤 4: 录入完成 -->
-            <section v-if="ap.step === 'done'">
-              <div style="padding: 8px 0">
-                <div style="font-size: 15px; font-weight: 500; margin-bottom: 8px; color: var(--theme-success, #2c8a4d)">
-                  录入成功: {{ ap.ingestResult?.tasks.length ?? 0 }} 条 task
-                </div>
-                <div style="font-size: 13px; opacity: 0.85; margin-bottom: 8px">
-                  folder_id: <code>{{ ap.ingestResult?.folder_id }}</code>
-                </div>
-                <div style="font-size: 13px; margin-bottom: 8px">
-                  <a :href="apAutopilotUrl" target="_blank" rel="noopener" style="color: var(--theme-link, #2563eb)">→ 打开 Autopilot 工作台</a>
-                </div>
-                <details v-if="ap.ingestResult?.tasks.length" style="margin-top: 8px" open>
-                  <summary style="cursor: pointer; font-size: 13px">task ids ({{ ap.ingestResult.tasks.length }}) · 点击直跳预览</summary>
-                  <div style="max-height: 200px; overflow: auto; font-size: 12px; padding: 8px; background: rgba(0,0,0,0.04); border-radius: 4px; margin-top: 4px; display: flex; flex-direction: column; gap: 2px">
-                    <a
-                      v-for="t in ap.ingestResult.tasks"
-                      :key="t.id"
-                      :href="apTaskPreviewUrl(t.id)"
-                      target="_blank"
-                      rel="noopener"
-                      style="font-family: ui-monospace, monospace; color: var(--theme-link, #2563eb); text-decoration: none"
-                      :title="`打开任务预览 ${t.id}`"
-                    >#{{ t.id.slice(0, 8) }} · {{ t.id }}</a>
-                  </div>
-                </details>
-              </div>
-              <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px">
-                <button class="ds-ms-btn ds-ms-btn--primary" type="button" @click="closeSendAutopilot">关闭</button>
-              </div>
-            </section>
-          </div>
-        </div>
-      </div>
-    </Teleport>
+    <!-- 送至 Autopilot: 共用 modal, 见 SendToAutopilotModal.vue -->
+    <SendToAutopilotModal
+      v-model:open="sendAutopilotOpen"
+      modal-title="送至 Autopilot"
+      source-tag="autotesting"
+      :selected-count="selectedIds.size"
+      :items="apSourceItems"
+      :build-aggregated="buildAggregatedFromItems"
+      default-folder-path="AutoTest / 传话人验证"
+      folder-placeholder="例: AutoTest / 传话人验证"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { getApiBasePath } from '@prompt-optimizer/core'
 import { useBrowserCache } from '../composables/useBrowserCache'
 import { MOCK_AUTOTEST_CASES, type AutotestCase } from './_mock/autotest-cases'
+import SendToAutopilotModal, { type SourceItem } from './SendToAutopilotModal.vue'
 
 const cases: AutotestCase[] = MOCK_AUTOTEST_CASES
 
@@ -548,59 +419,38 @@ async function startIngest() {
 }
 
 // ── 送至 Autopilot ─────────────────────────────────────────────────────────
-// 4 步: preview → calling (harness) → edit (harness 返回 + 切片预览) → done
-// 切片规则: 按 "=== CASE N: <title> ===" 头切; harness 用 "传话人" 提示原文返回,
-// 期望分隔头不被改写. 解析失败时给前端提示, 不强制必须录入.
+// modal 状态机 / prompt 模板编辑 / harness + ingest 调用都在共用组件
+// SendToAutopilotModal 内. 本 panel 仅负责把选中 case 转成 SourceItem 列表
+// 与对应的聚合文本; prompt / folder_path / folder 历史 走与 MS 同一组 cache key
+// (SendToAutopilotModal 默认值), 在两个 tab 之间天然共享.
 
-const AP_CASE_HEADER_RE = /^===\s*CASE\s+(\d+):\s*(.*?)\s*===\s*$/i
-
-interface ApParsedTask { title: string; text: string }
-interface ApIngestResult {
-  folder_id: string
-  tasks: { id: string }[]
-}
+const sendAutopilotOpen = ref(false)
 
 const canSendAutopilot = computed(() => selectedIds.value.size > 0)
 const sendAutopilotDisabledReason = computed(() =>
   selectedIds.value.size ? '' : '请先选中至少一条用例',
 )
 
-const ap = reactive({
-  open: false,
-  step: 'preview' as 'preview' | 'calling' | 'edit' | 'done',
-  callingHarness: false,
-  elapsed: 0,
-  harnessText: '',
-  folderPath: 'AutoTest / 传话人验证',
-  ingesting: false,
-  ingestResult: null as ApIngestResult | null,
-  error: '',
-  sessionId: '' as string | undefined,
-})
-
-const apStepLabel = computed(() => {
-  switch (ap.step) {
-    case 'preview':
-      return '1/4 预览聚合'
-    case 'calling':
-      return '2/4 harness 处理中'
-    case 'edit':
-      return '3/4 审阅并录入'
-    case 'done':
-      return '4/4 录入完成'
-    default:
-      return ''
-  }
-})
-
 const apSelectedCases = computed(() =>
   cases.filter((c) => selectedIds.value.has(c.id)).sort((a, b) => a.num - b.num),
 )
 
-function buildAggregated(selected: AutotestCase[]): string {
-  const parts = selected.map((c, idx) => {
+// caseIndex 1-based 与聚合产物里的 "CASE N" 头一一对应; meta 保留原 case 便于
+// 未来扩展 enrichTask, 当前 autotest 不注入元数据故未传 enrich-task prop.
+const apSourceItems = computed<SourceItem[]>(() =>
+  apSelectedCases.value.map((c, idx) => ({
+    caseIndex: idx + 1,
+    label: `#${c.num}`,
+    meta: c,
+  })),
+)
+
+function buildAggregatedFromItems(items: SourceItem[]): string {
+  const parts = items.map((it) => {
+    const c = it.meta as AutotestCase | undefined
+    if (!c) return `=== CASE ${it.caseIndex}: ${it.label ?? ''} ===`
     const tags = c.tags?.length ? `\n标签: ${c.tags.join(', ')}` : ''
-    return `=== CASE ${idx + 1}: ${c.name} ===
+    return `=== CASE ${it.caseIndex}: ${c.name} ===
 模块: ${c.module}
 优先级: ${c.priority}
 步骤:
@@ -610,156 +460,9 @@ ${c.steps}
   return parts.join('\n\n')
 }
 
-const apAggregatedText = computed(() => buildAggregated(apSelectedCases.value))
-
-// 传话人 prompt: 让 harness LLM 把内容原样吐回, 保留分隔头.
-function buildMessengerPrompt(aggregated: string): string {
-  return `你是"传话人". 请把【】内的内容原样复述出来, 不要做任何改动 / 解读 / 归纳 / 评价 / 增删字符 / 翻译.
-保持分隔头 "=== CASE N: <title> ===" 原样, 不要去掉, 不要换行错位.
-不要在前后添加任何解释 / 寒暄 / 摘要; 只输出原文.
-
-【
-${aggregated}
-】`
-}
-
-// 按 "=== CASE N: " 头切, 跳过头自身后取直到下一头 (或文件末尾).
-function parseHarnessText(text: string): ApParsedTask[] {
-  const lines = text.split(/\r?\n/)
-  const sections: ApParsedTask[] = []
-  let current: { title: string; bodyLines: string[] } | null = null
-  for (const line of lines) {
-    const m = line.match(AP_CASE_HEADER_RE)
-    if (m) {
-      if (current) sections.push({ title: current.title, text: current.bodyLines.join('\n').trim() })
-      current = { title: m[2] || `CASE ${m[1]}`, bodyLines: [] }
-    } else if (current) {
-      current.bodyLines.push(line)
-    }
-  }
-  if (current) sections.push({ title: current.title, text: current.bodyLines.join('\n').trim() })
-  return sections.filter((s) => s.text.length > 0)
-}
-
-const apParsedTasks = computed(() => parseHarnessText(ap.harnessText))
-
-// 录入完成后直跳 Autopilot 工作台 + 锁定刚 upsert 的 folder, deep link 协议同
-// MeterSphereDataPanel: AdminTaskExplorer 读 URL ?folderId= 选中该 folder.
-const apAutopilotUrl = computed(() => {
-  const url = new URL('/autopilot', window.location.origin)
-  const fid = ap.ingestResult?.folder_id
-  if (fid) url.searchParams.set('folderId', fid)
-  return url.toString()
-})
-
-function apTaskPreviewUrl(taskId: string): string {
-  return new URL(`/autopilot/preview/${encodeURIComponent(taskId)}`, window.location.origin).toString()
-}
-
 function openSendAutopilot() {
   if (!canSendAutopilot.value) return
-  ap.open = true
-  ap.step = 'preview'
-  ap.harnessText = ''
-  ap.ingestResult = null
-  ap.error = ''
-  ap.sessionId = ''
-  ap.elapsed = 0
-  ap.callingHarness = false
-  ap.ingesting = false
-}
-
-function closeSendAutopilot() {
-  if (ap.callingHarness || ap.ingesting) return
-  ap.open = false
-}
-
-function apResetToPreview() {
-  if (ap.ingesting) return
-  ap.step = 'preview'
-  ap.error = ''
-}
-
-// 提到模块作用域便于组件卸载时兜底 clear, 避免 await 期间组件被销毁导致 ticker 泄漏.
-let harnessTicker: number | null = null
-
-function clearHarnessTicker() {
-  if (harnessTicker !== null) {
-    window.clearInterval(harnessTicker)
-    harnessTicker = null
-  }
-}
-
-async function callHarness() {
-  if (ap.callingHarness) return
-  ap.error = ''
-  ap.callingHarness = true
-  ap.step = 'calling'
-  ap.elapsed = 0
-  const startedAt = Date.now()
-  // 简单计时 ticker; ap.elapsed 给 UI 提示用, 不影响业务.
-  clearHarnessTicker()
-  harnessTicker = window.setInterval(() => {
-    ap.elapsed = Math.floor((Date.now() - startedAt) / 1000)
-  }, 1000)
-
-  try {
-    const aggregated = apAggregatedText.value
-    const prompt = buildMessengerPrompt(aggregated)
-    const res = await callApi<{ text: string; sessionId?: string; events?: unknown[] }>(
-      'POST',
-      '/api/harness/oneshot',
-      { prompt, source: 'autotesting' },
-    )
-    ap.harnessText = res?.text ?? ''
-    ap.sessionId = res?.sessionId
-    if (!ap.harnessText.trim()) {
-      throw new Error('harness 返回空文本')
-    }
-    ap.step = 'edit'
-  } catch (e: any) {
-    ap.error = `harness 调用失败: ${e?.message ?? e}`
-    ap.step = 'preview'
-  } finally {
-    clearHarnessTicker()
-    ap.callingHarness = false
-  }
-}
-
-onBeforeUnmount(clearHarnessTicker)
-
-async function callIngest() {
-  if (ap.ingesting) return
-  ap.error = ''
-  ap.ingesting = true
-  try {
-    const folderPath = ap.folderPath
-      .split('/')
-      .map((s) => s.trim())
-      .filter(Boolean)
-    if (!folderPath.length) throw new Error('folder_path 不能为空')
-    if (!apParsedTasks.value.length) throw new Error('未解析到任何 task, 无法录入')
-
-    const payload = {
-      source: 'autotesting',
-      folder_path: folderPath,
-      tasks: apParsedTasks.value.map((t) => ({ title: t.title, text: t.text })),
-    }
-    const res = await callApi<{ code: number; message: string; data: ApIngestResult }>(
-      'POST',
-      '/api/autopilot/ingest',
-      payload,
-    )
-    if (!res?.data?.folder_id || !Array.isArray(res?.data?.tasks)) {
-      throw new Error(`返回结构异常: ${JSON.stringify(res).slice(0, 300)}`)
-    }
-    ap.ingestResult = res.data
-    ap.step = 'done'
-  } catch (e: any) {
-    ap.error = `autopilot 录入失败: ${e?.message ?? e}`
-  } finally {
-    ap.ingesting = false
-  }
+  sendAutopilotOpen.value = true
 }
 </script>
 
