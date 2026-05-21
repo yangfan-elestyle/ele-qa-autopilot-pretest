@@ -2,6 +2,12 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.17.1] - 2026-05-21
+
+### Fixed
+
+- 修复 LLM 代理 (`/stream-proxy` / `/http-proxy`) 在分页 / 带额外 query 参数的场景下死循环: 之前服务端只读 `targetUrl`, 把 SDK 追加的 `pageToken` 等参数全部丢弃, 上游永远返回第一页. 例如 Gemini「获取模型列表」会持续打转直至超时, 现已正确透传给上游.
+
 ## [1.17.0] - 2026-05-21
 
 ### Added

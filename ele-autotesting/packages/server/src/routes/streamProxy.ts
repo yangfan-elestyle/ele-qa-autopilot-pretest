@@ -1,7 +1,11 @@
 import { Hono, Context } from 'hono'
 import { stream } from 'hono/streaming'
 import type { HonoEnv } from '../types/env.ts'
-import { shouldStripResponseHeader, validateProxyTarget } from '../utils/proxyGuard.ts'
+import {
+  mergeIncomingQuery,
+  shouldStripResponseHeader,
+  validateProxyTarget,
+} from '../utils/proxyGuard.ts'
 
 const router = new Hono<HonoEnv>()
 
@@ -11,7 +15,7 @@ router.all('/', async (c: Context<HonoEnv>) => {
 
   const guard = validateProxyTarget(targetUrl)
   if ('error' in guard) return c.json({ error: guard.error }, guard.status)
-  const validTargetUrl = guard.url
+  const validTargetUrl = mergeIncomingQuery(guard.url, c.req.raw.url)
 
   const headers: Record<string, string> = {}
   c.req.raw.headers.forEach((value, key) => {

@@ -65,6 +65,26 @@ export function validateProxyTarget(raw: string): { url: string } | ProxyUrlErro
 }
 
 /**
+ * 把 proxy 请求自身 URL 上除 `targetUrl` 外的 query 参数全部透传给上游目标 URL.
+ *
+ * 背景: LLM SDK (例如 Google Gemini listModels 的分页) 会把 `pageToken` 这类参数追加在
+ * `stream-proxy` / `http-proxy` 的 query 上, 而不是塞回 `targetUrl` 内部. 之前服务端只读
+ * `targetUrl`, 直接丢弃其它 query, 上游永远返回第一页, SDK 拿 nextPageToken 重发 → 死循环.
+ *
+ * 同名 key 用 append 而非 set: 真实代理语义下, 不假设上游服务怎么解析重复 key (取第一个 /
+ * 最后一个 / 合并为数组), 留给上游自行决定.
+ */
+export function mergeIncomingQuery(target: string, requestUrl: string): string {
+  const merged = new URL(target)
+  const incoming = new URL(requestUrl).searchParams
+  incoming.forEach((value, key) => {
+    if (key === 'targetUrl') return
+    merged.searchParams.append(key, value)
+  })
+  return merged.toString()
+}
+
+/**
  * 上游响应头中需要剥离的敏感字段.
  * - set-cookie / set-cookie2: 防止上游 cookie 注入到 gateway domain 的浏览器
  * - authorization / proxy-authenticate / www-authenticate: 凭据 / 认证挑战回流
