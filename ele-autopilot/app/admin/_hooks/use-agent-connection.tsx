@@ -12,9 +12,6 @@ export type AgentConnectionContextValue = {
   agentInfo: AgentInfo | null;
   checkConnection: () => Promise<boolean>;
   isChecking: boolean;
-  agentConfig: JobConfig;
-  setAgentConfig: (config: JobConfig) => Promise<boolean>;
-  isLoadingConfig: boolean;
 };
 
 const AgentConnectionContext = createContext<AgentConnectionContextValue | null>(null);
@@ -24,8 +21,6 @@ export function AgentConnectionProvider({ children }: { children: React.ReactNod
   const [status, setStatus] = useState<AgentConnectionStatus>('disconnected');
   const [agentInfo, setAgentInfo] = useState<AgentInfo | null>(null);
   const [isChecking, setIsChecking] = useState(false);
-  const [agentConfig, setAgentConfigState] = useState<JobConfig>({});
-  const [isLoadingConfig, setIsLoadingConfig] = useState(true);
 
   // 从 localStorage 读取 agentUrl
   useEffect(() => {
@@ -35,24 +30,6 @@ export function AgentConnectionProvider({ children }: { children: React.ReactNod
     }
   }, []);
 
-  // 从 API 读取 agentConfig
-  useEffect(() => {
-    async function fetchConfig() {
-      try {
-        const response = await fetch('/api/admin/settings');
-        if (response.ok) {
-          const config = (await response.json()) as JobConfig;
-          setAgentConfigState(config);
-        }
-      } catch {
-        // 初始化失败时静默处理，执行任务时会再次获取并报错
-      } finally {
-        setIsLoadingConfig(false);
-      }
-    }
-    fetchConfig();
-  }, []);
-
   // 设置 agentUrl 并保存到 localStorage
   const setAgentUrl = useCallback((url: string) => {
     setAgentUrlState(url);
@@ -60,24 +37,6 @@ export function AgentConnectionProvider({ children }: { children: React.ReactNod
     // 重置状态
     setStatus('disconnected');
     setAgentInfo(null);
-  }, []);
-
-  // 设置 agentConfig 并保存到 API
-  const setAgentConfig = useCallback(async (config: JobConfig): Promise<boolean> => {
-    try {
-      const response = await fetch('/api/admin/settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(config),
-      });
-      if (response.ok) {
-        setAgentConfigState(config);
-        return true;
-      }
-      return false;
-    } catch {
-      return false;
-    }
   }, []);
 
   // 检测连接
@@ -154,9 +113,6 @@ export function AgentConnectionProvider({ children }: { children: React.ReactNod
         agentInfo,
         checkConnection,
         isChecking,
-        agentConfig,
-        setAgentConfig,
-        isLoadingConfig,
       }}
     >
       {children}
@@ -179,7 +135,7 @@ export function getAgentUrl(): string {
   return localStorage.getItem(STORAGE_KEY) || DEFAULT_AGENT_URL;
 }
 
-// 工具函数：从 API 获取 agent config
+// 工具函数：从 API 获取 agent config (执行参数)
 export async function fetchAgentConfig(): Promise<JobConfig> {
   const response = await fetch('/api/admin/settings');
   if (!response.ok) {
