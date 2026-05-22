@@ -368,7 +368,7 @@ function AgentConfigPanel({ onDirtyChange }: { onDirtyChange: (dirty: boolean) =
     let text = '';
     modal.confirm({
       title: '从 JSON 导入',
-      width: 560,
+      width: 'min(560px, 92vw)',
       okText: '应用到表单',
       cancelText: '取消',
       content: (
@@ -644,7 +644,7 @@ export default function IntegrationHub({ open, onClose }: IntegrationHubProps) {
       open={open}
       onCancel={handleClose}
       footer={null}
-      width={780}
+      width="min(780px, 92vw)"
       destroyOnHidden
       style={{ top: 32 }}
       styles={{ body: { maxHeight: 'calc(100vh - 200px)', overflowY: 'auto' } }}

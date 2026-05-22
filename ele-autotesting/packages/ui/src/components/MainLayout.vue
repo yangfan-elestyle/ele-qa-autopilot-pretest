@@ -25,14 +25,14 @@
             </h1>
           </a>
         </div>
-        <div class="flex items-center gap-1.5 sm:gap-2">
+        <div class="ds-header-actions flex items-center gap-1.5 sm:gap-2">
           <slot name="actions"></slot>
         </div>
       </div>
     </header>
 
     <!-- Main -->
-    <main class="flex-1 min-h-0 w-full mx-auto px-3 py-3 sm:px-4 sm:py-4">
+    <main class="ds-app-main flex-1 min-h-0 w-full mx-auto px-3 py-3 sm:px-4 sm:py-4">
       <div class="ds-workspace-row">
         <slot></slot>
       </div>

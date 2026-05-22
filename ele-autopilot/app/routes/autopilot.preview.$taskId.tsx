@@ -169,7 +169,7 @@ function PreviewBootSkeleton() {
       </div>
       <div className="flex min-h-0 flex-1">
         <aside
-          className="w-[340px] shrink-0 border-r"
+          className="hidden w-[340px] shrink-0 border-r md:block"
           style={{
             background: 'var(--ds-surface-elevated)',
             borderColor: 'var(--ds-border-soft)',
@@ -201,7 +201,7 @@ function PreviewBootSkeleton() {
             ))}
           </div>
         </aside>
-        <main className="flex min-h-0 flex-1 flex-col gap-4 p-6">
+        <main className="flex min-h-0 flex-1 flex-col gap-4 p-3 sm:p-6">
           <div
             className="ds-surface-card flex flex-col gap-3 p-4"
             aria-hidden="true"

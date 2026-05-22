@@ -77,7 +77,7 @@ export default function SelectedTasksDrawer({
       open={open}
       onClose={onClose}
       title={resolvedTitle}
-      width="min(760px, 100vw)"
+      width="min(760px, 100%)"
       footer={
         readonly ? null : (
           <div className="flex w-full items-center justify-between">

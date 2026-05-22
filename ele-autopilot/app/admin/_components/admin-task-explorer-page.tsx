@@ -49,7 +49,7 @@ function ConsoleBootSkeleton() {
       </header>
       <div className="flex min-h-0 flex-1">
         <aside
-          className="flex w-[296px] shrink-0 flex-col gap-3 border-r p-4"
+          className="hidden w-[296px] shrink-0 flex-col gap-3 border-r p-4 md:flex"
           style={{
             background: 'var(--ds-surface-elevated)',
             borderColor: 'var(--ds-border-soft)',
@@ -69,7 +69,7 @@ function ConsoleBootSkeleton() {
             ))}
           </div>
         </aside>
-        <main className="flex min-h-0 flex-1 flex-col p-6">
+        <main className="flex min-h-0 flex-1 flex-col p-3 sm:p-6">
           <div className="ds-skeleton h-4 w-40" />
           <div className="ds-skeleton mt-2 h-7 w-64" />
           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5">

@@ -2,6 +2,8 @@ import { Form, Input, Modal } from 'antd';
 import type { FormInstance } from 'antd';
 import { useState } from 'react';
 
+import { useIsMobile } from '../_hooks/use-is-mobile';
+
 export type TaskModalMode = 'create' | 'edit';
 
 export type TaskFormValues = { title?: string; text: string };
@@ -16,6 +18,7 @@ type TaskModalProps = {
 
 export default function TaskModal({ open, mode, form, onCancel, onOk }: TaskModalProps) {
   const isCreate = mode === 'create';
+  const isMobile = useIsMobile();
   const [helpOpen, setHelpOpen] = useState(false);
   return (
     <Modal
@@ -65,7 +68,9 @@ export default function TaskModal({ open, mode, form, onCancel, onOk }: TaskModa
           <Input.TextArea
             placeholder={isCreate ? '请输入任务内容…\n粘贴需求描述或步骤说明。' : '请输入任务内容'}
             autoFocus
-            autoSize={{ minRows: 14, maxRows: 28 }}
+            autoSize={
+              isMobile ? { minRows: 8, maxRows: 14 } : { minRows: 14, maxRows: 28 }
+            }
             className="!font-mono !text-[13px] !leading-relaxed"
           />
         </Form.Item>

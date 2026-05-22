@@ -282,7 +282,7 @@ export default function TaskContent({
             placeholder="按任务内容或标题搜索"
             value={taskSearch}
             onChange={(e) => onTaskSearchChange(e.target.value)}
-            className="min-w-[200px] flex-1 sm:max-w-md"
+            className="min-w-0 flex-1 sm:min-w-[200px] sm:max-w-md"
           />
           <div
             className="ds-segmented"
@@ -401,6 +401,7 @@ export default function TaskContent({
               })}
               size="middle"
               tableLayout="fixed"
+              scroll={{ x: 'max-content' }}
               locale={{
                 emptyText: (
                   <EmptyState

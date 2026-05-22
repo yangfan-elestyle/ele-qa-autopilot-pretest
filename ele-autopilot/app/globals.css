@@ -920,4 +920,24 @@ body {
   .ant-table-tbody > tr > td {
     border-bottom-color: var(--ds-border-soft) !important;
   }
+
+  /* —— Mobile: iOS Safari focus auto-zoom 抑制 (input/textarea/select <16px 触发 1.3x zoom) —— */
+  @media (max-width: 640px) {
+    .ant-input,
+    .ant-input-affix-wrapper input,
+    .ant-input-number-input,
+    .ant-select-selection-search-input,
+    .ant-select-selection-item,
+    .ant-picker-input > input,
+    .ant-input-textarea textarea,
+    textarea,
+    input[type='text'],
+    input[type='url'],
+    input[type='search'],
+    input[type='password'],
+    input[type='number'],
+    input[type='email'] {
+      font-size: 16px !important;
+    }
+  }
 }

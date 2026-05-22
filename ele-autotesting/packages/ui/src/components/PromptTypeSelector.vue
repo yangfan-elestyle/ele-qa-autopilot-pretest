@@ -2,9 +2,9 @@
 <template>
   <div class="space-y-3">
     <!-- 多媒体内容选择 -->
-    <div class="flex items-start space-x-2">
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:space-x-2">
       <!-- 类型选择按钮 -->
-      <div class="flex space-x-1">
+      <div class="flex flex-wrap gap-1">
         <button
           @click="selectType('prompt_plaintext')"
           :class="[
@@ -72,7 +72,7 @@
       </div>
 
       <!-- 内容输入区域 -->
-      <div class="flex-1 min-w-[200px]">
+      <div class="w-full min-w-0 flex-1 sm:min-w-[200px]">
         <!-- Confluence URL 类型 -->
         <template v-if="contextConfig.contentType === 'prompt_url'">
           <div class="flex items-center space-x-2">

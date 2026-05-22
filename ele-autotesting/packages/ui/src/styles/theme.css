@@ -1243,6 +1243,21 @@ html * {
       gap: 16px;
     }
   }
+  /* lg 以下 (column 模式) 让 workspace 自然撑高, main 允许纵向滚动;
+     否则 ContentCard / TestPanel 共享父高度会被挤到内容不可见. */
+  @media (max-width: 1023px) {
+    .ds-app-main {
+      overflow-y: auto;
+    }
+    .ds-workspace-row {
+      height: auto;
+      min-height: 100%;
+    }
+    .ds-workspace-row > * {
+      flex: 0 0 auto;
+      min-height: 60vh;
+    }
+  }
 
   /* —— Drag-and-drop item (拖拽卡片) —— */
   .ds-dnd-item {
@@ -2579,6 +2594,125 @@ html * {
     background: color-mix(in srgb, var(--ds-warning, #d97706) 14%, transparent);
     color: var(--ds-warning, #d97706);
     border-color: color-mix(in srgb, var(--ds-warning, #d97706) 30%, transparent);
+  }
+
+  /* ===== Mobile (<640px) responsive overrides =====
+     Inline `style="max-width: ..."` 与 Tailwind `max-w-3xl/4xl` 在小屏会溢出;
+     这里统一收口为 100vw - 安全边距, 不改业务结构. */
+  @media (max-width: 640px) {
+    .theme-manager-container {
+      max-width: calc(100vw - 16px) !important;
+      width: calc(100vw - 16px) !important;
+      margin: 8px !important;
+      max-height: calc(100vh - 16px) !important;
+    }
+    .ds-modal-head {
+      padding: 12px 14px;
+      gap: 8px;
+    }
+    .ds-modal-body {
+      padding: 14px;
+    }
+    .ds-ms-toolbar {
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .ds-ms-toolbar-title {
+      flex: 1 0 auto;
+    }
+    .ds-ms-toolbar-meta {
+      margin-left: 0;
+      flex-basis: 100%;
+      order: 3;
+    }
+    .ds-ms-toolbar .ds-ms-actions {
+      margin-left: 0;
+      flex-wrap: wrap;
+    }
+    .ds-ms-search {
+      max-width: none;
+      flex: 1 1 100%;
+    }
+    .ds-ms-controls {
+      grid-template-columns: 1fr;
+      padding: 10px;
+    }
+    .ds-ms-table {
+      min-width: 640px;
+    }
+    .ds-modal-title {
+      font-size: 14px;
+      gap: 8px;
+    }
+    .ds-output-toolbar {
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    /* iOS Safari focus auto-zoom 抑制: input/textarea/select font-size < 16px
+       会触发 1.3x 放大且无法 zoom-out. 全站强制 16px. */
+    .theme-input,
+    .ds-ms-field input,
+    .ds-ms-field select,
+    .ds-ms-search,
+    input[type='text'],
+    input[type='url'],
+    input[type='search'],
+    input[type='password'],
+    input[type='number'],
+    input[type='email'],
+    textarea,
+    select {
+      font-size: 16px !important;
+    }
+
+    /* Header actions (5 按钮) 在 360px 屏不再溢出: 允许横滑, 不换行盖 title */
+    .ds-header-actions {
+      overflow-x: auto;
+      flex-wrap: nowrap !important;
+      scrollbar-width: none;
+    }
+    .ds-header-actions::-webkit-scrollbar {
+      display: none;
+    }
+    .ds-header-actions > * {
+      flex-shrink: 0;
+    }
+
+    /* 集成中心 4 tabs 横滑而不是溢出 */
+    .ds-integration-tabs {
+      overflow-x: auto;
+      flex-wrap: nowrap;
+      padding: 0 12px;
+      scrollbar-width: none;
+    }
+    .ds-integration-tabs::-webkit-scrollbar {
+      display: none;
+    }
+    .ds-integration-tab {
+      flex-shrink: 0;
+    }
+
+    /* HistoryDrawer 收口 (无 theme-manager-container 类) */
+    .theme-history {
+      max-width: calc(100vw - 16px) !important;
+      width: calc(100vw - 16px) !important;
+      margin: 8px !important;
+      height: calc(100vh - 16px) !important;
+    }
+    .ds-history-version-row {
+      flex-wrap: wrap !important;
+      gap: 6px !important;
+    }
+
+    /* theme-dropdown 在小屏铺满, 避免向左展开越界 */
+    .theme-dropdown {
+      width: calc(100vw - 32px) !important;
+      max-width: calc(100vw - 32px) !important;
+      min-width: 0 !important;
+      left: 16px !important;
+      right: 16px !important;
+    }
   }
 }
 
