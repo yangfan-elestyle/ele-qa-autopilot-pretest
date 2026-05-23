@@ -1,5 +1,5 @@
 <template>
-  <div class="h-screen flex flex-col min-h-0">
+  <div class="flex flex-col min-h-screen lg:h-screen lg:min-h-0">
     <!-- Header -->
     <header class="theme-header flex-none">
       <div class="w-full mx-auto px-3 sm:px-5 h-[60px] flex justify-between items-center gap-3">
@@ -32,7 +32,7 @@
     </header>
 
     <!-- Main -->
-    <main class="ds-app-main flex-1 min-h-0 w-full mx-auto px-3 py-3 sm:px-4 sm:py-4">
+    <main class="ds-app-main w-full mx-auto px-3 py-3 sm:px-4 sm:py-4 lg:flex-1 lg:min-h-0">
       <div class="ds-workspace-row">
         <slot></slot>
       </div>

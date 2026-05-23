@@ -227,7 +227,7 @@ export default function TaskContent({
   const taskCount = tasks.length;
 
   return (
-    <Content className="flex min-h-0 flex-col overflow-hidden p-3 sm:p-6">
+    <Content className="flex flex-col p-3 sm:p-6 md:min-h-0 md:overflow-hidden">
       {/* Page header */}
       <div className="ds-page-header mb-4 flex-shrink-0">
         <div className="ds-page-header-row">

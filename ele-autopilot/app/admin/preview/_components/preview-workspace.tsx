@@ -56,7 +56,7 @@ export default function PreviewWorkspace({
   ).length;
 
   return (
-    <Layout className="ds-app-shell h-screen">
+    <Layout className="ds-app-shell min-h-screen md:!h-screen">
       <AppHeader
         subtitle={task?.title ?? '任务执行历史'}
         rightExtra={
@@ -118,7 +118,7 @@ export default function PreviewWorkspace({
         </div>
       )}
 
-      <Layout className="min-h-0 flex-1 bg-transparent">
+      <Layout className="bg-transparent md:min-h-0 md:flex-1">
         {isMobile ? (
           <Drawer
             open={mobileHistoryOpen}
@@ -171,7 +171,7 @@ export default function PreviewWorkspace({
           </Sider>
         )}
 
-        <Content className="overflow-auto p-3 sm:p-6">
+        <Content className="p-3 sm:p-6 md:overflow-auto">
           {selectedJob ? (
             <JobDetailPanel
               jobId={selectedJob.id}

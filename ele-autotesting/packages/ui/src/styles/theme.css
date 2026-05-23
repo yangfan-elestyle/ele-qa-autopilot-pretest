@@ -1243,19 +1243,22 @@ html * {
       gap: 16px;
     }
   }
-  /* lg 以下 (column 模式) 让 workspace 自然撑高, main 允许纵向滚动;
-     否则 ContentCard / TestPanel 共享父高度会被挤到内容不可见. */
+  /* lg 以下 (column 模式): MainLayout 已放弃 h-screen, 整页原生滚动,
+     workspace-row 与子项都按内容自然撑开, 不再人为锁视口高度.
+     PromptPanel / TestPanel 内 OutputDisplay 依赖 h-full 引用父高,
+     给 body 区一个保底高度避免内容区塌成 0. */
   @media (max-width: 1023px) {
-    .ds-app-main {
-      overflow-y: auto;
-    }
     .ds-workspace-row {
       height: auto;
-      min-height: 100%;
+      min-height: 0;
     }
     .ds-workspace-row > * {
       flex: 0 0 auto;
-      min-height: 60vh;
+      min-height: 0;
+    }
+    .ds-output-body,
+    .ds-test-body {
+      min-height: 50vh;
     }
   }
 

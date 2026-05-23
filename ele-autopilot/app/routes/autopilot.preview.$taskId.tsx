@@ -136,7 +136,7 @@ export default function PreviewRoute() {
 
 function PreviewBootSkeleton() {
   return (
-    <div className="ds-app-shell flex h-screen flex-col">
+    <div className="ds-app-shell flex min-h-screen flex-col md:h-screen">
       <header
         className="flex shrink-0 items-center gap-3 border-b px-4 sm:px-6"
         style={{
@@ -167,7 +167,7 @@ function PreviewBootSkeleton() {
           <div className="ds-skeleton h-3.5 w-1/2" />
         </div>
       </div>
-      <div className="flex min-h-0 flex-1">
+      <div className="flex md:min-h-0 md:flex-1">
         <aside
           className="hidden w-[340px] shrink-0 border-r md:block"
           style={{
@@ -201,7 +201,7 @@ function PreviewBootSkeleton() {
             ))}
           </div>
         </aside>
-        <main className="flex min-h-0 flex-1 flex-col gap-4 p-3 sm:p-6">
+        <main className="flex flex-col gap-4 p-3 sm:p-6 md:min-h-0 md:flex-1">
           <div
             className="ds-surface-card flex flex-col gap-3 p-4"
             aria-hidden="true"

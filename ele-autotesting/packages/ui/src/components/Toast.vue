@@ -157,7 +157,7 @@ const { toasts, remove } = useToast()
   .ds-toast-stack {
     top: auto !important;
     right: 8px !important;
-    bottom: calc(8px + env(safe-area-inset-bottom));
+    bottom: 8px;
     left: 8px;
     max-width: none !important;
   }

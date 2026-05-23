@@ -654,9 +654,9 @@ export default function AdminTaskExplorer() {
 
   return (
     <>
-      <Layout className="ds-app-shell h-screen">
+      <Layout className="ds-app-shell min-h-screen md:!h-screen">
         <AppHeader />
-        <Layout className="min-h-0 flex-1 bg-transparent">
+        <Layout className="bg-transparent md:min-h-0 md:flex-1">
         <FolderSider
           treeSearch={treeSearch}
           onTreeSearchChange={setTreeSearch}

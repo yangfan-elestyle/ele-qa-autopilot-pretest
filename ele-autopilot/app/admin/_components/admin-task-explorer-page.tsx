@@ -29,7 +29,7 @@ export default function AdminTaskExplorerPage() {
 
 function ConsoleBootSkeleton() {
   return (
-    <div className="ds-app-shell flex h-screen flex-col">
+    <div className="ds-app-shell flex min-h-screen flex-col md:h-screen">
       <header
         className="flex h-15 shrink-0 items-center gap-3 border-b px-4 sm:px-6"
         style={{
@@ -47,7 +47,7 @@ function ConsoleBootSkeleton() {
         <span className="flex-1" />
         <div className="ds-skeleton h-7 w-36 rounded-full" />
       </header>
-      <div className="flex min-h-0 flex-1">
+      <div className="flex md:min-h-0 md:flex-1">
         <aside
           className="hidden w-[296px] shrink-0 flex-col gap-3 border-r p-4 md:flex"
           style={{
@@ -69,7 +69,7 @@ function ConsoleBootSkeleton() {
             ))}
           </div>
         </aside>
-        <main className="flex min-h-0 flex-1 flex-col p-3 sm:p-6">
+        <main className="flex flex-col p-3 sm:p-6 md:min-h-0 md:flex-1">
           <div className="ds-skeleton h-4 w-40" />
           <div className="ds-skeleton mt-2 h-7 w-64" />
           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5">
