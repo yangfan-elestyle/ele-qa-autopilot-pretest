@@ -2,6 +2,12 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.19.3] - 2026-05-23
+
+### Fixed
+
+- iOS 灵动岛 / 状态栏区域不再显示紫色条带与页面内容割裂: viewport 改为 `viewport-fit=cover`, web 内容直接铺到状态栏背后, 颜色与 header 一致.
+
 ## [1.19.2] - 2026-05-23
 
 ### Fixed

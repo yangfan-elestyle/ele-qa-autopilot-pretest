@@ -286,7 +286,7 @@ function StepsList({ steps }: { steps: StepInfo[] }) {
     <Card
       size="small"
       title={`执行步骤 · ${steps.length}`}
-      className="bg-white [&_.ant-card-body]:max-h-[500px] [&_.ant-card-body]:overflow-auto [&_.ant-card-body]:p-0"
+      className="bg-white [&_.ant-card-body]:p-0 md:[&_.ant-card-body]:max-h-[500px] md:[&_.ant-card-body]:overflow-auto"
     >
       <Collapse
         activeKey={activeKeys}

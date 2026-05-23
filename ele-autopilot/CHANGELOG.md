@@ -2,6 +2,13 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.19.3] - 2026-05-23
+
+### Fixed
+
+- iOS 灵动岛 / 状态栏区域不再显示紫色条带与页面内容割裂: viewport 改为 `viewport-fit=cover`, web 内容直接铺到状态栏背后, 颜色与 header 一致.
+- 执行历史页在手机上不再出现"页面里套 Card 里又套 Card 内部滚动"的嵌套滚动感: 任务列表 Card 与执行步骤 Card 的内部锁高 + overflow-auto 改为 ≥768px 才生效, 手机上 Card 内容自然撑开, 跟随整页一起滚.
+
 ## [1.19.2] - 2026-05-23
 
 ### Fixed
