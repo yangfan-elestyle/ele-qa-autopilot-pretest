@@ -2,6 +2,12 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.19.4] - 2026-05-23
+
+### Fixed
+
+- 移除 `<meta theme-color="#4f46e5">`: iOS Safari 浏览器顶部 url bar / 灵动岛区域不再被强制染成紫色而与浅色 header 形成断层. Safari 17+ 会自动从页面顶部采样颜色, 让浏览器 UI 与页面无缝衔接.
+
 ## [1.19.3] - 2026-05-23
 
 ### Fixed
