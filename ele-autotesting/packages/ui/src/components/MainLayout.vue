@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col min-h-screen lg:h-screen lg:min-h-0">
+  <div class="flex flex-col lg:h-screen lg:min-h-0">
     <!-- Header -->
     <header class="theme-header flex-none">
       <div class="w-full mx-auto px-3 sm:px-5 h-[60px] flex justify-between items-center gap-3">

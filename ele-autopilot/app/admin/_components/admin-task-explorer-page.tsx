@@ -29,7 +29,7 @@ export default function AdminTaskExplorerPage() {
 
 function ConsoleBootSkeleton() {
   return (
-    <div className="ds-app-shell flex min-h-screen flex-col md:h-screen">
+    <div className="ds-app-shell flex flex-col md:h-screen">
       <header
         className="flex h-15 shrink-0 items-center gap-3 border-b px-4 sm:px-6"
         style={{

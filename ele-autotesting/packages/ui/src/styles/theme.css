@@ -74,7 +74,6 @@
 
 /* ===== Base ===== */
 html {
-  @apply min-h-screen;
   background: var(--ds-surface-canvas);
   color: var(--ds-text-primary);
   font-family: var(--ds-font-sans);
@@ -87,7 +86,6 @@ html {
 }
 
 body {
-  min-height: 100vh;
   margin: 0;
   background: inherit;
   color: inherit;

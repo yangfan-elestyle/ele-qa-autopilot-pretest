@@ -56,7 +56,7 @@ export default function PreviewWorkspace({
   ).length;
 
   return (
-    <Layout className="ds-app-shell min-h-screen md:!h-screen">
+    <Layout className="ds-app-shell md:!h-screen">
       <AppHeader
         subtitle={task?.title ?? '任务执行历史'}
         rightExtra={

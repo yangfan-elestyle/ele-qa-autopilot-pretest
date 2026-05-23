@@ -654,7 +654,7 @@ export default function AdminTaskExplorer() {
 
   return (
     <>
-      <Layout className="ds-app-shell min-h-screen md:!h-screen">
+      <Layout className="ds-app-shell md:!h-screen">
         <AppHeader />
         <Layout className="bg-transparent md:min-h-0 md:flex-1">
         <FolderSider
