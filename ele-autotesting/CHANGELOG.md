@@ -2,6 +2,12 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.19.6] - 2026-05-23
+
+### Changed
+
+- 移动端适配代码审计与清理: 删除 ContentCard / MainLayout 中未定义的 marker class (`ds-content-card-shell` / `ds-content-card-inner` / `ds-app-main`) 与被 50vh 兜底完全覆盖的 `sm:min-h-[440px]`. 行为无变化, 代码更简洁.
+
 ## [1.19.5] - 2026-05-23
 
 ### Fixed

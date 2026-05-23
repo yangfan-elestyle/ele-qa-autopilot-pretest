@@ -32,7 +32,7 @@
     </header>
 
     <!-- Main -->
-    <main class="ds-app-main w-full mx-auto px-3 py-3 sm:px-4 sm:py-4 lg:flex-1 lg:min-h-0">
+    <main class="w-full mx-auto px-3 py-3 sm:px-4 sm:py-4 lg:flex-1 lg:min-h-0">
       <div class="ds-workspace-row">
         <slot></slot>
       </div>
