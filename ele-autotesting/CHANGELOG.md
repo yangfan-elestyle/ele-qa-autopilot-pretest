@@ -2,6 +2,16 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.20.0] - 2026-05-25
+
+### Added
+
+- 新增 "QA Orchestrator" 模板预设 (推荐位): 把 MeterSphere 测试用例自动编排成 browser-use 可执行任务序列 — 起点 URL / 登录态判定 / 多页面 DOM 动作 / 数据明示 / 终态验证 / 关闭浏览器一并补全, 配合 ele-harness qa-orchestrator plugin 使用.
+
+### Changed
+
+- 发往 harness 的请求协议调整: 模板内容作为 system prompt 注入, 用例聚合文本作为 user prompt 独立传输 (旧版是把两者拼成单一 prompt). 内置 preset 已同步更新; 自定义模板若依赖原 `【...】` 包裹语义, 重新点 preset 按钮应用最新格式即可.
+
 ## [1.19.6] - 2026-05-23
 
 ### Changed

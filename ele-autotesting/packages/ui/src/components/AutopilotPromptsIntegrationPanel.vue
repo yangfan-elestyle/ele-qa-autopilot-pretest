@@ -6,57 +6,97 @@
         送至 Autopilot · prompt 模板
       </h3>
       <p class="ds-integration-intro-text">
-        在「AutoTest 用例」与「MeterSphere」tab 的「送至 Autopilot」弹窗里, 这里配置的模板会作为 preset 按钮一键填入 prompt 输入框. 已按账号同步到云端 (D1), 多端共用.
+        在「AutoTest 用例」与「MeterSphere」tab 的「送至 Autopilot」弹窗里, 这里配置的模板会作为 preset 按钮一键填入. 系统默认模板随版本升级全员同步, 不可编辑; 自定义模板按账号同步到云端 (D1) 多端共用.
       </p>
     </div>
 
-    <div class="flex items-center justify-between gap-2">
-      <div class="text-sm theme-manager-text-secondary">
-        共 <strong class="theme-manager-text">{{ list.length }}</strong> 个模板
-      </div>
-      <div class="flex items-center gap-2">
-        <button class="ds-pill-btn" type="button" @click="onReset">恢复默认</button>
-        <button class="ds-pill-btn ds-pill-btn--primary" type="button" @click="onAdd">+ 新建</button>
-      </div>
-    </div>
-
-    <div v-if="list.length === 0" class="theme-manager-card p-6 text-center space-y-3">
-      <p class="theme-manager-text-secondary">尚无模板. 弹窗里的 preset 按钮区会显示空态提示, 但 prompt 仍可手动编辑.</p>
-      <button class="ds-pill-btn ds-pill-btn--primary" type="button" @click="onReset">一键恢复默认 ({{ DEFAULT_PROMPT_PRESETS.length }} 个)</button>
-    </div>
-
-    <ul v-else class="space-y-3">
-      <li
-        v-for="(item, idx) in list"
-        :key="item.key"
-        class="theme-manager-card p-4 space-y-3"
-      >
-        <div class="flex items-center justify-between gap-2">
-          <input
-            v-model="item.label"
-            class="theme-manager-input flex-1"
-            placeholder="名称 (按钮显示文本, 如 '传话人 (原文)')"
-          />
-          <div class="flex items-center gap-1 shrink-0">
-            <button class="ds-pill-btn" type="button" :disabled="idx === 0" @click="moveUp(idx)" title="上移">↑</button>
-            <button class="ds-pill-btn" type="button" :disabled="idx === list.length - 1" @click="moveDown(idx)" title="下移">↓</button>
-            <button class="ds-pill-btn ds-pill-btn--danger" type="button" @click="remove(idx)" title="删除">删除</button>
-          </div>
+    <!-- 系统默认模板 (来自代码, 升级全员同步) -->
+    <section class="space-y-2">
+      <div class="flex items-center justify-between gap-2">
+        <div class="text-sm theme-manager-text">
+          系统默认模板 · <strong>{{ DEFAULT_PROMPT_PRESETS.length }}</strong> 个 (只读)
         </div>
-        <input
-          v-model="item.tip"
-          class="theme-manager-input"
-          placeholder="悬浮提示 (鼠标 hover 在按钮上时显示, 可空)"
-        />
-        <textarea
-          v-model="item.template"
-          rows="6"
-          class="theme-manager-input"
-          style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; resize: vertical"
-          placeholder="prompt 模板正文. 弹窗会自动在尾部拼接聚合后的【...】用例文本."
-        ></textarea>
-      </li>
-    </ul>
+      </div>
+      <ul class="space-y-2">
+        <li
+          v-for="d in DEFAULT_PROMPT_PRESETS"
+          :key="d.key"
+          class="theme-manager-card p-3 space-y-2"
+        >
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex-1 min-w-0">
+              <div class="theme-manager-text font-medium truncate">{{ d.label }}</div>
+              <div v-if="d.tip" class="text-xs theme-manager-text-secondary truncate">{{ d.tip }}</div>
+            </div>
+            <button
+              class="ds-pill-btn shrink-0"
+              type="button"
+              title="复制此模板为可编辑的自定义版本"
+              @click="cloneToCustom(d)"
+            >克隆为我的</button>
+          </div>
+          <details>
+            <summary class="cursor-pointer text-xs theme-manager-text-secondary">查看模板内容 ({{ d.template.length }} chars)</summary>
+            <pre class="mt-2 p-2 rounded text-xs whitespace-pre-wrap" style="background: rgba(0,0,0,0.04); font-family: ui-monospace, SFMono-Regular, Menlo, monospace">{{ d.template }}</pre>
+          </details>
+        </li>
+      </ul>
+    </section>
+
+    <!-- 我的模板 (D1 sync, 跨设备) -->
+    <section class="space-y-2">
+      <div class="flex items-center justify-between gap-2">
+        <div class="text-sm theme-manager-text">
+          我的模板 · <strong>{{ list.length }}</strong> 个
+        </div>
+        <div class="flex items-center gap-2">
+          <button
+            v-if="list.length > 0"
+            class="ds-pill-btn"
+            type="button"
+            @click="onReset"
+          >清空我的模板</button>
+          <button class="ds-pill-btn ds-pill-btn--primary" type="button" @click="onAdd">+ 新建</button>
+        </div>
+      </div>
+
+      <div v-if="list.length === 0" class="theme-manager-card p-6 text-center">
+        <p class="theme-manager-text-secondary">尚无自定义模板. 弹窗里会显示上方 {{ DEFAULT_PROMPT_PRESETS.length }} 个系统默认.</p>
+      </div>
+
+      <ul v-else class="space-y-3">
+        <li
+          v-for="(item, idx) in list"
+          :key="item.key"
+          class="theme-manager-card p-4 space-y-3"
+        >
+          <div class="flex items-center justify-between gap-2">
+            <input
+              v-model="item.label"
+              class="theme-manager-input flex-1"
+              placeholder="名称 (按钮显示文本)"
+            />
+            <div class="flex items-center gap-1 shrink-0">
+              <button class="ds-pill-btn" type="button" :disabled="idx === 0" @click="moveUp(idx)" title="上移">↑</button>
+              <button class="ds-pill-btn" type="button" :disabled="idx === list.length - 1" @click="moveDown(idx)" title="下移">↓</button>
+              <button class="ds-pill-btn ds-pill-btn--danger" type="button" @click="remove(idx)" title="删除">删除</button>
+            </div>
+          </div>
+          <input
+            v-model="item.tip"
+            class="theme-manager-input"
+            placeholder="悬浮提示 (鼠标 hover 在按钮上时显示, 可空)"
+          />
+          <textarea
+            v-model="item.template"
+            rows="6"
+            class="theme-manager-input"
+            style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; resize: vertical"
+            placeholder="prompt 模板正文, 作为 appendSystemPrompt 注入 harness."
+          ></textarea>
+        </li>
+      </ul>
+    </section>
   </div>
 </template>
 
@@ -69,10 +109,11 @@ import {
 } from '../composables/usePromptPresets'
 import { useToast } from '../composables/useToast'
 
-const { presets, setPresets, resetToDefaults } = usePromptPresets()
+const { customs, resetToDefaults } = usePromptPresets()
 const toast = useToast()
 
-const list = ref<PromptPreset[]>(deepCopy(presets.value))
+// list 仅持有 customs (用户可编辑). DEFAULT 通过 DEFAULT_PROMPT_PRESETS 直接渲染上方只读区.
+const list = ref<PromptPreset[]>(deepCopy(customs.value))
 
 let writingBack = false
 
@@ -80,13 +121,13 @@ watch(
   list,
   (next) => {
     writingBack = true
-    setPresets(next)
+    customs.value = next
     Promise.resolve().then(() => { writingBack = false })
   },
   { deep: true },
 )
 
-watch(presets, (next) => {
+watch(customs, (next) => {
   if (writingBack) return
   list.value = deepCopy(next)
 })
@@ -109,10 +150,23 @@ function onAdd() {
   ]
 }
 
+function cloneToCustom(d: PromptPreset) {
+  list.value = [
+    ...list.value,
+    {
+      key: genKey(),
+      label: `${d.label} (我的副本)`,
+      tip: d.tip,
+      template: d.template,
+    },
+  ]
+  toast.success(`已克隆「${d.label}」, 可在下方编辑`)
+}
+
 function onReset() {
   resetToDefaults()
-  list.value = deepCopy(DEFAULT_PROMPT_PRESETS)
-  toast.success(`已恢复默认 ${DEFAULT_PROMPT_PRESETS.length} 个模板`)
+  list.value = []
+  toast.success('已清空我的模板')
 }
 
 function remove(idx: number) {

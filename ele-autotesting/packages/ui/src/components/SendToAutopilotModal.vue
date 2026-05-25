@@ -44,12 +44,12 @@
             <div style="font-size: 13px; opacity: 0.8; margin-bottom: 8px">
               已就绪 <strong>{{ items.length }}</strong> 条用例
               <template v-if="failedFetch">· <span style="color: var(--theme-danger, #b00)">{{ failedFetch }} 条失败 (已跳过)</span></template>.
-              聚合成一段文本, 经 harness 走 prompt 模板处理后, 按 "=== CASE N: " 头切片录入 Autopilot.
+              聚合文本作为 prompt 发给 harness, 模板内容注入 system. 输出按 "=== CASE N: " 头切片录入 Autopilot.
             </div>
 
             <div style="margin-bottom: 10px">
               <label style="display: block; font-size: 12px; opacity: 0.8; margin-bottom: 4px">
-                prompt 模板 (preset 一键填入, 也可自由编辑; 模板尾部会自动拼接聚合后的用例文本)
+                system 模板 (preset 一键填入, 也可自由编辑; 作为 appendSystemPrompt 注入 harness)
               </label>
               <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; align-items: center">
                 <button
@@ -297,7 +297,10 @@ const props = withDefaults(defineProps<{
   defaultFolderPath: '',
   folderPlaceholder: '例: AutoTest / 传话人验证',
   showSourceMap: false,
-  promptStorageKey: 'autopilot.send.promptTemplate',
+  // .v3 后缀: 旧 .v2 残留的是 "调 Skill 原样返回" 模板 (传话人 bug 根因),
+  // 升级后该走新 DEFAULT (inline SKILL.md 正文, LLM 自己执行 Step 1-4),
+  // 直接换 key 让 useBrowserCache 走 default 分支.
+  promptStorageKey: 'autopilot.send.promptTemplate.v3',
   folderPathStorageKey: 'autopilot.send.folderPath',
   folderHistoryStorageKey: 'autopilot.send.folderHistory',
 })
@@ -377,8 +380,15 @@ function applyPreset(key: string) {
   if (preset) promptTemplate.value = preset.template
 }
 
-function buildHarnessPrompt(template: string, aggregated: string): string {
-  return `${template.trim()}\n\n【\n${aggregated}\n】`
+// 协议: prompt = 聚合文本本身, template 作为 appendSystemPrompt 透传给 agentic-loop.
+// (旧版把 template 与 【】 包裹的 aggregated 拼接成单一 prompt; 新版分离, LLM 收到
+//  system 注入指令 + user prompt 是纯净的聚合文本.)
+function buildHarnessPayload(template: string, aggregated: string): {
+  prompt: string
+  appendSystemPrompt?: string
+} {
+  const sys = template.trim()
+  return sys ? { prompt: aggregated, appendSystemPrompt: sys } : { prompt: aggregated }
 }
 
 function parseHarnessText(text: string): ParsedTask[] {
@@ -475,11 +485,11 @@ async function callHarness() {
   step.value = 'calling'
   startElapsedTicker()
   try {
-    const prompt = buildHarnessPrompt(promptTemplate.value, aggregatedText.value)
+    const payload = buildHarnessPayload(promptTemplate.value, aggregatedText.value)
     const res = await callApi<{ text: string; sessionId?: string }>(
       'POST',
       '/api/harness/oneshot',
-      { prompt, source: props.sourceTag },
+      { ...payload, source: props.sourceTag },
     )
     harnessText.value = res?.text ?? ''
     if (!harnessText.value.trim()) throw new Error('harness 返回空文本')

@@ -8,24 +8,64 @@ export interface PromptPreset {
   template: string
 }
 
-export const AUTOPILOT_PROMPT_PRESETS_STORAGE_KEY = 'autopilot.send.promptPresets'
+// D1 仅存 user customs (key 不在 DEFAULT 中的 preset). DEFAULT 永远从代码读 →
+// 升级即对全员生效, 不会被旧账号同步快照覆盖. display = [...DEFAULT, ...customs].
+export const AUTOPILOT_PROMPT_PRESETS_STORAGE_KEY = 'autopilot.send.promptCustoms'
 
-export const AUTOPILOT_DEFAULT_PROMPT_TEMPLATE = `你是"传话人". 请把【】内的内容原样复述出来, 不要做任何改动 / 解读 / 归纳 / 评价 / 增删字符 / 翻译.
-保持分隔头 "=== CASE N: <title> ===" 原样, 不要去掉, 不要换行错位.
-不要在前后添加任何解释 / 寒暄 / 摘要; 只输出原文.`
+// preset.template 作为 appendSystemPrompt 透传给 agentic-loop, prompt 字段始终是
+// MeterSphereDataPanel 聚合产生的 === CASE N: === 文本. agentic-loop 收到时把
+// appendSystemPrompt 注入默认 system 末尾并加 MUST follow 强调.
+//
+// 详细编排 Flow (切片 / fan-out / 自检 / 拼接) 单一信源: ele-harness
+// `.harness/plugins/qa-orchestrator/skills/qa-browser-orchestrator/SKILL.md`.
+// 本模板只做角色定位 + Skill 加载入口 + 输出契约, 不复述 Flow 细节.
+export const AUTOPILOT_QA_ORCHESTRATOR_TEMPLATE = `你是 QA Browser Orchestrator。
+
+用户消息是 MeterSphere 测试用例聚合文本, 含 \`=== CASE N: <title> ===\` 切片头。
+
+# 任务
+
+1. 调用 \`Skill({ skill: 'qa-orchestrator:qa-browser-orchestrator', args: <用户消息全文> })\` 获取编排 Flow 文档。
+2. 按该 Flow 文档执行: 切片 → fan-out 子 agent 处理每条 case → 自检回炉 → 按 caseIndex 升序拼接产物。
+3. 把拼接后的最终产物作为本次回复的唯一 text 块输出。
+
+# 输出契约
+
+- 保留 \`=== CASE N: <title> ===\` 切片头, N 与输入对齐, 顺序与输入一致
+- text 块即唯一交付物, 不包裹解释 / 代码块 / 摘要`
+
+export const AUTOPILOT_PASSTHROUGH_TEMPLATE = `你是 "传话人". 请把用户消息中的测试用例聚合文本 (含 \`=== CASE N: <title> ===\` 头部协议) 原样输出, 不要做任何改动 / 解读 / 归纳 / 评价 / 增删字符 / 翻译.
+
+保留 \`=== CASE N: <title> ===\` 头, N 与输入一致, 多 case 顺序与输入一致. 不要在前后添加任何解释 / 寒暄 / 摘要; 只输出原文.`
+
+// 兼容旧导出名 (默认值跟随主推 preset)
+export const AUTOPILOT_DEFAULT_PROMPT_TEMPLATE = AUTOPILOT_QA_ORCHESTRATOR_TEMPLATE
 
 export const DEFAULT_PROMPT_PRESETS: PromptPreset[] = [
   {
+    key: 'qa-browser-orchestrator',
+    label: 'QA Orchestrator (推荐)',
+    tip: '调 ele-harness qa-orchestrator plugin, 把测试用例编排成 browser-use 任务',
+    template: AUTOPILOT_QA_ORCHESTRATOR_TEMPLATE,
+  },
+  {
     key: 'passthrough',
     label: '传话人 (原文)',
-    tip: '让 harness 把内容原样吐回, 不做任何改写',
-    template: AUTOPILOT_DEFAULT_PROMPT_TEMPLATE,
+    tip: '让 harness 把内容原样吐回, 不做任何改写 (回退选项)',
+    template: AUTOPILOT_PASSTHROUGH_TEMPLATE,
   },
 ]
 
-function sanitize(list: unknown): PromptPreset[] | null {
+const DEFAULT_KEY_SET = new Set(DEFAULT_PROMPT_PRESETS.map((p) => p.key))
+
+export function isDefaultPresetKey(key: string): boolean {
+  return DEFAULT_KEY_SET.has(key)
+}
+
+function sanitizeCustoms(list: unknown): PromptPreset[] | null {
   if (!Array.isArray(list)) return null
   const out: PromptPreset[] = []
+  const seen = new Set<string>()
   for (const raw of list) {
     if (!raw || typeof raw !== 'object') continue
     const r = raw as Record<string, unknown>
@@ -34,6 +74,10 @@ function sanitize(list: unknown): PromptPreset[] | null {
     const tip = typeof r.tip === 'string' ? r.tip : ''
     const template = typeof r.template === 'string' ? r.template : ''
     if (!key || !label || !template.trim()) continue
+    // 过滤掉与 DEFAULT key 冲突的项 (兼容旧 D1 快照里可能混杂的 default 副本)
+    if (DEFAULT_KEY_SET.has(key)) continue
+    if (seen.has(key)) continue
+    seen.add(key)
     out.push({ key, label, tip, template })
   }
   return out
@@ -77,7 +121,7 @@ async function bootstrapFromRemote(): Promise<void> {
       rawValue.value = data.value
       saveLocalRaw(data.value)
     } else if (data.value === null && rawValue.value) {
-      // 云端首次接入: 把本地已有的自定义模板 seed 上去.
+      // 云端首次接入: 把本地已有的自定义 seed 上去.
       await pushRemote(rawValue.value)
     }
   } catch {
@@ -106,8 +150,13 @@ async function pushRemote(value: string): Promise<void> {
 }
 
 export interface UsePromptPresetsReturn {
+  /** 完整展示 list = DEFAULT (代码) + customs (D1). 升级 DEFAULT 全员立即可见. */
   presets: WritableComputedRef<PromptPreset[]>
+  /** 仅 user customs, 不含 DEFAULT. integration panel 应在此基础上做编辑. */
+  customs: WritableComputedRef<PromptPreset[]>
+  /** 设置完整 list (含 default + custom), 内部自动 filter 出 customs 持久化. */
   setPresets: (list: PromptPreset[]) => void
+  /** 清空 customs, 仅保留 DEFAULT. */
   resetToDefaults: () => void
 }
 
@@ -116,24 +165,32 @@ export function usePromptPresets(): UsePromptPresetsReturn {
     void bootstrapFromRemote()
   })
 
-  const presets = computed<PromptPreset[]>({
+  const customs = computed<PromptPreset[]>({
     get() {
-      if (!rawValue.value) return DEFAULT_PROMPT_PRESETS
+      if (!rawValue.value) return []
       try {
         const parsed = JSON.parse(rawValue.value)
-        const clean = sanitize(parsed)
-        if (!clean || clean.length === 0) return DEFAULT_PROMPT_PRESETS
-        return clean
+        return sanitizeCustoms(parsed) ?? []
       } catch {
-        return DEFAULT_PROMPT_PRESETS
+        return []
       }
     },
     set(list) {
-      const clean = sanitize(list) ?? []
+      const clean = sanitizeCustoms(list) ?? []
       const next = clean.length === 0 ? '' : JSON.stringify(clean)
       rawValue.value = next
       saveLocalRaw(next)
       void pushRemote(next)
+    },
+  })
+
+  const presets = computed<PromptPreset[]>({
+    get() {
+      return [...DEFAULT_PROMPT_PRESETS, ...customs.value]
+    },
+    set(list) {
+      // 接受调用方传入的完整 list, 自动 filter 掉 default key 后持久化.
+      customs.value = list.filter((p) => !DEFAULT_KEY_SET.has(p.key))
     },
   })
 
@@ -142,8 +199,8 @@ export function usePromptPresets(): UsePromptPresetsReturn {
   }
 
   function resetToDefaults() {
-    presets.value = []
+    customs.value = []
   }
 
-  return { presets, setPresets, resetToDefaults }
+  return { presets, customs, setPresets, resetToDefaults }
 }
