@@ -63,21 +63,15 @@ qa-orchestrator/
 
 `.harness/mcp.json` 已注册 EleVault MCP (http://10.219.206.102:9090/mcp), `shipper/agents/elevault-deep-searcher.md` 是现成调用样板. 用例命中 `参考 PRD-xxx` / 业务流程图 / Figma 等线索时, agent 主动拉 Confluence 文档拼上下文.
 
-## 待用户输入 (做 plugin 必需 + 加分项)
+## 配套资料
 
-### 必需 (没有就编排不出可执行任务)
+skill 输入与 plugin 评分锚点已就位:
 
-- 测试环境 URL 表 (按业务线 / 端末分): OneQR Retailing / Restaurant / Parking, ELEPAY, BUSINESS, 商户后台 / POS / 顾客端 各自 staging URL
-- 账号池约定 (角色 → 账号映射): 商户 / 店员 / POS / 顾客 / 管理员 各角色账号 + 密码 + 关联商户 ID
-- 业务线术语映射表: OneQR Retailing / Restaurant / Parking, ELEPAY, BUSINESS 内部叫法 + UI 上的实际文案 (中 / 日 / 英)
-- browser-use 在公司项目里的常见坑: 已踩过的 selector 不稳 / 等待时机 / iframe / 弹窗等 (没有可后续积累)
+<!-- prettier-ignore -->
+| 文件 | 用途 | 落点 |
+| --- | --- | --- |
+| [staging-urls.md](./staging-urls.md) | Sys / Dashboard / Business / ACQ 四套主 Web 工程 staging URL 全量清单 (按工程定位 + 路径分组) | `skills/elestyle-test-envs/SKILL.md` |
+| [business-glossary.md](./business-glossary.md) | 上述四套工程业务术语 (中日英三语 + 实体归属链 + 同名异义辨析) | `skills/business-glossary/SKILL.md` |
+| [example.md](./example.md) | hand-written browser-use 任务样例 (ACQ 加盟店申請新規 邀请流程) | `case-self-checker` 评分锚点 + plugin few-shot 样本 |
 
-### 加分项 (有就能显著提升编排质量)
-
-- **典型 MS 用例样本** (5-10 条, 覆盖登录 / CRUD / 支付 / 退款 / 异常分支): 让 plugin few-shot 校准输入分布
-- **期望输出 ground truth** (1-3 条 hand-written browser-use 任务): 作 plugin 输出对齐目标 + self-checker 评分锚点
-- **失败标志库**: 常见错误 toast 文案 / 异常 URL pattern / 异常 modal 标题, 让"失败标志"段可机器判定
-- **业务流程图 / 状态机**: 关键业务 (下单 / 退款 / 对账) 的状态流转, 让多步用例编排不串环节
-- **端末×角色矩阵**: Web 商户端 / iOS POS / Android 顾客 / 桌面收银 等组合, 让 plugin 知道 selector 策略要分端末
-- **测试数据准备约束**: 是否需要预建商户 / 订单, 测试会否污染数据, 是否需要清理 / 回滚步骤
-- **EleVault 命中线索**: 高频引用的 Confluence 页面 ID / Jira 项目 key / Figma file key, 让 EleVault 检索更精准 (而非全库盲搜)
+其余项 (账号池 / browser-use 常见坑 / 失败标志库 / 业务流程图 / 端末×角色矩阵 / 测试数据约束 / EleVault 命中线索) 不再单独整理, 由 plugin agent 实战中通过 EleVault MCP 拉取或迭代积累.
