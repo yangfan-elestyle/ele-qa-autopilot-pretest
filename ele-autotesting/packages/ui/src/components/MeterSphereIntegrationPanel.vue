@@ -108,43 +108,6 @@ async function loadConfig() {
   }
 }
 
-async function migrateLegacyLocalSecrets(): Promise<boolean> {
-  // 一次性迁移: 早期版本把 AK/SK 存在 useBrowserCache(metersphere.ak/sk) -> localStorage.
-  // 若云端未配置且本地两项齐全, 推到 D1 后删本地, 升级用户无需重填.
-  if (typeof window === 'undefined') return false
-  const LEGACY_AK = 'metersphere.ak'
-  const LEGACY_SK = 'metersphere.sk'
-  const rawAk = window.localStorage.getItem(LEGACY_AK) ?? ''
-  const rawSk = window.localStorage.getItem(LEGACY_SK) ?? ''
-  // useBrowserCache 字符串值是直接 String(v) 写入, 但泛型为 string 默认就是裸字符串;
-  // 早期可能存在 JSON 包裹的旧值, 双向兼容.
-  const unwrap = (v: string) => {
-    try {
-      const parsed = JSON.parse(v)
-      return typeof parsed === 'string' ? parsed : v
-    } catch {
-      return v
-    }
-  }
-  const ak = unwrap(rawAk).trim()
-  const sk = unwrap(rawSk).trim()
-  if (!ak || !sk) return false
-  try {
-    const res = await fetch(endpoint(), {
-      method: 'PUT',
-      credentials: 'include',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ ak, sk }),
-    })
-    if (!res.ok) return false
-    window.localStorage.removeItem(LEGACY_AK)
-    window.localStorage.removeItem(LEGACY_SK)
-    return true
-  } catch {
-    return false
-  }
-}
-
 async function onSubmit() {
   if (!secretsAlreadyStored.value) {
     if (!form.ak.trim()) {
@@ -209,19 +172,7 @@ async function onClear() {
   }
 }
 
-onMounted(async () => {
-  await loadConfig()
-  if (!configured.value) {
-    const migrated = await migrateLegacyLocalSecrets()
-    if (migrated) {
-      message.value = '已将浏览器旧 AK/SK 迁移到云端'
-      messageOk.value = true
-      await loadConfig()
-    }
-  } else if (typeof window !== 'undefined') {
-    // 已云端配置, 清理浏览器旧 AK/SK, 防止两端不一致.
-    window.localStorage.removeItem('metersphere.ak')
-    window.localStorage.removeItem('metersphere.sk')
-  }
+onMounted(() => {
+  loadConfig()
 })
 </script>

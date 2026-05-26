@@ -2,6 +2,12 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.24.1] - 2026-05-26
+
+### Removed
+
+- 集成中心 Figma / MeterSphere 面板不再自动把浏览器 localStorage 里的旧凭证 sync 到云端 D1: 升级用户仍需手动在面板里重填一次. 自动迁移会绕过用户对 "什么时候、用哪个账号上传" 的控制, 体验更明确.
+
 ## [1.24.0] - 2026-05-26
 
 ### Changed

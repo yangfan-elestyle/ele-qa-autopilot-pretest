@@ -94,28 +94,6 @@ async function loadConfig() {
   }
 }
 
-async function migrateLegacyLocalToken(): Promise<boolean> {
-  // 一次性迁移: 早期版本把 token 存在浏览器 localStorage(qa_figma_token).
-  // 若云端未配置且本地仍有遗留, 推到 D1 后删本地, 避免用户感到 "升级后凭证丢失".
-  if (typeof window === 'undefined') return false
-  const LEGACY_KEY = 'qa_figma_token'
-  const legacy = window.localStorage.getItem(LEGACY_KEY)
-  if (!legacy?.trim()) return false
-  try {
-    const res = await fetch(endpoint(), {
-      method: 'PUT',
-      credentials: 'include',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ token: legacy.trim() }),
-    })
-    if (!res.ok) return false
-    window.localStorage.removeItem(LEGACY_KEY)
-    return true
-  } catch {
-    return false
-  }
-}
-
 async function onSubmit() {
   if (!form.token && !tokenAlreadyStored.value) {
     message.value = '请填写 Token'
@@ -172,18 +150,7 @@ async function onClear() {
   }
 }
 
-onMounted(async () => {
-  await loadConfig()
-  if (!configured.value) {
-    const migrated = await migrateLegacyLocalToken()
-    if (migrated) {
-      message.value = '已将浏览器旧 token 迁移到云端'
-      messageOk.value = true
-      await loadConfig()
-    }
-  } else if (typeof window !== 'undefined') {
-    // 已云端配置, 清理浏览器旧 token, 防止两端不一致.
-    window.localStorage.removeItem('qa_figma_token')
-  }
+onMounted(() => {
+  loadConfig()
 })
 </script>
