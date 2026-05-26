@@ -90,26 +90,19 @@
 
         <!-- Figma URL 类型 -->
         <template v-else-if="contextConfig.contentType === 'prompt_figma'">
-          <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:space-x-2 sm:gap-0">
+          <div class="flex flex-col gap-1">
             <input
               :value="contextConfig.contents || ''"
               @input="updateUrl(($event.target as HTMLInputElement).value)"
               @keydown.enter="handleFigmaEnter"
               type="url"
               placeholder="请输入 Figma 文件链接"
-              class="flex-1 px-2 py-0.5 text-sm theme-input"
+              class="w-full px-2 py-0.5 text-sm theme-input"
               :disabled="isLoading"
             />
-            <input
-              :value="figmaToken"
-              @input="updateFigmaToken(($event.target as HTMLInputElement).value)"
-              @keydown.enter="handleFigmaEnter"
-              type="password"
-              autocomplete="off"
-              placeholder="请输入 Figma Token"
-              class="w-full sm:w-64 px-2 py-0.5 text-sm theme-input"
-              :disabled="isLoading"
-            />
+            <p class="text-xs theme-text-secondary">
+              Token 已托管在「集成中心 → Figma」(云端, 跨设备)。未配置时请先到顶部「集成中心」填写。
+            </p>
           </div>
         </template>
 
@@ -179,7 +172,7 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, onMounted, ref, type PropType, watch } from 'vue'
+import { nextTick, ref, type PropType } from 'vue'
 import { type ContentType, getApiBasePath, getAuthHeaders } from '@prompt-optimizer/core'
 import { createMcpServiceFor, getMcpTextContents } from '../services/mcp-client'
 import type { ContextConfig } from '@/composables'
@@ -213,35 +206,12 @@ const fileInput = ref<HTMLInputElement>()
 const genericFileInput = ref<HTMLInputElement>()
 const showImagePreview = ref(false)
 const isLoading = ref(false)
-const FIGMA_TOKEN_STORAGE_KEY = 'qa_figma_token'
-const figmaToken = ref('')
 const allowedFileExtensions = ['pdf', 'docx', 'pptx', 'csv', 'doc', 'epub', 'html', 'htm', 'txt', 'text', 'plaintext', 'xlsx']
 const allowedFileAccept = allowedFileExtensions.map((ext) => `.${ext}`).join(',')
 
 const updatePromptContent = (value: string) => {
   emit('update:contents', value)
 }
-
-const updateFigmaToken = (value: string) => {
-  figmaToken.value = value
-}
-
-onMounted(() => {
-  if (typeof window === 'undefined') return
-  const storedToken = window.localStorage.getItem(FIGMA_TOKEN_STORAGE_KEY)
-  if (storedToken) {
-    figmaToken.value = storedToken
-  }
-})
-
-watch(figmaToken, (value) => {
-  if (typeof window === 'undefined') return
-  if (value.trim()) {
-    window.localStorage.setItem(FIGMA_TOKEN_STORAGE_KEY, value)
-  } else {
-    window.localStorage.removeItem(FIGMA_TOKEN_STORAGE_KEY)
-  }
-})
 
 // ================= URL 相关逻辑 =================
 
@@ -355,17 +325,13 @@ const handleFigmaEnter = async () => {
   const url = (props.contextConfig.contents || '').trim()
   if (!url) return
 
-  const token = figmaToken.value.trim()
-  if (!token) {
-    toast.error('请先填写 Figma Token')
-    return
-  }
-
   isLoading.value = true
 
   try {
     const promptParam = getImageResearchPrompt()
-    const payload: Record<string, unknown> = { url, token }
+    // Token 由 Worker 按 ownerId 从 D1 (集成中心 → Figma) 读, 前端不再透传明文.
+    // Worker 未配置时返 412 + 引导文案, 由下方错误分支 toast 给用户.
+    const payload: Record<string, unknown> = { url }
     if (promptParam) {
       payload.prompt = promptParam
     }

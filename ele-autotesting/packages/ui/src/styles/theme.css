@@ -2596,6 +2596,36 @@ html * {
     color: var(--ds-warning, #d97706);
     border-color: color-mix(in srgb, var(--ds-warning, #d97706) 30%, transparent);
   }
+  .ds-integration-cloud-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 12px 20px 0;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid color-mix(in srgb, var(--ds-brand-500, #6366f1) 22%, transparent);
+    background: color-mix(in srgb, var(--ds-brand-500, #6366f1) 8%, transparent);
+    color: var(--ds-text-secondary);
+    font-size: 12.5px;
+    line-height: 1.55;
+  }
+  .ds-integration-cloud-banner svg {
+    flex: 0 0 auto;
+    margin-top: 2px;
+    width: 14px;
+    height: 14px;
+    color: var(--ds-brand-600, #4f46e5);
+  }
+  .ds-ms-field--status .ds-ms-status-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 32px;
+    font-size: 12px;
+  }
+  .ds-ms-field--status .ds-ms-hint {
+    color: var(--ds-text-tertiary);
+  }
 
   /* ===== Mobile (<640px) responsive overrides =====
      Inline `style="max-width: ..."` 与 Tailwind `max-w-3xl/4xl` 在小屏会溢出;

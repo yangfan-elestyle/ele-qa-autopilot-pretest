@@ -2,13 +2,16 @@
   <div class="ds-ms-panel">
     <!-- 凭据 + 项目/模块选择 -->
     <div class="ds-ms-controls">
-      <div class="ds-ms-field">
-        <label>Access Key</label>
-        <input v-model="ak" type="password" placeholder="AK (16 字符)" autocomplete="off" />
-      </div>
-      <div class="ds-ms-field">
-        <label>Secret Key</label>
-        <input v-model="sk" type="password" placeholder="SK (16/24/32 字符)" autocomplete="off" />
+      <div class="ds-ms-field ds-ms-field--status">
+        <label>MeterSphere 凭证</label>
+        <div class="ds-ms-status-row">
+          <span v-if="msConfigured" class="ds-integration-status-tag ds-integration-status-tag--ok">已配置 · 云端</span>
+          <span v-else-if="msStatusLoaded" class="ds-integration-status-tag ds-integration-status-tag--off">未配置</span>
+          <span v-else class="ds-integration-status-tag">检查中…</span>
+          <span v-if="msStatusLoaded && !msConfigured" class="ds-ms-hint">
+            请到「集成中心 → MeterSphere」填写 AK / SK
+          </span>
+        </div>
       </div>
       <div class="ds-ms-field">
         <label>项目</label>
@@ -35,7 +38,7 @@
         </select>
       </div>
       <div class="ds-ms-actions">
-        <button class="ds-ms-btn" :disabled="!ak || !sk || loading.projects" @click="loadProjects">
+        <button class="ds-ms-btn" :disabled="!msConfigured || loading.projects" @click="loadProjects">
           {{ loading.projects ? '加载…' : '拉项目' }}
         </button>
         <button class="ds-ms-btn" :disabled="!projectId || loading.modules" @click="loadModules">
@@ -225,11 +228,11 @@ interface MsCaseDetail {
 }
 interface MsStepItem { id?: string; num?: number; desc?: string; result?: string }
 
-// AK/SK 走通用浏览器缓存, 与 AutotestCasesPanel 共享同一组 localStorage key.
-// projectId / moduleId 同走 useBrowserCache: 用户上次选过的项目与模块刷新后自动恢复,
-// 配合 onMounted 自动联动可一路拉到该模块的 cases, 减少重复点击.
-const ak = useBrowserCache<string>('metersphere.ak', '')
-const sk = useBrowserCache<string>('metersphere.sk', '')
+// AK/SK 已迁到集成中心 -> Cloudflare D1 (owner-scoped); 本面板只读 configured 状态,
+// 不再持有明文. projectId / moduleId 仍走 useBrowserCache: 用户上次选过的项目/模块刷新后
+// 自动恢复, 配合 onMounted 自动联动一路拉到该模块的 cases, 减少重复点击.
+const msConfigured = ref(false)
+const msStatusLoaded = ref(false)
 const projectId = useBrowserCache<string>('metersphere.projectId', '')
 const moduleId = useBrowserCache<string>('metersphere.moduleId', '')
 const moduleKeyword = ref('')
@@ -288,10 +291,9 @@ function toggleAll(on: boolean) {
 }
 
 function buildHeaders(extra: Record<string, string> = {}): HeadersInit {
+  // AK/SK 由 Worker 按 ownerId 从 D1 集成中心配置读出后做签名, 前端不再透传.
   return {
     'content-type': 'application/json',
-    'x-ms-ak': ak.value.trim(),
-    'x-ms-sk': sk.value.trim(),
     ...extra,
   }
 }
@@ -454,8 +456,20 @@ onBeforeUnmount(() => {
 // 任一缓存失效 (上游已删 / 换组织等), 清掉该层缓存避免下次再误命中;
 // watch(projectId) 已处理"项目变 → 重置 modules/cases", 失效时设 projectId.value=''
 // 即可触发清空, 不必在此重复.
+async function loadMsConfigured() {
+  try {
+    const res = await fetch(`${getApiBasePath()}/api/integrations/metersphere`, { credentials: 'include' })
+    if (!res.ok) return
+    const json = await res.json().catch(() => ({}))
+    msConfigured.value = !!json?.configured
+  } finally {
+    msStatusLoaded.value = true
+  }
+}
+
 onMounted(async () => {
-  if (!ak.value.trim() || !sk.value.trim()) return
+  await loadMsConfigured()
+  if (!msConfigured.value) return
   await loadProjects()
   const cachedPid = projectId.value
   if (!cachedPid) return
@@ -489,10 +503,10 @@ const sendAutopilotOpen = ref(false)
 // `TASK_TITLE_MAX` 同值). 加 [MS #num] 前缀后超限的原 title 会被截尾 + ellipsis.
 const AP_TASK_TITLE_MAX = 200
 
-const canSendAutopilot = computed(() => selectedIds.value.size > 0 && !!ak.value.trim() && !!sk.value.trim())
+const canSendAutopilot = computed(() => selectedIds.value.size > 0 && msConfigured.value)
 const sendAutopilotDisabledReason = computed(() => {
   if (!selectedIds.value.size) return '请先选中至少一条 MS 用例'
-  if (!ak.value.trim() || !sk.value.trim()) return '请先填入 MS AK / SK'
+  if (!msConfigured.value) return '请先到「集成中心 → MeterSphere」配置凭证'
   return ''
 })
 

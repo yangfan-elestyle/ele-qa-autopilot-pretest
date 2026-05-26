@@ -3,8 +3,14 @@ import { analyzeImage } from '../services/imageResearchService.ts'
 import { renderSvgToPng } from '../services/svgRenderer.ts'
 import { bytesToBase64 } from '../utils/fileDownload.ts'
 import type { HonoEnv } from '../types/env.ts'
+import { readFigmaConfig } from './integrationsFigma.ts'
 
-const router = new Hono<HonoEnv>()
+type FigmaParseEnv = {
+  Bindings: HonoEnv['Bindings']
+  Variables: HonoEnv['Variables'] & { ownerId: string }
+}
+
+const router = new Hono<FigmaParseEnv>()
 
 interface FigmaNode {
   id: string
@@ -100,15 +106,20 @@ const fetchSvgAndConvertToBase64Png = async (url: string, width?: number, height
   return { base64: bytesToBase64(png), mime: 'image/png' }
 }
 
-router.post('/', async (c: Context<HonoEnv>) => {
+router.post('/', async (c: Context<FigmaParseEnv>) => {
   const body = await c.req.json().catch(() => ({} as any))
 
   const rawUrl = typeof body?.url === 'string' ? body.url.trim() : ''
   const prompt = typeof body?.prompt === 'string' ? body.prompt.trim() : ''
-  const token = typeof body?.token === 'string' ? body.token.trim() : ''
 
   if (!rawUrl) return c.json({ error: 'Missing url parameter' }, 400)
-  if (!token) return c.json({ error: 'Missing Figma token' }, 400)
+
+  // Token 从 D1 集成中心配置读, 不再接受 body.token (浏览器不持有明文).
+  const figmaCfg = await readFigmaConfig(c)
+  if (!figmaCfg?.token) {
+    return c.json({ error: 'Figma 集成未配置, 请到「集成中心 → Figma」填写 Personal Access Token' }, 412)
+  }
+  const token = figmaCfg.token
 
   let parsed
   try {

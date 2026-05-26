@@ -41,6 +41,16 @@
         </button>
       </nav>
 
+      <!-- 云端存储统一说明 -->
+      <div class="ds-integration-cloud-banner" role="note">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M17.5 19a4.5 4.5 0 1 0-1.6-8.7A6 6 0 0 0 4 12a4.5 4.5 0 0 0 .5 9z" />
+        </svg>
+        <span>
+          所有集成凭证 (LLM Key / Figma Token / MeterSphere AK·SK 等) 以登录账号维度统一保存在 Cloudflare D1, 不写入本地浏览器, 跨设备一致.
+        </span>
+      </div>
+
       <!-- 可滚动内容区域 -->
       <div class="ds-modal-body">
         <!-- LLM 模型 Tab -->
@@ -632,7 +642,7 @@
           <AutopilotPromptsIntegrationPanel />
         </template>
 
-        <!-- ele-harness Tab -->
+        <!-- ELE-Harness Tab -->
         <template v-else-if="activeTab === 'harness'">
           <HarnessIntegrationPanel />
         </template>
@@ -657,7 +667,7 @@ const tabs = [
   { id: 'figma', label: 'Figma' },
   { id: 'metersphere', label: 'MeterSphere' },
   { id: 'autopilot-prompts', label: 'Autopilot 模板' },
-  { id: 'harness', label: 'ele-harness' },
+  { id: 'harness', label: 'ELE-Harness' },
 ]
 const activeTab = ref('llm')
 

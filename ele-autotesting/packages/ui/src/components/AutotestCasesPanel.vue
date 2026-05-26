@@ -168,17 +168,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { getApiBasePath } from '@prompt-optimizer/core'
-import { useBrowserCache } from '../composables/useBrowserCache'
 import { MOCK_AUTOTEST_CASES, type AutotestCase } from './_mock/autotest-cases'
 import SendToAutopilotModal, { type SourceItem } from './SendToAutopilotModal.vue'
 
 const cases: AutotestCase[] = MOCK_AUTOTEST_CASES
 
-// AK/SK 与 MeterSphereDataPanel 共享同一组 localStorage key.
-const ak = useBrowserCache<string>('metersphere.ak', '')
-const sk = useBrowserCache<string>('metersphere.sk', '')
+// AK/SK 已迁到集成中心 -> Cloudflare D1 (owner-scoped); 本面板仅读 configured 状态.
+const msConfigured = ref(false)
 
 const keyword = ref('')
 const selectedIds = ref<Set<string>>(new Set())
@@ -210,10 +208,10 @@ function toggleAll(on: boolean) {
 }
 
 // ── 录入 MS ─────────────────────────────────────────────────────────────────
-const canIngest = computed(() => selectedIds.value.size > 0 && !!ak.value.trim() && !!sk.value.trim())
+const canIngest = computed(() => selectedIds.value.size > 0 && msConfigured.value)
 const ingestDisabledReason = computed(() => {
   if (!selectedIds.value.size) return '请先选中至少一条用例'
-  if (!ak.value.trim() || !sk.value.trim()) return '请先在 MeterSphere 标签填入 AK / SK'
+  if (!msConfigured.value) return '请先到「集成中心 → MeterSphere」配置 AK / SK'
   return ''
 })
 
@@ -250,10 +248,9 @@ function closeIngest() {
 }
 
 function buildHeaders(): HeadersInit {
+  // AK/SK 由 Worker 按 ownerId 从 D1 集成中心配置读出后做签名, 前端不再透传.
   return {
     'content-type': 'application/json',
-    'x-ms-ak': ak.value.trim(),
-    'x-ms-sk': sk.value.trim(),
   }
 }
 
@@ -464,6 +461,19 @@ function openSendAutopilot() {
   if (!canSendAutopilot.value) return
   sendAutopilotOpen.value = true
 }
+
+async function loadMsConfigured() {
+  try {
+    const res = await fetch(`${getApiBasePath()}/api/integrations/metersphere`, { credentials: 'include' })
+    if (!res.ok) return
+    const json = await res.json().catch(() => ({}))
+    msConfigured.value = !!json?.configured
+  } catch {
+    // 沉默: 网络问题, msConfigured 保持 false, UI 提示用户去集成中心检查.
+  }
+}
+
+onMounted(loadMsConfigured)
 </script>
 
 <style scoped>

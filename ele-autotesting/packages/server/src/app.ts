@@ -10,6 +10,8 @@ import syncRouter from './routes/sync.ts'
 import metersphereRouter from './routes/metersphere.ts'
 import harnessRouter from './routes/harness.ts'
 import integrationsHarnessLlmRouter from './routes/integrationsHarnessLlm.ts'
+import integrationsFigmaRouter from './routes/integrationsFigma.ts'
+import integrationsMetersphereRouter from './routes/integrationsMetersphere.ts'
 import autopilotRouter from './routes/autopilot.ts'
 import { resolveOwner } from './middleware/auth.ts'
 import type { HonoEnv } from './types/env.ts'
@@ -41,7 +43,7 @@ app.use('/confluence-parse', resolveOwner)
 app.use('/confluence-parse/*', resolveOwner)
 app.use('/figma-parse', resolveOwner)
 app.use('/figma-parse/*', resolveOwner)
-// AK/SK 走 X-MS-AK / X-MS-SK header, 服务端不持久化; ownerId 仅作访问审计, 与 D1 无耦合.
+// AK/SK 按 ownerId 存 D1 (集成中心 MeterSphere Tab), Worker 内读出后签名转发; 前端不持有明文.
 app.use('/api/ms/*', resolveOwner)
 // harness / autopilot 代理: 仅 google SSO 用户可触发; ownerId 既作审计锚点, 也用于查 harness BYOK 凭证.
 app.use('/api/harness/*', resolveOwner)
@@ -57,6 +59,8 @@ app.route('/api/sync', syncRouter)
 app.route('/api/ms', metersphereRouter)
 app.route('/api/harness', harnessRouter)
 app.route('/api/integrations/harness-llm', integrationsHarnessLlmRouter)
+app.route('/api/integrations/figma', integrationsFigmaRouter)
+app.route('/api/integrations/metersphere', integrationsMetersphereRouter)
 app.route('/api/autopilot', autopilotRouter)
 
 // API 范围 404 (静态 SPA fallback 由平台层 ASSETS `not_found_handling` 接管, 见 index.ts).

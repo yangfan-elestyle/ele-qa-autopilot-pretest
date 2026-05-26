@@ -2,6 +2,14 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.24.0] - 2026-05-26
+
+### Changed
+
+- 集成中心 Figma / MeterSphere 凭证迁移到云端: Token 与 AK/SK 现以登录账号维度统一存 Cloudflare D1, 不再写本地浏览器, 跨设备一致. 升级到本版本时, 浏览器中已有的旧凭证会在首次打开对应面板时自动迁移到云端, 无需重填.
+- 集成中心顶部加云端存储统一说明; ele-harness Tab 重命名为 ELE-Harness.
+- Prompt 输入区的 Figma 行不再单独要求填 Token, Token 统一由「集成中心 → Figma」提供; 未配置时给出引导提示, 不再让请求落到 400.
+
 ## [1.23.0] - 2026-05-26
 
 ### Added

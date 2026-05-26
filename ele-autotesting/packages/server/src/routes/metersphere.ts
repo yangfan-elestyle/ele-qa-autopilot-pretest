@@ -1,6 +1,7 @@
 import { Hono, Context } from 'hono'
 import type { HonoEnv } from '../types/env.ts'
 import { buildMsSignedHeaders } from '../lib/metersphere/sign.ts'
+import { readMeterSphereConfig } from './integrationsMetersphere.ts'
 
 /**
  * /api/ms — MeterSphere 反向代理.
@@ -8,8 +9,8 @@ import { buildMsSignedHeaders } from '../lib/metersphere/sign.ts'
  * 链路: 浏览器 -> gateway -> autotesting Worker -> env.METERSPHERE (VPC) ->
  *       tunnel `ele-server` -> ele-fly cloudflared -> qa.elepay.link
  *
- * AK/SK 从请求头 X-MS-AK / X-MS-SK 取 (浏览器侧 localStorage 缓存, 不入 D1).
- * 本 Worker 仅 AES-CBC 签名 + 转发, 不缓存 / 不日志 AK/SK 明文.
+ * AK/SK 由 Worker 按 ownerId 从 D1 (集成中心 MeterSphere Tab) 读出后做 AES-CBC 签名,
+ * 浏览器侧不持有明文; 旧 X-MS-AK / X-MS-SK header 入参已废弃.
  *
  * 路由:
  *   GET  /api/ms/_smoke                  链路烟雾, 不需 AK/SK
@@ -22,7 +23,12 @@ import { buildMsSignedHeaders } from '../lib/metersphere/sign.ts'
  *   POST /api/ms/case/add                新建用例 (multipart, worker 内封 FormData)
  */
 
-const router = new Hono<HonoEnv>()
+type MsRouteEnv = {
+  Bindings: HonoEnv['Bindings']
+  Variables: HonoEnv['Variables'] & { ownerId: string }
+}
+
+const router = new Hono<MsRouteEnv>()
 
 // VPC service binding 只负责把请求路由到对应的 cloudflared tunnel, **不会改写 URL hostname**.
 // fetch URL 的 hostname 同时也是 TLS SNI 与 Host header, 必须等于真实 MeterSphere 域名,
@@ -39,7 +45,7 @@ interface MsCallInit {
 }
 
 async function callMeterSphere(
-  c: Context<HonoEnv>,
+  c: Context<MsRouteEnv>,
   init: MsCallInit,
 ): Promise<Response> {
   const { accessKey, signature } = await buildMsSignedHeaders(init.ak, init.sk)
@@ -76,16 +82,22 @@ async function callMeterSphere(
   })
 }
 
-function getAkSk(c: Context<HonoEnv>): { ak: string; sk: string } | Response {
-  const ak = (c.req.header('x-ms-ak') ?? '').trim()
-  const sk = (c.req.header('x-ms-sk') ?? '').trim()
-  if (!ak || !sk) {
-    return c.json({ error: 'missing X-MS-AK / X-MS-SK header' }, 400)
+/**
+ * 解析当前请求的 AK/SK: 按 ownerId 从 D1 集成中心配置读. 未配置时返 412 引导前端
+ * 提示用户去「集成中心 → MeterSphere」填写, 与 figma-parse 同口径; 前端不再透传 header.
+ */
+async function getAkSk(c: Context<MsRouteEnv>): Promise<{ ak: string; sk: string } | Response> {
+  const cfg = await readMeterSphereConfig(c)
+  if (!cfg) {
+    return c.json(
+      { error: 'MeterSphere 集成未配置, 请到「集成中心 → MeterSphere」填写 AK / SK' },
+      412,
+    )
   }
-  return { ak, sk }
+  return { ak: cfg.ak, sk: cfg.sk }
 }
 
-router.get('/_smoke', async (c: Context<HonoEnv>) => {
+router.get('/_smoke', async (c: Context<MsRouteEnv>) => {
   // 不签名, 仅探链路. MeterSphere 根目录通常返登录页 200 或 401, 任一非 502 即证明 VPC 通.
   try {
     const upstream = await c.env.METERSPHERE.fetch(`${BACKEND_BASE}/`, { method: 'GET' })
@@ -109,8 +121,8 @@ router.get('/_smoke', async (c: Context<HonoEnv>) => {
  * `/system/user/get/organization` 拿当前 AK 用户可见的组织 list, 取第一个 id,
  * 再走 `/organization/project/page` 翻页. 整条链路对 UI 透明.
  */
-router.post('/projects', async (c: Context<HonoEnv>) => {
-  const ak = getAkSk(c)
+router.post('/projects', async (c: Context<MsRouteEnv>) => {
+  const ak = await getAkSk(c)
   if (ak instanceof Response) return ak
   let body: any = {}
   try {
@@ -152,7 +164,7 @@ router.post('/projects', async (c: Context<HonoEnv>) => {
  * `id, name` 足够定位组织.)
  */
 async function discoverOrganizationId(
-  c: Context<HonoEnv>,
+  c: Context<MsRouteEnv>,
   ak: string,
   sk: string,
 ): Promise<string | null> {
@@ -172,8 +184,8 @@ async function discoverOrganizationId(
   return null
 }
 
-router.get('/modules', async (c: Context<HonoEnv>) => {
-  const ak = getAkSk(c)
+router.get('/modules', async (c: Context<MsRouteEnv>) => {
+  const ak = await getAkSk(c)
   if (ak instanceof Response) return ak
   const projectId = (c.req.query('projectId') ?? '').trim()
   if (!projectId) return c.json({ error: 'projectId required' }, 400)
@@ -190,8 +202,8 @@ router.get('/modules', async (c: Context<HonoEnv>) => {
   }
 })
 
-router.post('/cases', async (c: Context<HonoEnv>) => {
-  const ak = getAkSk(c)
+router.post('/cases', async (c: Context<MsRouteEnv>) => {
+  const ak = await getAkSk(c)
   if (ak instanceof Response) return ak
   let body: any = {}
   try {
@@ -231,8 +243,8 @@ router.post('/cases', async (c: Context<HonoEnv>) => {
   }
 })
 
-router.get('/case/:id', async (c: Context<HonoEnv>) => {
-  const ak = getAkSk(c)
+router.get('/case/:id', async (c: Context<MsRouteEnv>) => {
+  const ak = await getAkSk(c)
   if (ak instanceof Response) return ak
   const id = (c.req.param('id') ?? '').trim()
   if (!id) return c.json({ error: 'id required' }, 400)
@@ -249,8 +261,8 @@ router.get('/case/:id', async (c: Context<HonoEnv>) => {
   }
 })
 
-router.get('/default-template/:projectId', async (c: Context<HonoEnv>) => {
-  const ak = getAkSk(c)
+router.get('/default-template/:projectId', async (c: Context<MsRouteEnv>) => {
+  const ak = await getAkSk(c)
   if (ak instanceof Response) return ak
   const projectId = (c.req.param('projectId') ?? '').trim()
   if (!projectId) return c.json({ error: 'projectId required' }, 400)
@@ -267,8 +279,8 @@ router.get('/default-template/:projectId', async (c: Context<HonoEnv>) => {
   }
 })
 
-router.post('/module/add', async (c: Context<HonoEnv>) => {
-  const ak = getAkSk(c)
+router.post('/module/add', async (c: Context<MsRouteEnv>) => {
+  const ak = await getAkSk(c)
   if (ak instanceof Response) return ak
   let body: any
   try { body = await c.req.json() } catch { return c.json({ error: 'invalid json body' }, 400) }
@@ -299,8 +311,8 @@ router.post('/module/add', async (c: Context<HonoEnv>) => {
  *
  * 不接受 / 不转发附件 (files / caseDetailFileIds), 后续需要再扩.
  */
-router.post('/case/add', async (c: Context<HonoEnv>) => {
-  const ak = getAkSk(c)
+router.post('/case/add', async (c: Context<MsRouteEnv>) => {
+  const ak = await getAkSk(c)
   if (ak instanceof Response) return ak
   let body: any
   try { body = await c.req.json() } catch { return c.json({ error: 'invalid json body' }, 400) }

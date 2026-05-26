@@ -45,7 +45,7 @@ export const DEFAULT_PROMPT_PRESETS: PromptPreset[] = [
   {
     key: 'qa-browser-orchestrator',
     label: 'QA Orchestrator (推荐)',
-    tip: '调 ele-harness qa-orchestrator plugin, 把测试用例编排成 browser-use 任务',
+    tip: '调 ELE-Harness qa-orchestrator plugin, 把测试用例编排成 browser-use 任务',
     template: AUTOPILOT_QA_ORCHESTRATOR_TEMPLATE,
   },
   {

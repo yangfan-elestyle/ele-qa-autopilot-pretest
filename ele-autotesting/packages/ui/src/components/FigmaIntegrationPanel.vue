@@ -6,22 +6,22 @@
         Figma 访问凭证
       </h3>
       <p class="ds-integration-intro-text">
-        用于解析 Figma 文件链接生成上下文。Token 仅保存在当前浏览器本地，刷新或重新打开仍然有效；如需撤销访问，清空输入框即可。
+        用于解析 Figma 文件链接生成上下文。Token 以登录账号维度保存在云端 D1（不写入本地浏览器），跨设备一致；token 已配置后，留空即可保留原值。
       </p>
     </div>
 
-    <form @submit.prevent class="space-y-4">
+    <form @submit.prevent="onSubmit" class="space-y-4">
       <div>
         <label class="block text-sm font-medium theme-manager-text mb-1.5">
           Personal Access Token
         </label>
         <input
-          v-model="figmaToken"
+          v-model="form.token"
           type="password"
           autocomplete="off"
           spellcheck="false"
           class="theme-manager-input"
-          placeholder="请输入 Figma Token"
+          :placeholder="tokenPlaceholder"
         />
         <p class="text-xs theme-manager-text-secondary mt-1.5">
           在 Figma → Settings → Personal access tokens 生成。最小授权范围即可读取文件结构。
@@ -29,43 +29,161 @@
       </div>
 
       <div class="ds-integration-status">
-        <span v-if="figmaToken" class="ds-integration-status-tag ds-integration-status-tag--ok">已配置</span>
+        <span v-if="configured" class="ds-integration-status-tag ds-integration-status-tag--ok">已配置</span>
         <span v-else class="ds-integration-status-tag ds-integration-status-tag--off">未配置</span>
+        <button type="submit" class="ds-pill-btn ds-pill-btn--primary" :disabled="saving">
+          {{ saving ? '保存中…' : '保存' }}
+        </button>
         <button
-          v-if="figmaToken"
+          v-if="configured"
           type="button"
           class="ds-pill-btn"
-          @click="clearToken"
+          :disabled="saving"
+          @click="onClear"
         >
           清除
         </button>
       </div>
+
+      <p v-if="message" class="text-xs" :class="messageOk ? 'theme-manager-text-secondary' : 'text-red-500'">
+        {{ message }}
+      </p>
     </form>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { getApiBasePath } from '@prompt-optimizer/core'
 
-const FIGMA_TOKEN_STORAGE_KEY = 'qa_figma_token'
-const figmaToken = ref('')
+interface FormState {
+  token: string
+}
 
-onMounted(() => {
-  if (typeof window === 'undefined') return
-  const stored = window.localStorage.getItem(FIGMA_TOKEN_STORAGE_KEY)
-  if (stored) figmaToken.value = stored
-})
+const form = reactive<FormState>({ token: '' })
+const configured = ref(false)
+const tokenAlreadyStored = ref(false)
+const saving = ref(false)
+const message = ref('')
+const messageOk = ref(true)
 
-watch(figmaToken, (value) => {
-  if (typeof window === 'undefined') return
-  if (value.trim()) {
-    window.localStorage.setItem(FIGMA_TOKEN_STORAGE_KEY, value)
-  } else {
-    window.localStorage.removeItem(FIGMA_TOKEN_STORAGE_KEY)
+const endpoint = () => `${getApiBasePath()}/api/integrations/figma`
+
+const tokenPlaceholder = computed(() =>
+  tokenAlreadyStored.value ? '已保存（留空表示沿用原值）' : '请输入 Figma Token',
+)
+
+function applyConfig(data: any) {
+  configured.value = !!data?.configured
+  tokenAlreadyStored.value = !!data?.configured
+  form.token = ''
+}
+
+async function loadConfig() {
+  try {
+    const res = await fetch(endpoint(), { credentials: 'include' })
+    if (!res.ok) {
+      message.value = `加载失败: HTTP ${res.status}`
+      messageOk.value = false
+      return
+    }
+    applyConfig(await res.json())
+  } catch (e: any) {
+    message.value = `加载失败: ${e?.message ?? e}`
+    messageOk.value = false
+  }
+}
+
+async function migrateLegacyLocalToken(): Promise<boolean> {
+  // 一次性迁移: 早期版本把 token 存在浏览器 localStorage(qa_figma_token).
+  // 若云端未配置且本地仍有遗留, 推到 D1 后删本地, 避免用户感到 "升级后凭证丢失".
+  if (typeof window === 'undefined') return false
+  const LEGACY_KEY = 'qa_figma_token'
+  const legacy = window.localStorage.getItem(LEGACY_KEY)
+  if (!legacy?.trim()) return false
+  try {
+    const res = await fetch(endpoint(), {
+      method: 'PUT',
+      credentials: 'include',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ token: legacy.trim() }),
+    })
+    if (!res.ok) return false
+    window.localStorage.removeItem(LEGACY_KEY)
+    return true
+  } catch {
+    return false
+  }
+}
+
+async function onSubmit() {
+  if (!form.token && !tokenAlreadyStored.value) {
+    message.value = '请填写 Token'
+    messageOk.value = false
+    return
+  }
+
+  saving.value = true
+  message.value = ''
+  try {
+    const res = await fetch(endpoint(), {
+      method: 'PUT',
+      credentials: 'include',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ token: form.token }),
+    })
+    if (!res.ok) {
+      const detail = (await res.json().catch(() => ({}))) as { error?: string }
+      message.value = `保存失败: ${detail.error ?? `HTTP ${res.status}`}`
+      messageOk.value = false
+      return
+    }
+    message.value = '已保存'
+    messageOk.value = true
+    await loadConfig()
+  } catch (e: any) {
+    message.value = `保存失败: ${e?.message ?? e}`
+    messageOk.value = false
+  } finally {
+    saving.value = false
+  }
+}
+
+async function onClear() {
+  saving.value = true
+  message.value = ''
+  try {
+    const res = await fetch(endpoint(), { method: 'DELETE', credentials: 'include' })
+    if (!res.ok) {
+      message.value = `清除失败: HTTP ${res.status}`
+      messageOk.value = false
+      return
+    }
+    form.token = ''
+    configured.value = false
+    tokenAlreadyStored.value = false
+    message.value = '已清除'
+    messageOk.value = true
+  } catch (e: any) {
+    message.value = `清除失败: ${e?.message ?? e}`
+    messageOk.value = false
+  } finally {
+    saving.value = false
+  }
+}
+
+onMounted(async () => {
+  await loadConfig()
+  if (!configured.value) {
+    const migrated = await migrateLegacyLocalToken()
+    if (migrated) {
+      message.value = '已将浏览器旧 token 迁移到云端'
+      messageOk.value = true
+      await loadConfig()
+    }
+  } else if (typeof window !== 'undefined') {
+    // 已云端配置, 清理浏览器旧 token, 防止两端不一致.
+    window.localStorage.removeItem('qa_figma_token')
   }
 })
-
-const clearToken = () => {
-  figmaToken.value = ''
-}
 </script>
