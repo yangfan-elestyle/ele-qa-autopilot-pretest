@@ -109,14 +109,29 @@ async function loadConfig() {
 }
 
 async function onSubmit() {
+  // 已配置 (secretsAlreadyStored) 时任一字段留空 = 沿用原值; 但纯空白字符串既不是"空"
+  // 也不是有效凭据, 应在前端拒绝避免后端 trim 后落入 reuse 分支还 toast "已保存".
+  const akTrim = form.ak.trim()
+  const skTrim = form.sk.trim()
   if (!secretsAlreadyStored.value) {
-    if (!form.ak.trim()) {
+    if (!akTrim) {
       message.value = '请填写 AK'
       messageOk.value = false
       return
     }
-    if (!form.sk.trim()) {
+    if (!skTrim) {
       message.value = '请填写 SK'
+      messageOk.value = false
+      return
+    }
+  } else {
+    if (!akTrim && form.ak !== '') {
+      message.value = 'AK 不可仅为空白字符'
+      messageOk.value = false
+      return
+    }
+    if (!skTrim && form.sk !== '') {
+      message.value = 'SK 不可仅为空白字符'
       messageOk.value = false
       return
     }

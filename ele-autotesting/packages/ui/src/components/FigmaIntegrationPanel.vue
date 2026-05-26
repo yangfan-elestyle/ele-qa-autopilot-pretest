@@ -95,10 +95,20 @@ async function loadConfig() {
 }
 
 async function onSubmit() {
-  if (!form.token && !tokenAlreadyStored.value) {
-    message.value = '请填写 Token'
-    messageOk.value = false
-    return
+  // 已配置 (tokenAlreadyStored) 时允许"留空沿用原值": 表单空 = 用户没改 token, 直接交给后端 reuse;
+  // 但纯空白字符串既不是"空"也不是有效 token, 应在前端拒绝避免后端 trim 后 no-op 还显示"已保存".
+  const trimmed = form.token.trim()
+  if (!trimmed) {
+    if (!tokenAlreadyStored.value) {
+      message.value = '请填写 Token'
+      messageOk.value = false
+      return
+    }
+    if (form.token !== '') {
+      message.value = 'Token 不可仅为空白字符'
+      messageOk.value = false
+      return
+    }
   }
 
   saving.value = true

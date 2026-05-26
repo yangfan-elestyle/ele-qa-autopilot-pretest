@@ -46,7 +46,9 @@ export async function readFigmaConfig(
     .first<{ value: string }>()
   if (!row?.value) return null
   try {
-    return JSON.parse(row.value) as FigmaIntegrationConfig
+    const parsed = JSON.parse(row.value) as FigmaIntegrationConfig
+    if (!parsed?.token) return null
+    return parsed
   } catch {
     return null
   }

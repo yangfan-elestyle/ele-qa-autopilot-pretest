@@ -462,6 +462,9 @@ async function loadMsConfigured() {
     if (!res.ok) return
     const json = await res.json().catch(() => ({}))
     msConfigured.value = !!json?.configured
+  } catch {
+    // 沉默: 网络问题 (TypeError: Failed to fetch / CORS) 不应打断 onMounted 链路;
+    // msConfigured 保持 false, UI 会提示用户去集成中心检查. 与 AutotestCasesPanel 同口径.
   } finally {
     msStatusLoaded.value = true
   }
