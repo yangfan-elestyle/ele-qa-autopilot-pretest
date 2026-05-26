@@ -22,7 +22,7 @@
 ## API
 
 - 路由形态: `/api/admin/{resource}` 与 `/api/admin/{resource}/:id`; 资源含 `folders` / `tasks` / `jobs` / `settings`.
-- `settings/llm-key`: 单独路由, GET 默认 mask (前4...后4), `?raw=1` 返明文供 dispatch 内部用 (走 `/api/admin/*` 由 Cloudflare Access 保护, 不进 gateway bypass); PUT `{value}` 写入, 空字符串视作清除.
+- `settings/llm-key`: 单独路由, GET 默认 mask (前4...后4), `?raw=1` 返明文供 dispatch 内部用; PUT `{value}` 写入, 空字符串视作清除. **该路由对公网可达** (gateway `/api/*` Bypass + Everyone), 因此 loader / action 内部强制 `requireAccessUser` + `@elestyle.jp` email 校验 (优先 `cf-access-jwt-assertion` header, 回退 `CF_Authorization` cookie); 未登录返回 401. JWT 配置走 wrangler `vars.TEAM_DOMAIN` / `vars.POLICY_AUD`, 与 gateway 同源.
 - 文件位于 `app/routes/api.*.tsx`; resource route 只导出 `loader` / `action`, 无 `default export`.
 - `action` 内按 `request.method` 分发 POST / PUT / PATCH / DELETE.
 - 列表参数为 JSON 字符串: `sort` / `range` / `filter`; 分页响应头 `Content-Range`, 并暴露 `Access-Control-Expose-Headers`.
@@ -48,5 +48,6 @@
 ## 安全边界
 
 - 不提交 `.env*`, `.dev.vars`, `data/`, `build/`, `.react-router/`, `node_modules/`, `*.sqlite*`, `.wrangler/`.
-- Secret 放 Cloudflare / GitHub Secrets; Workers 非 secret env 放 `wrangler.jsonc#vars`.
+- Secret 放 Cloudflare / GitHub Secrets; Workers 非 secret env 放 `wrangler.jsonc#vars` (含 `TEAM_DOMAIN` / `POLICY_AUD`, 与 gateway lockstep).
+- `/api/admin/*` 公网可达 (gateway Bypass); 任何返回敏感数据或写入 D1 的 admin 路由必须在 loader/action 内自验 `requireAccessUser` (`lib/access-auth.ts`).
 - Cloudflare D1/R2 资源由人工预创建; workflow 不创建资源.

@@ -1,20 +1,39 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from 'react-router';
 
+import { requireAccessUser, requireEmailDomain } from '@/lib/access-auth';
 import { getLlmApiKey, setLlmApiKey } from '@/lib/db';
 import { jsonError, jsonResponse, methodNotAllowed } from '@/app/lib/api-shared';
 
-// key 长度 < 8 时全 mask, 否则 "前4...后4" (避免暴露中段).
+// 长度 ≤ 8 全 mask, 否则 "前4...后4" (避免暴露中段).
 function maskKey(value: string): string {
   if (!value) return '';
-  if (value.length < 8) return '***';
+  if (value.length <= 8) return '***';
   return `${value.slice(0, 4)}...${value.slice(-4)}`;
 }
 
 const NO_STORE_HEADERS = { 'Cache-Control': 'no-store' };
 
+// 仅允许 @elestyle.jp SSO 已登录用户. gateway `/api/*` 全段 bypass + Everyone,
+// 业务 Worker 必须自己校验 CF Access cookie (浏览器从 Allow App 登录后携带 CF_Authorization).
+const ALLOWED_EMAIL_SUFFIX = '@elestyle.jp';
+
+async function guard(request: Request, env: Env): Promise<Response | null> {
+  try {
+    const user = await requireAccessUser(request, env);
+    requireEmailDomain(user, ALLOWED_EMAIL_SUFFIX);
+    return null;
+  } catch (res) {
+    if (res instanceof Response) return res;
+    throw res;
+  }
+}
+
 // GET ?raw=1 → { value: string } 明文; 默认 → { has_key, masked }.
-// raw 仅供 dispatch 链路用; 不暴露公网 (走 /api/admin/* 由 gateway Access 保护).
-export async function loader({ request }: LoaderFunctionArgs) {
+// 两种形态都强制 SSO 校验, raw 不可对外暴露.
+export async function loader({ request, context }: LoaderFunctionArgs) {
+  const denied = await guard(request, context.cloudflare.env);
+  if (denied) return denied;
+
   try {
     const url = new URL(request.url);
     const raw = url.searchParams.get('raw') === '1';
@@ -33,9 +52,12 @@ export async function loader({ request }: LoaderFunctionArgs) {
   }
 }
 
-// PUT { value: string } 写入; 空字符串视作清除.
-export async function action({ request }: ActionFunctionArgs) {
+// PUT { value: string } 写入; 空字符串视作清除. 同样强制 SSO.
+export async function action({ request, context }: ActionFunctionArgs) {
   if (request.method !== 'PUT') return methodNotAllowed(['PUT']);
+
+  const denied = await guard(request, context.cloudflare.env);
+  if (denied) return denied;
 
   try {
     const body = (await request.json()) as { value?: unknown };

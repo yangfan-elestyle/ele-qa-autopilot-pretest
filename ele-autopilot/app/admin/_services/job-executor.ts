@@ -79,7 +79,8 @@ export async function getJobFromServer(jobId: Id): Promise<JobLite> {
 /**
  * 拉取集成中心保存的 LLM API Key 明文 (供 dispatch 注入到 local).
  *
- * - 走 `/api/admin/settings/llm-key?raw=1`, 由 Cloudflare Access 鉴权.
+ * - 走 `/api/admin/settings/llm-key?raw=1`; gateway `/api/*` bypass + Everyone,
+ *   业务 Worker 在该路由内自验 CF_Authorization cookie, 仅 @elestyle.jp 通过.
  * - 空字符串 = 未配置.
  */
 async function fetchLlmApiKeyRaw(): Promise<string> {
@@ -87,6 +88,7 @@ async function fetchLlmApiKeyRaw(): Promise<string> {
   const response = await fetch(`${serverUrl}/api/admin/settings/llm-key?raw=1`, {
     method: 'GET',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
   });
   if (!response.ok) {
     throw new Error(`拉取 LLM API Key 失败: HTTP ${response.status}`);
@@ -180,9 +182,12 @@ export async function executeJob(
 
     // 集成中心未配置 key 时直接阻断, 不下发空 key 到 local 走到 _init_llm 才报错.
     // local 仍保留 env fallback, 这里允许传空 — local 端做最终判定.
-    const llmApiKey = await fetchLlmApiKeyRaw().catch((err) => {
-      throw new Error(`无法获取 LLM API Key: ${(err as Error).message}`);
-    });
+    let llmApiKey: string;
+    try {
+      llmApiKey = await fetchLlmApiKeyRaw();
+    } catch (err) {
+      throw new Error(`无法获取 LLM API Key: ${(err as Error).message}`, { cause: err });
+    }
 
     const result = await dispatchToLocal({
       job_id: serverJob.id,

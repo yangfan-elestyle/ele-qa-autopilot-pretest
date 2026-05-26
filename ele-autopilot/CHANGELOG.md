@@ -2,11 +2,17 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.21.1] - 2026-05-26
+
+### Security
+
+- 修复 `/api/admin/settings/llm-key` 因 gateway `/api/*` Bypass + Everyone 而对公网无鉴权的明文 / 写入面: 业务 Worker 现在在该路由内自验 CF Access JWT (优先 `cf-access-jwt-assertion` header, 回退到 `CF_Authorization` cookie), 仅 `@elestyle.jp` 已登录用户的浏览器可读取明文或写入; 任何匿名请求一律 401. `maskKey` 边界由 `<8` 收紧到 `≤8`, 避免短 key 被首尾 4 字符拼回原文.
+
 ## [1.21.0] - 2026-05-26
 
 ### Added
 
-- 集成中心新增 "LLM API Key" 标签页: 在云端统一管理 Gemini API Key, 任务下发时自动注入到本地 `ele-autopilot-local`, 不再需要每台机器手动配置 `ELE_LLM_API_KEY` 环境变量. UI 仅显示首尾 4 字符预览, 服务端永不返回明文.
+- 集成中心新增 "LLM API Key" 标签页: 在云端统一管理 Gemini API Key, 任务下发时自动注入到本地 `ele-autopilot-local`, 不再需要每台机器手动配置 `ELE_LLM_API_KEY` 环境变量. UI 仅显示首尾 4 字符预览.
 
 ## [1.19.5] - 2026-05-23
 
