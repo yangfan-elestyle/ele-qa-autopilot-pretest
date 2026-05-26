@@ -2,6 +2,12 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.22.1] - 2026-05-26
+
+### Security
+
+- CF Access JWT 校验在 `cf-access-jwt-assertion` header 缺失时, 回退读 `CF_Authorization` cookie, 与 ele-autopilot 参考实现对齐. 当前所有挂 `resolveOwner` 的路径都走 Allow App, header 必有; 此变更是纵深防御补强, 用户层无感知.
+
 ## [1.20.0] - 2026-05-25
 
 ### Added

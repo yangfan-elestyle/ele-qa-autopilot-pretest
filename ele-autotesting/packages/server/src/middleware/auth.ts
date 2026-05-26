@@ -11,8 +11,13 @@ import type { HonoEnv } from '../types/env.ts'
  *   2. gateway 经 service binding 转发到 autotesting, header 原样透传.
  *   3. 本中间件用 jose 远程 JWKS 二次校验 (深度防御), 拿 email 后写入 `c.set('ownerId', 'google:<email>')`.
  *
+ * Token 来源 (按顺序, 与 ele-autopilot/lib/access-auth.ts 同构):
+ *   1. `cf-access-jwt-assertion` header — Allow App 路径下由 CF Access 注入
+ *   2. `CF_Authorization` cookie — 当前所有挂 resolveOwner 的路径都走 Allow App, header 必有;
+ *      cookie 回退是为与 autopilot 参考实现对齐, 同时为未来可能新增的 Bypass 路径预留兜底.
+ *
  * 本地 dev (wrangler dev :8787, 不经 gateway / Access):
- *   - 缺 cf-access-jwt-assertion → 看 `c.env.DEV_FALLBACK_EMAIL` (经 `ele-autotesting/.env` +
+ *   - 缺 token → 看 `c.env.DEV_FALLBACK_EMAIL` (经 `ele-autotesting/.env` +
  *     `wrangler dev --env-file ../../.env` 注入)
  *   - 生产 wrangler.jsonc 不设 DEV_FALLBACK_EMAIL, 缺 token 必 401, 保留兜底拦截.
  *
@@ -28,8 +33,26 @@ function getJwks(teamDomain: string) {
   return cachedJwks
 }
 
+function extractCookie(c: Context<HonoEnv>, name: string): string | null {
+  const cookieHeader = c.req.header('cookie')
+  if (!cookieHeader) return null
+  for (const part of cookieHeader.split(';')) {
+    const eq = part.indexOf('=')
+    if (eq === -1) continue
+    const k = part.slice(0, eq).trim()
+    if (k === name) {
+      try {
+        return decodeURIComponent(part.slice(eq + 1).trim())
+      } catch {
+        return part.slice(eq + 1).trim()
+      }
+    }
+  }
+  return null
+}
+
 export async function resolveOwner(c: Context<HonoEnv>, next: Next) {
-  const token = c.req.header('cf-access-jwt-assertion')
+  const token = c.req.header('cf-access-jwt-assertion') ?? extractCookie(c, 'CF_Authorization')
 
   if (token) {
     if (!c.env.TEAM_DOMAIN || !c.env.POLICY_AUD) {
