@@ -32,3 +32,16 @@ export async function setAgentConfig(config: JobConfig): Promise<JobConfig> {
   await setSetting(AGENT_CONFIG_KEY, JSON.stringify(config));
   return config;
 }
+
+export const LLM_API_KEY_KEY = 'llm_api_key';
+
+// 集成中心下发给 ele-autopilot-local 的 Gemini key.
+// migration 0003 已插入空字符串作为默认; 空字符串视作"未配置".
+export async function getLlmApiKey(): Promise<string> {
+  const setting = await getSetting(LLM_API_KEY_KEY);
+  return setting?.value ?? '';
+}
+
+export async function setLlmApiKey(value: string): Promise<void> {
+  await setSetting(LLM_API_KEY_KEY, value);
+}

@@ -17,10 +17,14 @@ type LocalRunRequest = {
   tasks: TaskInput[];
   callback_url: string;
   config: JobConfig;
+  // 集成中心下发的 Gemini key (1.21.0+); 与 config 同级展开到顶层 payload.
+  // 由 ele-autopilot-local JobConfig.llm_api_key 接收, 详见 ele-autopilot-local/autopilot/config.py.
+  llm_api_key?: string;
 };
 
 // Local API 实际需要的请求体（config 字段展开到顶层）
-type LocalRunPayload = Omit<LocalRunRequest, 'config'> & JobConfig;
+type LocalRunPayload = Omit<LocalRunRequest, 'config' | 'llm_api_key'> &
+  JobConfig & { llm_api_key?: string };
 
 type LocalRunResponse = {
   code: number;
@@ -47,9 +51,14 @@ const FETCH_TIMEOUT_CONNECT_MS = 5_000;
 export async function dispatchToLocal(request: LocalRunRequest): Promise<LocalRunResponse> {
   const agentUrl = getAgentUrl();
 
-  // Local API 期望 config 字段展开到顶层（AutopilotRunRequest 继承自 JobConfig）
-  const { config, ...rest } = request;
-  const payload: LocalRunPayload = { ...rest, ...config };
+  // Local API 期望 config 字段展开到顶层（AutopilotRunRequest 继承自 JobConfig）.
+  // llm_api_key 同级展开, 但不放进 config 防止重复 / 顺序歧义.
+  const { config, llm_api_key, ...rest } = request;
+  const payload: LocalRunPayload = {
+    ...rest,
+    ...config,
+    ...(llm_api_key ? { llm_api_key } : {}),
+  };
 
   let response: Response;
   try {

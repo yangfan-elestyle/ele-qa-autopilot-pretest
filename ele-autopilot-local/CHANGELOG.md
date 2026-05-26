@@ -2,6 +2,12 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.21.0] - 2026-05-26
+
+### Changed
+
+- `ELE_LLM_API_KEY` 环境变量改为可选: 优先使用 autopilot 集成中心下发的 key, env 仅作为离线 / 旧客户端 fallback. 两者均未配置时任务失败并提示明确原因.
+
 ## [1.9.9] - 2026-05-20
 
 ### Fixed

@@ -15,6 +15,10 @@ class JobConfig(BaseModel):
     所有 Agent 相关参数默认为 None，表示使用 browser-use Agent 的默认值。
     """
 
+    # LLM 凭据: 由云端集成中心下发, 未设置时 fallback 到 `ELE_LLM_API_KEY` env.
+    # 日志 / callback / cloud payload 必须 exclude 这个字段防止泄露.
+    llm_api_key: str | None = None
+
     # 基础配置
     gemini_model: str = "gemini-3-flash-preview"  # Gemini 模型名称
     max_steps: int = 1000  # 最大执行步骤数

@@ -22,6 +22,7 @@
 ## API
 
 - 路由形态: `/api/admin/{resource}` 与 `/api/admin/{resource}/:id`; 资源含 `folders` / `tasks` / `jobs` / `settings`.
+- `settings/llm-key`: 单独路由, GET 默认 mask (前4...后4), `?raw=1` 返明文供 dispatch 内部用 (走 `/api/admin/*` 由 Cloudflare Access 保护, 不进 gateway bypass); PUT `{value}` 写入, 空字符串视作清除.
 - 文件位于 `app/routes/api.*.tsx`; resource route 只导出 `loader` / `action`, 无 `default export`.
 - `action` 内按 `request.method` 分发 POST / PUT / PATCH / DELETE.
 - 列表参数为 JSON 字符串: `sort` / `range` / `filter`; 分页响应头 `Content-Range`, 并暴露 `Access-Control-Expose-Headers`.

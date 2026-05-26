@@ -3,6 +3,7 @@ import {
   CheckCircleFilled,
   ControlOutlined,
   ExclamationCircleFilled,
+  KeyOutlined,
   LoadingOutlined,
   ReloadOutlined,
   ThunderboltOutlined,
@@ -251,6 +252,147 @@ function LocalAgentPanel() {
           <div className="text-(--ant-color-error)">
             <ExclamationCircleFilled /> 未连接, 请确认本机 <code>ele-autopilot</code> CLI 已启动.
           </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// LLM API Key 面板.
+// 集成中心存 D1, 任务下发时由 executeJob 拉取并注入到 local /autopilot/run.
+// GET 默认 mask, 仅显示 has_key + 首尾 4 字符预览; 永不展示明文.
+// ────────────────────────────────────────────────────────────────────────────
+
+type LlmKeyStatus = { has_key: boolean; masked: string };
+
+function LlmApiKeyPanel() {
+  const { message, modal } = App.useApp();
+  const [status, setStatus] = useState<LlmKeyStatus | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [inputValue, setInputValue] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const resp = await fetch('/api/admin/settings/llm-key');
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const data = (await resp.json()) as LlmKeyStatus;
+      setStatus(data);
+    } catch (e) {
+      setLoadError(`加载失败: ${(e as Error)?.message ?? e}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void load();
+  }, []);
+
+  const writeValue = async (value: string, successMsg: string) => {
+    setSaving(true);
+    try {
+      const resp = await fetch('/api/admin/settings/llm-key', {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ value }),
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const data = (await resp.json()) as LlmKeyStatus;
+      setStatus(data);
+      setInputValue('');
+      message.success(successMsg);
+    } catch (e) {
+      message.error(`保存失败: ${(e as Error)?.message ?? e}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSave = () => {
+    const trimmed = inputValue.trim();
+    if (!trimmed) {
+      message.warning('请输入 API Key 后再保存');
+      return;
+    }
+    void writeValue(trimmed, '已保存');
+  };
+
+  const handleClear = () => {
+    modal.confirm({
+      title: '清除当前 LLM API Key?',
+      content: '清除后, 下次执行任务将走本地 ELE_LLM_API_KEY 环境变量, 若也未配置则任务失败.',
+      okText: '清除',
+      cancelText: '取消',
+      okButtonProps: { danger: true },
+      onOk: () => writeValue('', '已清除'),
+    });
+  };
+
+  if (loadError) {
+    return (
+      <div className="space-y-3 py-4">
+        <div className="text-(--ant-color-error)">{loadError}</div>
+        <Button onClick={() => void load()}>重试</Button>
+      </div>
+    );
+  }
+  if (loading || !status) {
+    return (
+      <div className="py-6 text-center text-(--ant-color-text-secondary)">
+        <LoadingOutlined /> 加载中…
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-(--ant-color-text-secondary)">
+        Gemini API Key. 保存到云端 D1, 任务下发时随 <code>/autopilot/run</code> 请求注入到本地{' '}
+        <code>ele-autopilot-local</code>; 本地 <code>ELE_LLM_API_KEY</code> 环境变量仅作 fallback.
+        服务端永不返回明文, UI 只显示首尾 4 字符预览.
+      </p>
+
+      <div className="rounded-md border border-(--ant-color-border-secondary) bg-(--ant-color-fill-quaternary) p-3 text-xs leading-relaxed">
+        <div className="mb-1 font-medium text-(--ant-color-text)">当前状态</div>
+        {status.has_key ? (
+          <div className="text-(--ant-color-text-secondary)">
+            <CheckCircleFilled style={{ color: 'var(--ant-color-success)' }} /> 已配置 ·{' '}
+            <code>{status.masked}</code>
+          </div>
+        ) : (
+          <div className="text-(--ant-color-error)">
+            <ExclamationCircleFilled /> 未配置, 任务执行将依赖本机环境变量 (若本机也未配置则任务失败).
+          </div>
+        )}
+      </div>
+
+      <div>
+        <label className="mb-1 block text-xs font-medium text-(--ant-color-text-secondary)">
+          {status.has_key ? '替换 API Key' : '设置 API Key'}
+        </label>
+        <Input.Password
+          placeholder="AIzaSy..."
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onPressEnter={() => handleSave()}
+          autoComplete="off"
+          visibilityToggle
+        />
+      </div>
+
+      <div className="flex items-center gap-2">
+        <Button type="primary" onClick={handleSave} loading={saving} disabled={!inputValue.trim()}>
+          保存
+        </Button>
+        {status.has_key && (
+          <Button danger onClick={handleClear} disabled={saving}>
+            清除
+          </Button>
         )}
       </div>
     </div>
@@ -670,6 +812,15 @@ export default function IntegrationHub({ open, onClose }: IntegrationHubProps) {
               </span>
             ),
             children: <LocalAgentPanel />,
+          },
+          {
+            key: 'llm-key',
+            label: (
+              <span>
+                <KeyOutlined /> LLM API Key
+              </span>
+            ),
+            children: <LlmApiKeyPanel />,
           },
           {
             key: 'config',

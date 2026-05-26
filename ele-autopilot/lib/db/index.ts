@@ -58,4 +58,12 @@ export {
 } from './jobs';
 export type { JobStats } from './jobs';
 
-export { getAgentConfig, getSetting, setAgentConfig, setSetting } from './settings';
+export {
+  LLM_API_KEY_KEY,
+  getAgentConfig,
+  getLlmApiKey,
+  getSetting,
+  setAgentConfig,
+  setLlmApiKey,
+  setSetting,
+} from './settings';

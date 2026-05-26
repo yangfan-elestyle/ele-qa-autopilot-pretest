@@ -134,7 +134,11 @@ class Job(BaseModel):
         self.started_at = datetime.now()
         self.status = TaskStatus.RUNNING
 
-        logger.info(f"Job {self.id} started with config: {self.config.model_dump()}")
+        # 脱敏: llm_api_key 不进日志.
+        logger.info(
+            f"Job {self.id} started with config: "
+            f"{self.config.model_dump(exclude={'llm_api_key'})}"
+        )
 
         try:
             runner = TaskRunner(config=self.config)
@@ -190,8 +194,9 @@ class Job(BaseModel):
 
                     if hasattr(result, "_agent_history") and result._agent_history:
                         handler = TaskActionHandler(result._agent_history)
+                        # 脱敏: llm_api_key 不进 cloud payload.
                         cloud_payload = handler.to_cloud_payload(
-                            config=self.config.model_dump()
+                            config=self.config.model_dump(exclude={"llm_api_key"})
                         )
 
                 except Exception as e:

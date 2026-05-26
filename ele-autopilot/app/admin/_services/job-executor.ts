@@ -77,6 +77,25 @@ export async function getJobFromServer(jobId: Id): Promise<JobLite> {
 }
 
 /**
+ * 拉取集成中心保存的 LLM API Key 明文 (供 dispatch 注入到 local).
+ *
+ * - 走 `/api/admin/settings/llm-key?raw=1`, 由 Cloudflare Access 鉴权.
+ * - 空字符串 = 未配置.
+ */
+async function fetchLlmApiKeyRaw(): Promise<string> {
+  const serverUrl = getServerUrl();
+  const response = await fetch(`${serverUrl}/api/admin/settings/llm-key?raw=1`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  if (!response.ok) {
+    throw new Error(`拉取 LLM API Key 失败: HTTP ${response.status}`);
+  }
+  const { value } = (await response.json()) as { value: string };
+  return value ?? '';
+}
+
+/**
  * 更新 Server 上的 Job 状态
  */
 export async function updateJobOnServer(
@@ -159,11 +178,18 @@ export async function executeJob(
     const serverUrl = getServerUrl();
     const callbackUrl = `${serverUrl}/api/jobs/${serverJob.id}/callback`;
 
+    // 集成中心未配置 key 时直接阻断, 不下发空 key 到 local 走到 _init_llm 才报错.
+    // local 仍保留 env fallback, 这里允许传空 — local 端做最终判定.
+    const llmApiKey = await fetchLlmApiKeyRaw().catch((err) => {
+      throw new Error(`无法获取 LLM API Key: ${(err as Error).message}`);
+    });
+
     const result = await dispatchToLocal({
       job_id: serverJob.id,
       tasks: serverJob.tasks.map((t) => ({ id: t.task_id, text: t.task_text })),
       callback_url: callbackUrl,
       config: serverJob.config,
+      llm_api_key: llmApiKey || undefined,
     });
 
     if (result.code !== 0) {

@@ -2,6 +2,12 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.21.0] - 2026-05-26
+
+### Added
+
+- 集成中心新增 "LLM API Key" 标签页: 在云端统一管理 Gemini API Key, 任务下发时自动注入到本地 `ele-autopilot-local`, 不再需要每台机器手动配置 `ELE_LLM_API_KEY` 环境变量. UI 仅显示首尾 4 字符预览, 服务端永不返回明文.
+
 ## [1.19.5] - 2026-05-23
 
 ### Fixed

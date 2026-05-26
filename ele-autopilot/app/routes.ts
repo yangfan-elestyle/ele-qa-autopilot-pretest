@@ -16,6 +16,7 @@ export default [
   route('api/admin/jobs/:id', 'routes/api.admin.jobs.$id.tsx'),
   route('api/admin/jobs/:id/tasks/:taskIndex', 'routes/api.admin.jobs.$id.tasks.$taskIndex.tsx'),
   route('api/admin/settings', 'routes/api.admin.settings.tsx'),
+  route('api/admin/settings/llm-key', 'routes/api.admin.settings.llm-key.tsx'),
 
   // External runner callbacks
   route('api/jobs/:id/callback/complete', 'routes/api.jobs.$id.callback.complete.tsx'),

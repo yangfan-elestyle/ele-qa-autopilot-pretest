@@ -207,9 +207,16 @@ class TaskRunner:
 
     def _init_llm(self):
         if self._llm is None:
+            # 优先用云端集成中心下发的 key; 没有时 fallback 到 env (向后兼容旧部署).
+            api_key = self.config.llm_api_key or os.getenv("ELE_LLM_API_KEY")
+            if not api_key:
+                raise RuntimeError(
+                    "未提供 LLM API Key: 请在 autopilot 集成中心配置, "
+                    "或设置本机 ELE_LLM_API_KEY 环境变量."
+                )
             self._llm = ChatGoogle(
                 model=self.config.gemini_model,
-                api_key=os.getenv("ELE_LLM_API_KEY"),
+                api_key=api_key,
                 temperature=0.0,
                 max_output_tokens=65536,
             )
