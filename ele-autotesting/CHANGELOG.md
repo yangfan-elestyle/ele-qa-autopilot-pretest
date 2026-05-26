@@ -2,6 +2,17 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.23.0] - 2026-05-26
+
+### Added
+
+- 集成中心新增 ele-harness Tab: 自助填写 LLM provider / model / API Key / Base URL 与可选 Max Tokens / Temperature, 凭证以登录账号维度存云端, 不写本地浏览器. 自此每位用户用自己的 key 触发 harness 测试.
+- Base URL 按 provider 提供默认值, openai / google 一键"恢复默认"; 自托管 runner (ollama / lmstudio / llamacpp) 用户自行填写.
+
+### Changed
+
+- 触发 harness 测试前先校验已配置凭证; 未配置直接提示去【集成中心 → ele-harness】填写, 不再让请求落到下游 502.
+
 ## [1.22.1] - 2026-05-26
 
 ### Security

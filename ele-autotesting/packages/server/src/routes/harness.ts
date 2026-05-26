@@ -1,5 +1,6 @@
 import { Hono, Context } from 'hono'
 import type { HonoEnv } from '../types/env.ts'
+import { readHarnessLlmConfig } from './integrationsHarnessLlm.ts'
 
 /**
  * /api/harness/oneshot — 代理到 ele-harness agentic-loop `/v1/oneshot`.
@@ -10,7 +11,12 @@ import type { HonoEnv } from '../types/env.ts'
  * VPC binding 不需要任何鉴权 (绕过了 harness Worker + CF Access). 仅作链路打通,
  * 后续要套权限层时再切公网 `harness.<account>.workers.dev` + service token.
  *
- * 入参: { prompt, systemPrompt?, appendSystemPrompt?, source? }
+ * BYOK (ele-harness v0.6.0): 每个 oneshot 必须带 credentials = { provider, model,
+ * apiKey, baseUrl } 四字段, 可选 maxTurns / maxTokens / temperature. 凭证不由调用方传入,
+ * 而是服务端按 ownerId 从 autotesting 自家 D1 (集成中心 ele-harness Tab) 读取后
+ * 注入 upstream body; 缺失则 412 + code=HARNESS_LLM_NOT_CONFIGURED 引导前端跳设置.
+ *
+ * 入参 (来自前端): { prompt, systemPrompt?, appendSystemPrompt?, source? }
  * 出参: { text, sessionId?, events } — text 取最后一个 `assistant_message` 的
  *       所有 text block 拼接, 等价 PLAN 中的 `lastAssistantText`.
  *
@@ -19,7 +25,10 @@ import type { HonoEnv } from '../types/env.ts'
  * 而非 wall-clock; 这里只做转发, 不在 Worker 上做长循环.
  */
 
-const router = new Hono<HonoEnv>()
+type HarnessVars = HonoEnv['Variables'] & { ownerId: string }
+type HarnessHonoEnv = { Bindings: HonoEnv['Bindings']; Variables: HarnessVars }
+
+const router = new Hono<HarnessHonoEnv>()
 
 interface OneshotEvent {
   type: string
@@ -49,7 +58,7 @@ function extractLastAssistantText(events: OneshotEvent[]): string {
     .join('')
 }
 
-router.post('/oneshot', async (c: Context<HonoEnv>) => {
+router.post('/oneshot', async (c: Context<HarnessHonoEnv>) => {
   if (!c.env.AGENTIC_LOOP) {
     return c.json({ error: 'AGENTIC_LOOP VPC binding not configured' }, 500)
   }
@@ -64,10 +73,31 @@ router.post('/oneshot', async (c: Context<HonoEnv>) => {
   const prompt = typeof body?.prompt === 'string' ? body.prompt.trim() : ''
   if (!prompt) return c.json({ error: 'prompt required (non-empty string)' }, 400)
 
+  const cfg = await readHarnessLlmConfig(c)
+  if (!cfg) {
+    return c.json(
+      {
+        error:
+          'harness LLM 凭证未配置, 请在【集成中心 → ele-harness】Tab 填写 provider / model / apiKey / baseUrl 后再试',
+        code: 'HARNESS_LLM_NOT_CONFIGURED',
+      },
+      412,
+    )
+  }
+
   const upstreamBody: Record<string, unknown> = {
     prompt,
     source: typeof body?.source === 'string' && body.source.trim() ? body.source.trim() : 'autotesting',
+    credentials: {
+      provider: cfg.provider,
+      model: cfg.model,
+      apiKey: cfg.apiKey,
+      baseUrl: cfg.baseUrl,
+    },
   }
+  if (cfg.maxTurns !== undefined) upstreamBody.maxTurns = cfg.maxTurns
+  if (cfg.maxTokens !== undefined) upstreamBody.maxTokens = cfg.maxTokens
+  if (cfg.temperature !== undefined) upstreamBody.temperature = cfg.temperature
   if (typeof body?.systemPrompt === 'string' && body.systemPrompt.trim()) {
     upstreamBody.systemPrompt = body.systemPrompt
   }
