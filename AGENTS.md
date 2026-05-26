@@ -36,5 +36,4 @@ LLM 约束. 工程定位见下, 拓扑 / 子项目见 [README.md](./README.md), 
 
 - `CLAUDE.md` = `AGENTS.md` symlink; `ele-autopilot/docs/CLAUDE.md` 用 `@AGENTS.md` import.
 - 所有 wrangler 子项目的 `worker-configuration.d.ts` 是生成产物也是类型源, 已故意提交; 改 `wrangler.jsonc` 后必须跑 `bun run typegen`, 不手改.
-- `ele-autopilot-local/.env.template` 是无密钥模板, 已故意提交.
 - 文档高密度: 能一行不写两行, 能列表不写段落; 子项目 AGENTS / README 不复述根 / deploy.md / setup.md 已写过的规则, 用 link 指回.

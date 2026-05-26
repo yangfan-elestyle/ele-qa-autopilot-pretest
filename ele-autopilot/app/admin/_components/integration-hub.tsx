@@ -325,7 +325,7 @@ function LlmApiKeyPanel() {
   const handleClear = () => {
     modal.confirm({
       title: '清除当前 LLM API Key?',
-      content: '清除后, 下次执行任务将走本地 ELE_LLM_API_KEY 环境变量, 若也未配置则任务失败.',
+      content: '清除后, 任务派单时找不到可用 key 会被拒绝下发.',
       okText: '清除',
       cancelText: '取消',
       okButtonProps: { danger: true },
@@ -353,8 +353,7 @@ function LlmApiKeyPanel() {
     <div className="space-y-4">
       <p className="text-sm text-(--ant-color-text-secondary)">
         Gemini API Key. 保存到云端 D1, 任务下发时随 <code>/autopilot/run</code> 请求注入到本地{' '}
-        <code>ele-autopilot-local</code>; 本地 <code>ELE_LLM_API_KEY</code> 环境变量仅作 fallback.
-        服务端永不返回明文, UI 只显示首尾 4 字符预览.
+        <code>ele-autopilot-local</code>. 服务端永不返回明文, UI 只显示首尾 4 字符预览.
       </p>
 
       <div className="rounded-md border border-(--ant-color-border-secondary) bg-(--ant-color-fill-quaternary) p-3 text-xs leading-relaxed">
@@ -366,7 +365,7 @@ function LlmApiKeyPanel() {
           </div>
         ) : (
           <div className="text-(--ant-color-error)">
-            <ExclamationCircleFilled /> 未配置, 任务执行将依赖本机环境变量 (若本机也未配置则任务失败).
+            <ExclamationCircleFilled /> 未配置, 任务派单会被拒绝下发.
           </div>
         )}
       </div>

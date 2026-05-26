@@ -180,13 +180,15 @@ export async function executeJob(
     const serverUrl = getServerUrl();
     const callbackUrl = `${serverUrl}/api/jobs/${serverJob.id}/callback`;
 
-    // 集成中心未配置 key 时直接阻断, 不下发空 key 到 local 走到 _init_llm 才报错.
-    // local 仍保留 env fallback, 这里允许传空 — local 端做最终判定.
+    // local 端无 env fallback, 集成中心未配置 key 时直接阻断, 不下发空 key.
     let llmApiKey: string;
     try {
       llmApiKey = await fetchLlmApiKeyRaw();
     } catch (err) {
       throw new Error(`无法获取 LLM API Key: ${(err as Error).message}`, { cause: err });
+    }
+    if (!llmApiKey) {
+      throw new Error('集成中心未配置 LLM API Key, 请先在「集成中心 → LLM API Key」录入.');
     }
 
     const result = await dispatchToLocal({
@@ -194,7 +196,7 @@ export async function executeJob(
       tasks: serverJob.tasks.map((t) => ({ id: t.task_id, text: t.task_text })),
       callback_url: callbackUrl,
       config: serverJob.config,
-      llm_api_key: llmApiKey || undefined,
+      llm_api_key: llmApiKey,
     });
 
     if (result.code !== 0) {

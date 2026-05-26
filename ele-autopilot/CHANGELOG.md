@@ -2,6 +2,12 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.22.0] - 2026-05-26
+
+### Changed
+
+- 派单下发前强校验集成中心已配置 LLM API Key, 未配置直接阻断并提示, 不再让请求落到本地 agent 再失败. 集成中心面板与首页安装指引同步移除"环境变量 fallback"相关文案.
+
 ## [1.21.1] - 2026-05-26
 
 ### Security

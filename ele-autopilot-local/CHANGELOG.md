@@ -2,6 +2,12 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.22.0] - 2026-05-26
+
+### Removed
+
+- 移除 `ELE_LLM_API_KEY` 环境变量兜底: LLM API Key 仅接受由 autopilot 集成中心通过 `/autopilot/run` payload 下发, 缺失时任务直接失败. 旧版需要在集成中心录入 key 后再升级.
+
 ## [1.21.0] - 2026-05-26
 
 ### Changed

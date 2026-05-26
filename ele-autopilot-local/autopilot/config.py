@@ -15,7 +15,7 @@ class JobConfig(BaseModel):
     所有 Agent 相关参数默认为 None，表示使用 browser-use Agent 的默认值。
     """
 
-    # LLM 凭据: 由云端集成中心下发, 未设置时 fallback 到 `ELE_LLM_API_KEY` env.
+    # LLM 凭据: 由云端集成中心通过 /autopilot/run payload 下发, 必传.
     # 日志 / callback / cloud payload 必须 exclude 这个字段防止泄露.
     llm_api_key: str | None = None
 

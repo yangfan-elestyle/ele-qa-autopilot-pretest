@@ -15,10 +15,10 @@ curl -fsSL <gateway host>/install.sh | bash
 ## 使用
 
 ```bash
-ELE_LLM_API_KEY=<your-gemini-api-key> ele-autopilot
+ele-autopilot
 ```
 
-启动 FastAPI HTTP 服务于 `0.0.0.0:8000`. 无参数无子命令. API 文档: `http://localhost:8000/docs`.
+启动 FastAPI HTTP 服务于 `0.0.0.0:8000`. 无参数无子命令. LLM API Key 由 autopilot 集成中心通过 `/autopilot/run` payload 下发, 无需本地配置. API 文档: `http://localhost:8000/docs`.
 
 ## 自更新
 

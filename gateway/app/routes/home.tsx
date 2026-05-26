@@ -237,11 +237,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
           </p>
           <ol className="steps">
             <Step num={1} title="安装 ele-autopilot" cmd={installCmd} />
-            <Step
-              num={2}
-              title="启动 (需 Gemini API Key)"
-              cmd="ELE_LLM_API_KEY=<your-gemini-api-key> ele-autopilot"
-            />
+            <Step num={2} title="启动 agent" cmd="ele-autopilot" />
           </ol>
         </section>
 

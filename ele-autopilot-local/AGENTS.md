@@ -3,7 +3,7 @@
 ## Runtime
 
 - 只支持 macOS: `autopilot/task.py` 写死 Chrome app 路径与 Chrome user data dir; 跨平台改动必须同步这两个常量与 profile 解析逻辑.
-- 可选环境变量 `ELE_LLM_API_KEY`: 1.21.0 起首选由 autopilot 集成中心下发 (随 `/autopilot/run` payload `llm_api_key`); env 仅作离线 / 旧版兼容兜底. 两者都缺时 `_init_llm()` 抛清晰错误.
+- LLM API Key 仅由 autopilot 集成中心通过 `/autopilot/run` payload `llm_api_key` 下发, 无本地 env fallback; `_init_llm()` 缺 key 抛错.
 - 默认可视化运行: `headless=false`; `JobConfig.headless=true` 才无头.
 - 安装 / 运行 / 构建都用 `uv`; 缺 `uv` 时按 Astral 官方安装脚本.
 - 发布产物不走 GitHub Release; workflow 上传到 R2 `ele-autopilot-releases/local/<ver>/`.
