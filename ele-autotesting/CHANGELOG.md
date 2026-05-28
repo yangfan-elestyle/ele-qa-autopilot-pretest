@@ -2,6 +2,12 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.25.1] - 2026-05-28
+
+### Fixed
+
+- 修复 Confluence 链接解析时「markdown 转换服务异常，使用原始内容」的报错: 前端调 markitdown MCP 服务时漏带 `/autotest` 子路径前缀, gateway 把请求错路由到另一个 Worker 返回 404 SPA HTML, 解析失败 → toast. 现已统一带前缀, Confluence 页面可正常转成结构化 markdown.
+
 ## [1.25.0] - 2026-05-28
 
 ### Changed

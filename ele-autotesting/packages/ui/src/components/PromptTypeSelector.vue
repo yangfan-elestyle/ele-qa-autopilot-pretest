@@ -314,8 +314,10 @@ const updatePromptContent = (value: string) => {
 // ================= URL 相关逻辑 =================
 
 // 创建 MCP 服务实例（用于 text -> markdown 内容）
+// serverUrl 必须带 SPA 子路径 (`/autotest`); 缺前缀时 gateway 看不到 `/autotest/*` 路由
+// 会把请求分流到 AUTOPILOT Worker, 404 兜底返回 SPA HTML 让 MCP 解析失败.
 const markitdownMcpService = createMcpServiceFor({
-  serverUrl: '/mcps/markitdown/mcp',
+  serverUrl: `${getApiBasePath()}/mcps/markitdown/mcp`,
   client: { name: 'qa-autotest', version: '1.0' },
 })
 
