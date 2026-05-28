@@ -28,9 +28,9 @@
           :disabled="!modulesFlat.length || loading.modules"
           @change="onModuleChange"
         >
-          <option value="">{{ modulesFlat.length ? '全部模块' : '—' }}</option>
+          <option value="">{{ modulesFlat.length ? '🗂 全部模块' : '—' }}</option>
           <option v-for="m in modulesFiltered" :key="m.id" :value="m.id">
-            {{ '— '.repeat(m.depth) }}{{ m.name }}
+            {{ moduleOptionLabel(m) }}
           </option>
         </select>
         <input
@@ -67,11 +67,11 @@
       </span>
       <div class="ds-ms-actions">
         <button
-          class="ds-ms-btn ds-ms-btn--primary"
+          class="ds-ms-btn ds-ms-btn--tonal"
           :disabled="!canSendAutopilot"
           :title="sendAutopilotDisabledReason"
           @click="openSendAutopilot"
-        >送至 Autopilot</button>
+        >送至 AutoPilot</button>
       </div>
     </div>
 
@@ -174,7 +174,7 @@
     <!-- 送至 Autopilot: 共用 modal, 见 SendToAutopilotModal.vue -->
     <SendToAutopilotModal
       v-model:open="sendAutopilotOpen"
-      modal-title="MS 用例 → Autopilot"
+      modal-title="MS 用例 → AutoPilot"
       source-tag="autotesting"
       :selected-count="selectedIds.size"
       :fetch-sources="fetchMsDetails"
@@ -200,7 +200,7 @@ import SendToAutopilotModal, {
 
 interface MsProject { id: string; name: string; organizationId?: string }
 interface MsModuleNode { id: string; name: string; parentId: string; children?: MsModuleNode[] }
-interface MsFlatModule { id: string; name: string; depth: number; path: string }
+interface MsFlatModule { id: string; name: string; depth: number; path: string; hasChildren: boolean }
 
 // 模块层级分隔符. MS 后台展示与 [集成中心 → 模块] Tab 既有路径 (e.g. /dashboard/end)
 // 都用 `/`, 此处保持一致, 两侧加空格便于中文混排辨识.
@@ -386,10 +386,17 @@ function flattenTree(nodes: MsModuleNode[], depth: number, parentPath = ''): MsF
   const out: MsFlatModule[] = []
   for (const n of nodes ?? []) {
     const path = parentPath ? `${parentPath}${MODULE_PATH_SEP}${n.name}` : n.name
-    out.push({ id: n.id, name: n.name, depth, path })
+    out.push({ id: n.id, name: n.name, depth, path, hasChildren: !!n.children?.length })
     if (n.children?.length) out.push(...flattenTree(n.children, depth + 1, path))
   }
   return out
+}
+
+// 原生 <option> 只能渲染纯文本, 塞不进图标元素; 故用「全角空格缩进 + 📁/📄」表达模块树层级:
+// 📁 = 含子模块的分组, 📄 = 末级可选模块. 取代原先 `— —` 破折号堆叠 (用户无法辨识哪条属哪层).
+// 缩进必须用全角空格 U+3000 —— <option> 渲染时会折叠前导半角空白, 缩进会丢.
+function moduleOptionLabel(m: MsFlatModule): string {
+  return `${'　'.repeat(m.depth)}${m.hasChildren ? '📁' : '📄'} ${m.name}`
 }
 
 // moduleId -> 完整路径映射. 详情面板 / 聚合给 Autopilot 的文本 / task 元数据引用块

@@ -2440,6 +2440,17 @@ html * {
   .ds-ms-btn--primary:hover:not(:disabled) {
     background: var(--ds-brand-700, #4338ca);
   }
+  /* tonal: 浅品牌底, 用于「送至 / 录入」等并列的去向动作 — 明显但彼此平级, 不分主次 */
+  .ds-ms-btn--tonal {
+    background: var(--ds-brand-50, #eef2ff);
+    color: var(--ds-brand-700, #4338ca);
+    border: 1px solid var(--ds-brand-200, #c7d2fe);
+    font-weight: 600;
+  }
+  .ds-ms-btn--tonal:hover:not(:disabled) {
+    background: var(--ds-brand-100, #e0e7ff);
+    border-color: var(--ds-brand-400, #818cf8);
+  }
   .ds-ms-btn--mini {
     height: 28px;
     padding: 0 10px;

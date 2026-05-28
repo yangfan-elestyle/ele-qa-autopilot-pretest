@@ -15,13 +15,13 @@
       </span>
       <div class="ds-ms-actions">
         <button
-          class="ds-ms-btn"
+          class="ds-ms-btn ds-ms-btn--tonal"
           :disabled="!canSendAutopilot"
           :title="sendAutopilotDisabledReason"
           @click="openSendAutopilot"
-        >送至 Autopilot</button>
+        >送至 AutoPilot</button>
         <button
-          class="ds-ms-btn ds-ms-btn--primary"
+          class="ds-ms-btn ds-ms-btn--tonal"
           :disabled="!canIngest"
           :title="ingestDisabledReason"
           @click="openIngest"
@@ -165,7 +165,7 @@
     <!-- 送至 Autopilot: 共用 modal, 见 SendToAutopilotModal.vue -->
     <SendToAutopilotModal
       v-model:open="sendAutopilotOpen"
-      modal-title="送至 Autopilot"
+      modal-title="送至 AutoPilot"
       source-tag="autotesting"
       :selected-count="selectedIds.size"
       :items="apSourceItems"

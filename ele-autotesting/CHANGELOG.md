@@ -2,6 +2,13 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.28.3] - 2026-05-29
+
+### Changed
+
+- 「编排」MeterSphere 模块下拉改用图标分层 (📁 含子模块的分组 / 📄 末级模块) 并按层缩进, 取代原先难辨归属的破折号前缀.
+- 「编排」「送至 AutoPilot」按钮改浅品牌底样式, 文案统一为 AutoPilot.
+
 ## [1.28.2] - 2026-05-29
 
 ### Changed
