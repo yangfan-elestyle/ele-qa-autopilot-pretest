@@ -50,13 +50,11 @@
 
       <!-- Actions Slot -->
       <template #actions>
-        <!-- 工作流主操作组 -->
-        <ActionButtonUI text="历史" @click="promptHistory.showHistory = true">
+        <ActionButtonUI text="联动" @click="showDataLinkage = true">
           <template #icon>
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-              <path d="M3 3v5h5" />
-              <path d="M12 7v5l4 2" />
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
             </svg>
           </template>
         </ActionButtonUI>
@@ -70,6 +68,18 @@
             </svg>
           </template>
         </ActionButtonUI>
+        <ActionButtonUI text="历史" @click="promptHistory.showHistory = true">
+          <template #icon>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+              <path d="M3 3v5h5" />
+              <path d="M12 7v5l4 2" />
+            </svg>
+          </template>
+        </ActionButtonUI>
+
+        <span class="ds-vrule hidden sm:inline-block" aria-hidden="true"></span>
+
         <ActionButtonUI text="集成中心" @click="modelManager.showConfig = true">
           <template #icon>
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -78,24 +88,12 @@
             </svg>
           </template>
         </ActionButtonUI>
-
-        <span class="ds-vrule hidden sm:inline-block" aria-hidden="true"></span>
-
-        <!-- 设置组: 数据 -->
         <ActionButtonUI text="数据" @click="showDataManager = true">
           <template #icon>
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <ellipse cx="12" cy="5" rx="9" ry="3" />
               <path d="M3 5v14a9 3 0 0 0 18 0V5" />
               <path d="M3 12a9 3 0 0 0 18 0" />
-            </svg>
-          </template>
-        </ActionButtonUI>
-        <ActionButtonUI text="联动" @click="showDataLinkage = true">
-          <template #icon>
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
             </svg>
           </template>
         </ActionButtonUI>
