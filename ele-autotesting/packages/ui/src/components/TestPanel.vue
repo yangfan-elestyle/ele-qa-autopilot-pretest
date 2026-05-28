@@ -224,14 +224,14 @@
                     <line x1="12" y1="12" x2="12" y2="21" />
                   </svg>
                 </button>
-                <!-- 发送到联动面板: 把当前生成结果送到顶部「联动」面板. 数据通过 latestRawText 实时共享, 点击只是打开联动面板. -->
+                <!-- 送入编排面板: 把当前生成结果送到顶部「测试编排」面板. 数据通过 latestRawText 实时共享, 点击只是打开编排面板. -->
                 <button
                   type="button"
                   class="ds-icon-btn-sm"
-                  :disabled="!canSendToLinkage"
-                  :title="sendToLinkageHint"
-                  aria-label="发送到联动"
-                  @click="handleSendToLinkage"
+                  :disabled="!canSendToOrchestration"
+                  :title="sendToOrchestrationHint"
+                  aria-label="送入编排"
+                  @click="handleSendToOrchestration"
                 >
                   <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path d="M22 2 11 13" />
@@ -315,7 +315,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['update:modelValue', 'send-to-linkage'])
+const emit = defineEmits(['update:modelValue', 'send-to-orchestration'])
 const testModelSelect = ref(null)
 const selectedTestModel = ref(props.modelValue || '')
 
@@ -340,8 +340,8 @@ const isTestingOptimized = ref(false)
 // 添加推理内容状态
 const optimizedTestReasoning = ref('')
 
-// 与联动面板共享最近一次生成结果, 见 useGeneratedCases. 双向 watch:
-//   - 本地 -> composable: 流式生成时实时回填给联动面板;
+// 与编排面板共享最近一次生成结果, 见 useGeneratedCases. 双向 watch:
+//   - 本地 -> composable: 流式生成时实时回填给编排面板;
 //   - composable -> 本地: 历史抽屉「使用」恢复云端快照时把 rawText 推回 OutputDisplay.
 // setLatestRawText 内部有相等性检查, 不会出现无限循环.
 const { latestRawText, setLatestRawText } = useGeneratedCases()
@@ -350,16 +350,16 @@ watch(latestRawText, (v) => {
   if (v !== optimizedTestResult.value) optimizedTestResult.value = v
 })
 
-// 发送到联动: 打开顶部「联动」面板. 数据已通过 latestRawText 实时共享, 这里只通知 App 打开面板.
-const canSendToLinkage = computed(() => !!optimizedTestResult.value.trim() && !isTestingOptimized.value)
-const sendToLinkageHint = computed(() => {
+// 送入编排: 打开顶部「测试编排」面板. 数据已通过 latestRawText 实时共享, 这里只通知 App 打开面板.
+const canSendToOrchestration = computed(() => !!optimizedTestResult.value.trim() && !isTestingOptimized.value)
+const sendToOrchestrationHint = computed(() => {
   if (isTestingOptimized.value) return '生成结束后再发送'
   if (!optimizedTestResult.value.trim()) return '当前无生成结果可发送'
-  return '把当前生成结果送到顶部「联动」面板'
+  return '把当前生成结果送到顶部「测试编排」面板'
 })
-function handleSendToLinkage() {
-  if (!canSendToLinkage.value) return
-  emit('send-to-linkage')
+function handleSendToOrchestration() {
+  if (!canSendToOrchestration.value) return
+  emit('send-to-orchestration')
 }
 
 // 手动同步生成结果到云 D1, 见 useAutotestCasesHistory.

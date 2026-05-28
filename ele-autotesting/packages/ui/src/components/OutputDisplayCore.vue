@@ -44,7 +44,7 @@
 
       <!-- 右侧：操作按钮 -->
       <div class="flex items-center gap-1">
-        <!-- 父组件可注入自定义 icon 按钮 (如同步到云 / 发送到联动), 渲染在内置按钮之前. -->
+        <!-- 父组件可注入自定义 icon 按钮 (如同步到云 / 送入编排), 渲染在内置按钮之前. -->
         <slot name="extra-actions" />
         <button v-if="isActionEnabled('excel')" @click="handleExcel" class="ds-icon-btn-sm" title="导出 Excel" aria-label="导出 Excel">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
@@ -291,7 +291,7 @@ const handleSourceInput = (event: Event) => {
   emit('update:content', target.value)
 }
 
-// 下载 excel 功能 — 解析逻辑见 utils/parseTestCases.ts (与联动面板共享).
+// 下载 excel 功能 — 解析逻辑见 utils/parseTestCases.ts (与编排面板共享).
 type TestCaseRecord = ParsedTestCase
 
 const parseAll = (raw: string): TestCaseRecord[] => parseTestCases(raw)

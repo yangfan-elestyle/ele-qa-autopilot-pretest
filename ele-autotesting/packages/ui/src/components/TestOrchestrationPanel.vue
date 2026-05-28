@@ -14,8 +14,8 @@
               </svg>
             </span>
             <h2 class="ds-modal-title">
-              数据联动
-              <span class="ds-modal-subtitle hidden sm:inline">AutoTest 用例 ⇄ MeterSphere</span>
+              测试编排
+              <span class="ds-modal-subtitle hidden sm:inline">AutoTest ⇄ AutoPilot ⇄ MeterSphere</span>
             </h2>
           </div>
           <div class="ds-modal-head-right">

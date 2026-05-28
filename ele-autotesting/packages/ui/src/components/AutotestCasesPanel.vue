@@ -182,7 +182,7 @@ import { getApiBasePath } from '@prompt-optimizer/core'
 import SendToAutopilotModal, { type SourceItem } from './SendToAutopilotModal.vue'
 import { useGeneratedCases, type ParsedTestCase } from '../composables/useGeneratedCases'
 
-// 联动表格里的一条用例 — 来源于 TestPanel 最近一次生成结果, 由 parseTestCases 解析.
+// 编排表格里的一条用例 — 来源于 TestPanel 最近一次生成结果, 由 parseTestCases 解析.
 interface AutotestCase {
   id: string
   num: number

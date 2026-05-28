@@ -6,7 +6,7 @@
         MeterSphere 访问凭证
       </h3>
       <p class="ds-integration-intro-text">
-        用于联动 MeterSphere 拉取项目 / 模块 / 用例。AK 与 SK 以登录账号维度保存在云端 D1（不写入本地浏览器），跨设备一致；已配置后留空即可保留原值。
+        用于对接 MeterSphere 拉取项目 / 模块 / 用例。AK 与 SK 以登录账号维度保存在云端 D1（不写入本地浏览器），跨设备一致；已配置后留空即可保留原值。
       </p>
     </div>
 
@@ -33,7 +33,7 @@
           :placeholder="skPlaceholder"
         />
         <p class="text-xs theme-manager-text-secondary mt-1.5">
-          在 MeterSphere → 个人信息 → API Keys 中生成；填写后即可在「联动」面板中拉取项目与用例。
+          在 MeterSphere → 个人信息 → API Keys 中生成；填写后即可在「测试编排」面板中拉取项目与用例。
         </p>
       </div>
 

@@ -50,7 +50,7 @@
 
       <!-- Actions Slot -->
       <template #actions>
-        <ActionButtonUI text="联动" @click="showDataLinkage = true">
+        <ActionButtonUI text="编排" @click="showOrchestration = true">
           <template #icon>
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
@@ -178,7 +178,7 @@
         :history="promptHistory.history"
         :optimization-mode="selectedOptimizationMode"
         v-model="modelManager.selectedTestModel"
-        @send-to-linkage="handleSendToLinkage"
+        @send-to-orchestration="handleSendToOrchestration"
       />
     </MainLayoutUI>
 
@@ -199,7 +199,7 @@
       @reuseAutotestCases="handleReuseAutotestCases"
     />
     <DataManagerUI v-if="isReady" v-model:show="showDataManager" @imported="handleDataImported" />
-    <DataLinkagePanelUI v-if="isReady" v-model:show="showDataLinkage" />
+    <TestOrchestrationPanelUI v-if="isReady" v-model:show="showOrchestration" />
 
     <!-- ToastUI已在MainLayoutUI中包含，无需重复渲染 -->
   </template>
@@ -216,7 +216,7 @@ import {
   TemplateManagerUI,
   HistoryDrawerUI,
   DataManagerUI,
-  DataLinkagePanelUI,
+  TestOrchestrationPanelUI,
   InputPanelUI,
   PromptPanelUI,
   OptimizationModeSelectorUI,
@@ -261,7 +261,7 @@ const isReady = computed(() => services.value !== null && !isInitializing.value)
 const promptService = shallowRef<IPromptService | null>(null)
 const selectedOptimizationMode = ref<OptimizationMode>('context')
 const showDataManager = ref(false)
-const showDataLinkage = ref(false)
+const showOrchestration = ref(false)
 const templateSelectRef = ref<{ refresh?: () => void } | null>(null)
 const promptPanelRef = ref<{
   refreshIterateTemplateSelect?: () => void
@@ -379,9 +379,9 @@ const handleReuseAutotestCases = (snapshot: AutotestCaseSnapshot) => {
   toast.success(`已还原 ${snapshot.casesCount ?? 0} 条用例${extraText}`)
 }
 
-// 处理 TestPanel 「发送到联动」按钮: 数据已通过 latestRawText 实时共享, 这里只负责把联动面板打开.
-const handleSendToLinkage = () => {
-  showDataLinkage.value = true
+// 处理 TestPanel 「送入编排」按钮: 数据已通过 latestRawText 实时共享, 这里只负责把编排面板打开.
+const handleSendToOrchestration = () => {
+  showOrchestration.value = true
 }
 
 // 处理历史记录使用 - 智能模式切换

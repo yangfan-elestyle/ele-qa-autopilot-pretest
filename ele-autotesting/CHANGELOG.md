@@ -2,6 +2,15 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.27.3] - 2026-05-28
+
+### Changed
+
+- 「联动」相关入口与文案统一改名为「编排」, 突出 AutoTest / AutoPilot / MeterSphere 三方编排语义:
+  - 顶部 ActionBar「联动」按钮 → 「编排」.
+  - 弹层主标题「数据联动」→「测试编排」.
+  - 「内容生成」结果区图标按钮「发送到联动」 → 「送入编排」.
+
 ## [1.27.2] - 2026-05-28
 
 ### Fixed

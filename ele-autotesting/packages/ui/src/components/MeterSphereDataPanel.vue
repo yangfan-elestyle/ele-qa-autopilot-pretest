@@ -234,7 +234,7 @@ interface MsStepItem { id?: string; num?: number; desc?: string; result?: string
 
 // AK/SK 已迁到集成中心 -> Cloudflare D1 (owner-scoped); 本面板只读 configured 状态,
 // 不再持有明文. projectId / moduleId 仍走 useBrowserCache: 用户上次选过的项目/模块刷新后
-// 自动恢复, 配合 onMounted 自动联动一路拉到该模块的 cases, 减少重复点击.
+// 自动恢复, 配合 onMounted 自动级联一路拉到该模块的 cases, 减少重复点击.
 const msConfigured = ref(false)
 const msStatusLoaded = ref(false)
 const projectId = useBrowserCache<string>('metersphere.projectId', '')
@@ -464,7 +464,7 @@ watch(caseKeyword, () => {
   }, 350)
 })
 
-// 组件销毁时清掉未 fire 的 timer, 否则 modal 关闭 (DataLinkagePanel v-if=false) 后
+// 组件销毁时清掉未 fire 的 timer, 否则 modal 关闭 (TestOrchestrationPanel v-if=false) 后
 // timer 仍会回调 loadCases, 触发无效 fetch + 潜在 unhandled rejection.
 onBeforeUnmount(() => {
   if (caseKeywordTimer) {
@@ -473,7 +473,7 @@ onBeforeUnmount(() => {
   }
 })
 
-// 挂载时基于浏览器缓存自动联动:
+// 挂载时基于浏览器缓存自动级联:
 //   AK/SK 缓存 → 拉项目 → 命中缓存 projectId → 拉模块 + 用例 (用例用缓存 moduleId, 若有效)
 // 任一缓存失效 (上游已删 / 换组织等), 清掉该层缓存避免下次再误命中;
 // watch(projectId) 已处理"项目变 → 重置 modules/cases", 失效时设 projectId.value=''
