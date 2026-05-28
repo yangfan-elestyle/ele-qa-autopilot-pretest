@@ -513,17 +513,15 @@ const buildSystemPrompt = (): string => {
   })
 
   // 用 [Part n] 标注每一段，便于区分
-  let result = systemPrompts.map((content, idx) => `<Part ${idx + 1}>\n${content}\n</Part ${idx + 1}>`).join('\n\n---\n\n')
+  return systemPrompts.map((content, idx) => `<Part ${idx + 1}>\n${content}\n</Part ${idx + 1}>`).join('\n\n---\n\n')
+}
 
-  // 末尾追加选中模块的说明: 引导 LLM 只针对这些模块产出测试用例
+// 选中模块的说明: 拼到 user prompt 末尾, 模拟用户在对话里追加诉求, 而不是混入 system 指令
+const buildModuleUserSuffix = (): string => {
   const modulePaths = getSelectedModulePaths()
-  if (modulePaths.length > 0) {
-    const moduleList = modulePaths.map((p) => `- ${p}`).join('\n')
-    const moduleBlock = `请仅针对以下模块生成测试用例 (使用对应 path 作为「所属模块」字段, 不要为其他模块产出用例):\n${moduleList}`
-    result = result ? `${result}\n\n---\n\n${moduleBlock}` : moduleBlock
-  }
-
-  return result
+  if (modulePaths.length === 0) return ''
+  const moduleList = modulePaths.map((p) => `- ${p}`).join('\n')
+  return `请仅针对以下模块生成测试用例 (使用对应 path 作为「所属模块」字段, 不要为其他模块产出用例):\n${moduleList}`
 }
 
 const testOptimizedPrompt = async () => {
@@ -556,6 +554,12 @@ const testOptimizedPrompt = async () => {
   // 合并系统提示词
   let systemPrompt = buildSystemPrompt()
   let userPrompt = fallbackUserPrompt
+
+  // 模块说明拼到 user prompt 末尾, 模拟用户提出的额外诉求 (而不是塞进 system 指令)
+  const moduleSuffix = buildModuleUserSuffix()
+  if (moduleSuffix) {
+    userPrompt = userPrompt ? `${userPrompt}\n\n${moduleSuffix}` : moduleSuffix
+  }
 
   const imageParts = collectImagePartsFromAddedItems()
   const userParts: ContentPart[] = [{ type: 'text', text: userPrompt }, ...imageParts]
