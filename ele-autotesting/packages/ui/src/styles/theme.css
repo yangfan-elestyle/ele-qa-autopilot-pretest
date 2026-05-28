@@ -2449,6 +2449,9 @@ html * {
     border-bottom: 1px solid var(--ds-border);
     color: var(--ds-text-primary);
     vertical-align: top;
+    /* table-layout: fixed 下长串 (如模块路径 /OneQR/Dashboard) 会溢出压住相邻列, 强制换行 */
+    word-break: break-word;
+    overflow-wrap: anywhere;
   }
   .ds-ms-table tr:last-child td {
     border-bottom: none;

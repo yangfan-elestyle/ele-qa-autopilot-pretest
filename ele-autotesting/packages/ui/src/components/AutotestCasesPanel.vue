@@ -43,10 +43,10 @@
               />
             </th>
             <th style="width: 40px">#</th>
-            <th style="width: 16%">名称</th>
-            <th style="width: 20%">前置条件</th>
-            <th style="width: 9%">模块</th>
-            <th style="width: 60px">优先级</th>
+            <th style="width: 14%">名称</th>
+            <th style="width: 18%">前置条件</th>
+            <th style="width: 13%">模块</th>
+            <th style="width: 64px">优先级</th>
             <th style="width: 27%">步骤</th>
             <th style="width: 28%">期望</th>
           </tr>
@@ -63,7 +63,7 @@
             </td>
             <td>{{ row.num }}</td>
             <td>
-              <div class="ds-ms-case-name">{{ row.name }}</div>
+              <div class="ds-ms-case-name" :title="row.name">{{ row.name }}</div>
               <div v-if="row.tags?.length" class="ds-ms-tags">
                 <span v-for="t in row.tags" :key="t" class="ds-ms-tag">{{ t }}</span>
               </div>
@@ -72,7 +72,7 @@
               <span v-if="row.preconditions" class="ds-ms-precond">{{ row.preconditions }}</span>
               <span v-else class="ds-ms-precond ds-ms-precond--empty">—</span>
             </td>
-            <td>{{ row.module }}</td>
+            <td :title="row.module">{{ row.module }}</td>
             <td>
               <span class="ds-ms-prio" :class="`ds-ms-prio--${row.priority.toLowerCase()}`">{{ row.priority }}</span>
             </td>
