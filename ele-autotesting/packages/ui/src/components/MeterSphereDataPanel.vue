@@ -130,7 +130,7 @@
                 <div v-else-if="detail" class="ds-ms-detail">
                   <div class="ds-ms-detail-row">
                     <span class="ds-ms-detail-label">模块</span>
-                    <span>{{ detail.moduleName ?? '—' }}</span>
+                    <span>{{ resolveModulePath(detail) || '—' }}</span>
                   </div>
                   <div class="ds-ms-detail-row" v-if="detail.prerequisite">
                     <span class="ds-ms-detail-label">前置条件</span>
@@ -201,7 +201,11 @@ import SendToAutopilotModal, {
 
 interface MsProject { id: string; name: string; organizationId?: string }
 interface MsModuleNode { id: string; name: string; parentId: string; children?: MsModuleNode[] }
-interface MsFlatModule { id: string; name: string; depth: number }
+interface MsFlatModule { id: string; name: string; depth: number; path: string }
+
+// 模块层级分隔符. MS 后台展示与 [集成中心 → 模块] Tab 既有路径 (e.g. /dashboard/end)
+// 都用 `/`, 此处保持一致, 两侧加空格便于中文混排辨识.
+const MODULE_PATH_SEP = ' / '
 interface MsCase {
   id: string
   num: number
@@ -353,13 +357,31 @@ async function loadModules() {
   }
 }
 
-function flattenTree(nodes: MsModuleNode[], depth: number): MsFlatModule[] {
+function flattenTree(nodes: MsModuleNode[], depth: number, parentPath = ''): MsFlatModule[] {
   const out: MsFlatModule[] = []
   for (const n of nodes ?? []) {
-    out.push({ id: n.id, name: n.name, depth })
-    if (n.children?.length) out.push(...flattenTree(n.children, depth + 1))
+    const path = parentPath ? `${parentPath}${MODULE_PATH_SEP}${n.name}` : n.name
+    out.push({ id: n.id, name: n.name, depth, path })
+    if (n.children?.length) out.push(...flattenTree(n.children, depth + 1, path))
   }
   return out
+}
+
+// moduleId -> 完整路径映射. 详情面板 / 聚合给 Autopilot 的文本 / task 元数据引用块
+// 三处都用这个反查 MS 上游只下发末级名 (moduleName) 的缺陷, fallback 回 moduleName.
+const modulePathById = computed(() => {
+  const map = new Map<string, string>()
+  for (const m of modulesFlat.value) map.set(m.id, m.path)
+  return map
+})
+
+function resolveModulePath(d: { moduleId?: string; moduleName?: string } | null | undefined): string {
+  if (!d) return ''
+  if (d.moduleId) {
+    const p = modulePathById.value.get(d.moduleId)
+    if (p) return p
+  }
+  return (d.moduleName ?? '').trim()
 }
 
 async function loadCases(page: number) {
@@ -597,7 +619,7 @@ function buildAggregatedFromItems(items: SourceItem[]): string {
     const preReqLine = d.prerequisite?.trim() ? `\n前置: ${d.prerequisite.trim()}` : ''
     const tagsLine = d.tags?.length ? `\n标签: ${d.tags.join(', ')}` : ''
     return `=== CASE ${it.caseIndex}: ${d.name} ===
-模块: ${d.moduleName ?? '—'}${preReqLine}${stepsBlock}${expectedLine}${tagsLine}`
+模块: ${resolveModulePath(d) || '—'}${preReqLine}${stepsBlock}${expectedLine}${tagsLine}`
   })
   return parts.join('\n\n')
 }
@@ -624,7 +646,8 @@ function buildTaskTextWithSource(rawText: string, detail: MsCaseDetail): string 
     `> 用例 ID: \`${detail.id}\``,
   ]
   if (projectName) metaLines.push(`> 项目: ${projectName}`)
-  if (detail.moduleName?.trim()) metaLines.push(`> 模块: ${detail.moduleName.trim()}`)
+  const modulePath = resolveModulePath(detail)
+  if (modulePath) metaLines.push(`> 模块: ${modulePath}`)
   if (detail.tags?.length) metaLines.push(`> 标签: ${detail.tags.join(', ')}`)
   return `${rawText}\n${metaLines.join('\n')}`
 }
