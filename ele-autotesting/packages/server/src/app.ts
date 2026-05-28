@@ -12,6 +12,7 @@ import harnessRouter from './routes/harness.ts'
 import integrationsHarnessLlmRouter from './routes/integrationsHarnessLlm.ts'
 import integrationsFigmaRouter from './routes/integrationsFigma.ts'
 import integrationsMetersphereRouter from './routes/integrationsMetersphere.ts'
+import modulesRouter from './routes/modules.ts'
 import autopilotRouter from './routes/autopilot.ts'
 import { resolveOwner } from './middleware/auth.ts'
 import type { HonoEnv } from './types/env.ts'
@@ -61,6 +62,7 @@ app.route('/api/harness', harnessRouter)
 app.route('/api/integrations/harness-llm', integrationsHarnessLlmRouter)
 app.route('/api/integrations/figma', integrationsFigmaRouter)
 app.route('/api/integrations/metersphere', integrationsMetersphereRouter)
+app.route('/api/modules', modulesRouter)
 app.route('/api/autopilot', autopilotRouter)
 
 // API 范围 404 (静态 SPA fallback 由平台层 ASSETS `not_found_handling` 接管, 见 index.ts).

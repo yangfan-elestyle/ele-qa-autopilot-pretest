@@ -13,6 +13,88 @@
           </span>
         </div>
         <div class="ds-panel-head-right">
+          <!-- 模块多选下拉 -->
+          <div class="relative" ref="modulesDropdownRef">
+            <button
+              type="button"
+              class="h-10 px-3 text-sm theme-button-secondary inline-flex items-center gap-1.5"
+              :class="{ 'is-open': showModulesDropdown }"
+              :disabled="isTesting"
+              @click="toggleModulesDropdown"
+            >
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                <rect x="14" y="14" width="7" height="7" rx="1.5" />
+              </svg>
+              <span>模块</span>
+              <span
+                v-if="selectedModuleIds.size > 0"
+                class="ds-chip ds-chip-neutral ds-text-mono ml-1"
+              >{{ selectedModuleIds.size }}</span>
+            </button>
+
+            <div
+              v-show="showModulesDropdown"
+              class="theme-dropdown absolute right-0 mt-1 w-80 max-h-96 overflow-hidden flex flex-col shadow-lg rounded-lg z-50"
+              role="menu"
+            >
+              <div class="flex items-center justify-between px-3 py-2 border-b theme-manager-border">
+                <span class="text-xs theme-manager-text-secondary">
+                  在集成中心「模块」Tab 维护
+                </span>
+                <button
+                  type="button"
+                  class="text-xs theme-manager-button-edit"
+                  :disabled="modulesLoading"
+                  @click="loadModules"
+                >
+                  {{ modulesLoading ? '刷新中…' : '刷新' }}
+                </button>
+              </div>
+
+              <div class="flex-1 overflow-y-auto py-1">
+                <div v-if="modulesLoading && modulesList.length === 0" class="px-3 py-4 text-sm theme-manager-text-secondary text-center">
+                  加载中…
+                </div>
+                <div v-else-if="modulesList.length === 0" class="px-3 py-4 text-sm theme-manager-text-secondary text-center">
+                  暂无模块, 请到集成中心「模块」Tab 添加
+                </div>
+                <label
+                  v-for="m in modulesList"
+                  :key="m.id"
+                  class="flex items-start gap-2 px-3 py-2 cursor-pointer hover:bg-[color:var(--ds-surface-2,#f3f4f6)]"
+                >
+                  <input
+                    type="checkbox"
+                    class="theme-checkbox mt-0.5 flex-none"
+                    :checked="selectedModuleIds.has(m.id)"
+                    @change="toggleModule(m.id)"
+                  />
+                  <span class="min-w-0 flex-1">
+                    <code class="ds-text-mono text-sm theme-manager-text break-all">{{ m.path }}</code>
+                    <span v-if="m.name" class="block text-xs theme-manager-text-secondary mt-0.5">{{ m.name }}</span>
+                  </span>
+                </label>
+              </div>
+
+              <div v-if="modulesList.length > 0" class="flex items-center justify-between px-3 py-2 border-t theme-manager-border">
+                <button
+                  type="button"
+                  class="text-xs theme-manager-button-edit"
+                  :disabled="selectedModuleIds.size === 0"
+                  @click="clearSelectedModules"
+                >
+                  清空选中
+                </button>
+                <span class="text-xs theme-manager-text-secondary">
+                  已选 {{ selectedModuleIds.size }} / {{ modulesList.length }}
+                </span>
+              </div>
+            </div>
+          </div>
+
           <ModelSelectUI
             ref="testModelSelect"
             :modelValue="selectedTestModel"
@@ -127,6 +209,7 @@
 import { ref, computed, watch, onMounted, nextTick, onUnmounted } from 'vue'
 import type { PropType } from 'vue'
 import type { Template, PromptRecord, PromptRecordChain, ContentPart } from '@prompt-optimizer/core'
+import { getApiBasePath } from '@prompt-optimizer/core'
 import { useToast } from '../composables/useToast'
 import ContentCardUI from './ContentCard.vue'
 import ModelSelectUI from './ModelSelect.vue'
@@ -199,6 +282,72 @@ const optimizedTestReasoning = ref('')
 const showAddAction = ref(false)
 const addedItems = ref<AddedItem[]>([])
 const addActionDropdown = ref<HTMLElement | null>(null)
+
+// 模块多选状态
+interface ModuleRow {
+  id: string
+  path: string
+  name: string | null
+  created_at: number
+  updated_at: number
+}
+const modulesList = ref<ModuleRow[]>([])
+const selectedModuleIds = ref<Set<string>>(new Set())
+const showModulesDropdown = ref(false)
+const modulesLoading = ref(false)
+const modulesDropdownRef = ref<HTMLElement | null>(null)
+let modulesLoadedOnce = false
+
+async function loadModules() {
+  modulesLoading.value = true
+  try {
+    const res = await fetch(`${getApiBasePath()}/api/modules`, { credentials: 'include' })
+    if (!res.ok) {
+      console.warn('[TestPanel] load modules failed', res.status)
+      return
+    }
+    const data = (await res.json()) as { modules?: ModuleRow[] }
+    modulesList.value = Array.isArray(data.modules) ? data.modules : []
+    // 清理已经被删除的模块的选中状态
+    const validIds = new Set(modulesList.value.map((m) => m.id))
+    const next = new Set<string>()
+    selectedModuleIds.value.forEach((id) => {
+      if (validIds.has(id)) next.add(id)
+    })
+    selectedModuleIds.value = next
+    modulesLoadedOnce = true
+  } catch (e: any) {
+    console.warn('[TestPanel] load modules error', e?.message ?? e)
+  } finally {
+    modulesLoading.value = false
+  }
+}
+
+const toggleModulesDropdown = () => {
+  showModulesDropdown.value = !showModulesDropdown.value
+  if (showModulesDropdown.value && !modulesLoadedOnce) {
+    loadModules()
+  }
+}
+
+const toggleModule = (id: string) => {
+  const next = new Set(selectedModuleIds.value)
+  if (next.has(id)) next.delete(id)
+  else next.add(id)
+  selectedModuleIds.value = next
+}
+
+const clearSelectedModules = () => {
+  selectedModuleIds.value = new Set()
+}
+
+const getSelectedModulePaths = (): string[] => {
+  const paths: string[] = []
+  modulesList.value.forEach((m) => {
+    if (selectedModuleIds.value.has(m.id)) paths.push(m.path)
+  })
+  return paths
+}
 
 // 选择器组件引用
 const promptSelectRef = ref<InstanceType<typeof TestPanelPromptSelect> | null>(null)
@@ -304,7 +453,17 @@ const buildSystemPrompt = (): string => {
   })
 
   // 用 [Part n] 标注每一段，便于区分
-  return systemPrompts.map((content, idx) => `<Part ${idx + 1}>\n${content}\n</Part ${idx + 1}>`).join('\n\n---\n\n')
+  let result = systemPrompts.map((content, idx) => `<Part ${idx + 1}>\n${content}\n</Part ${idx + 1}>`).join('\n\n---\n\n')
+
+  // 末尾追加选中模块的说明: 引导 LLM 只针对这些模块产出测试用例
+  const modulePaths = getSelectedModulePaths()
+  if (modulePaths.length > 0) {
+    const moduleList = modulePaths.map((p) => `- ${p}`).join('\n')
+    const moduleBlock = `请仅针对以下模块生成测试用例 (使用对应 path 作为「所属模块」字段, 不要为其他模块产出用例):\n${moduleList}`
+    result = result ? `${result}\n\n---\n\n${moduleBlock}` : moduleBlock
+  }
+
+  return result
 }
 
 const testOptimizedPrompt = async () => {
@@ -450,6 +609,9 @@ const handleClickOutside = (event: MouseEvent) => {
   if (addActionDropdown.value && !addActionDropdown.value.contains(event.target as Node)) {
     showAddAction.value = false
   }
+  if (modulesDropdownRef.value && !modulesDropdownRef.value.contains(event.target as Node)) {
+    showModulesDropdown.value = false
+  }
 }
 
 onMounted(() => {
@@ -457,6 +619,8 @@ onMounted(() => {
     selectedTestModel.value = props.modelValue
   }
   document.addEventListener('click', handleClickOutside)
+  // 静默预加载, 失败不影响主流程
+  loadModules()
 })
 
 onUnmounted(() => {

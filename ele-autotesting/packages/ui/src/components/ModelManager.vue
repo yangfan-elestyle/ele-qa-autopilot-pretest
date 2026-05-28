@@ -646,6 +646,11 @@
         <template v-else-if="activeTab === 'harness'">
           <HarnessIntegrationPanel />
         </template>
+
+        <!-- 模块 Tab -->
+        <template v-else-if="activeTab === 'modules'">
+          <ModulesIntegrationPanel />
+        </template>
       </div>
     </div>
   </div>
@@ -660,10 +665,12 @@ import FigmaIntegrationPanel from './FigmaIntegrationPanel.vue'
 import MeterSphereIntegrationPanel from './MeterSphereIntegrationPanel.vue'
 import AutopilotPromptsIntegrationPanel from './AutopilotPromptsIntegrationPanel.vue'
 import HarnessIntegrationPanel from './HarnessIntegrationPanel.vue'
+import ModulesIntegrationPanel from './ModulesIntegrationPanel.vue'
 
 // 集成中心 Tab 定义
 const tabs = [
   { id: 'llm', label: 'LLM 模型' },
+  { id: 'modules', label: '模块' },
   { id: 'figma', label: 'Figma' },
   { id: 'metersphere', label: 'MeterSphere' },
   { id: 'autopilot-prompts', label: 'Autopilot 模板' },
