@@ -1,6 +1,6 @@
 <template>
   <Teleport to="body">
-    <div class="ds-toast-stack fixed top-4 right-4 space-y-2 max-w-sm" style="z-index: 100">
+    <div class="ds-toast-stack fixed bottom-4 right-4 flex flex-col-reverse gap-2 max-w-sm" style="z-index: 100">
       <TransitionGroup
         enter-active-class="transition duration-300 ease-out"
         enter-from-class="transform translate-x-full opacity-0"
@@ -152,12 +152,11 @@ const { toasts, remove } = useToast()
   color: #1d4ed8;
   border-color: rgba(37, 99, 235, 0.28);
 }
-/* 小屏: toast 移到底部, 不再盖 sticky header 的导航按钮 */
+/* 小屏: toast 占满底部宽度 */
 @media (max-width: 640px) {
   .ds-toast-stack {
-    top: auto !important;
     right: 8px !important;
-    bottom: 8px;
+    bottom: 8px !important;
     left: 8px;
     max-width: none !important;
   }
