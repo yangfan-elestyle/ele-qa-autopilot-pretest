@@ -2,6 +2,12 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.28.5] - 2026-05-29
+
+### Fixed
+
+- 调用 ele-harness 执行耗时较长的任务时, 不再在约 5 分钟后中断报 "Network connection lost"; 现可稳定跑完并返回结果。
+
 ## [1.28.4] - 2026-05-29
 
 ### Fixed

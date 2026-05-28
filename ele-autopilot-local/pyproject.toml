@@ -1,6 +1,6 @@
 [project]
 name = "ele-autopilot-local"
-version = "1.28.4"
+version = "1.28.5"
 description = "Local autopilot service for browser automation"
 readme = "README.md"
 requires-python = ">=3.12"

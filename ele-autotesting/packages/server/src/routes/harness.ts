@@ -58,6 +58,49 @@ function extractLastAssistantText(events: OneshotEvent[]): string {
     .join('')
 }
 
+/**
+ * 读 harness SSE 流, 累积 oneshot 事件.
+ *
+ * - 跳过 `: keepalive` 注释行 (harness streamSSE 每 15s 一次, 用于持续重置 CF
+ *   VPC/Tunnel 的 connection_read_timeout, 避免长 turn 期间连接被判 idle).
+ * - harness 内部异常会以 `{ type:'error', message }` 事件下发 (见 streamSSE),
+ *   这里提取为 error 返回, 由调用方转 502.
+ */
+async function readSseEvents(
+  body: ReadableStream<Uint8Array>,
+): Promise<{ events: OneshotEvent[]; error?: string }> {
+  const reader = body.getReader()
+  const decoder = new TextDecoder()
+  const events: OneshotEvent[] = []
+  let error: string | undefined
+  let buf = ''
+  for (;;) {
+    // 不解构: 保留 discriminated union, 让 chunk.value 在 !done 分支 narrow 为 Uint8Array.
+    const chunk = await reader.read()
+    if (chunk.done) break
+    buf += decoder.decode(chunk.value, { stream: true })
+    let idx: number
+    while ((idx = buf.indexOf('\n\n')) !== -1) {
+      const block = buf.slice(0, idx)
+      buf = buf.slice(idx + 2)
+      for (const line of block.split('\n')) {
+        if (!line.startsWith('data:')) continue // 跳过 `: keepalive` 注释行
+        const raw = line.slice(5).trim()
+        if (!raw) continue
+        let ev: OneshotEvent
+        try {
+          ev = JSON.parse(raw) as OneshotEvent
+        } catch {
+          continue
+        }
+        if (ev?.type === 'error') error = (ev as any).message ?? 'harness stream error'
+        else events.push(ev)
+      }
+    }
+  }
+  return { events, error }
+}
+
 router.post('/oneshot', async (c: Context<HarnessHonoEnv>) => {
   if (!c.env.AGENTIC_LOOP) {
     return c.json({ error: 'AGENTIC_LOOP VPC binding not configured' }, 500)
@@ -106,11 +149,16 @@ router.post('/oneshot', async (c: Context<HarnessHonoEnv>) => {
   }
 
   // VPC binding 的 URL hostname 仅为 placeholder, VPC service 路由到 agentic-loop:3000.
+  //
+  // 用 SSE 流式 (accept: text/event-stream) 走 harness streamSSE 分支: 它每 15s 发
+  // `: keepalive`, 让连接持续有字节流动, 从而不断重置 CF VPC/Tunnel 的
+  // connection_read_timeout. 否则非流式时整个 turn (可能数分钟) 期间连接零数据,
+  // 约 5min 被判 idle, Worker 侧 fetch 抛 "Network connection lost".
   let upstream: Response
   try {
     upstream = await c.env.AGENTIC_LOOP.fetch('http://backend/v1/oneshot', {
       method: 'POST',
-      headers: { 'content-type': 'application/json', accept: 'application/json' },
+      headers: { 'content-type': 'application/json', accept: 'text/event-stream' },
       body: JSON.stringify(upstreamBody),
     })
   } catch (e: any) {
@@ -118,22 +166,35 @@ router.post('/oneshot', async (c: Context<HarnessHonoEnv>) => {
     return c.json({ error: `harness vpc fetch failed: ${e?.message ?? e}` }, 502)
   }
 
-  const text = await upstream.text()
+  // 校验失败 (400/412/500) harness 在进入 SSE 前就以 JSON 返回, 原样透传.
   if (!upstream.ok) {
-    console.error(`harness ${upstream.status}:`, text.slice(0, 500))
-    return c.json({ error: `harness ${upstream.status}`, detail: text.slice(0, 1000) }, 502)
+    const errText = await upstream.text()
+    console.error(`harness ${upstream.status}:`, errText.slice(0, 500))
+    return c.json({ error: `harness ${upstream.status}`, detail: errText.slice(0, 1000) }, 502)
   }
 
-  let payload: any
-  try {
-    payload = JSON.parse(text)
-  } catch {
-    return c.json({ error: 'harness returned non-JSON', raw: text.slice(0, 500) }, 502)
+  let events: OneshotEvent[]
+  const ctype = upstream.headers.get('content-type') ?? ''
+  if (ctype.includes('text/event-stream') && upstream.body) {
+    const parsed = await readSseEvents(upstream.body)
+    if (parsed.error) {
+      console.error('harness stream error:', parsed.error)
+      return c.json({ error: `harness stream error: ${parsed.error}` }, 502)
+    }
+    events = parsed.events
+  } else {
+    // 兜底: 旧 harness 未识别 accept 时退回一次性 JSON (长任务仍会触发 read timeout).
+    const text = await upstream.text()
+    try {
+      const payload = JSON.parse(text)
+      events = Array.isArray(payload?.events) ? payload.events : []
+    } catch {
+      return c.json({ error: 'harness returned non-JSON', raw: text.slice(0, 500) }, 502)
+    }
   }
 
-  const events: OneshotEvent[] = Array.isArray(payload?.events) ? payload.events : []
   if (!events.length) {
-    return c.json({ error: 'harness returned no events', raw: payload }, 502)
+    return c.json({ error: 'harness returned no events' }, 502)
   }
 
   // 取 request_start 第一个事件里的 sessionId, 便于排错时去 harness sessions 库捞.

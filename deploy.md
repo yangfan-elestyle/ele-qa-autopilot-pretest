@@ -16,6 +16,7 @@
 - 默认 PATCH; 新功能 MINOR; 破坏性 DB schema / API 响应结构 MAJOR.
 - Tag 仅 `vX.Y.Z`; release commit 固定 `release: vX.Y.Z`; 其他改动用 Conventional Commits, 跨项目改动加 scope (`feat(gateway): ...`).
 - **四 manifest lockstep 同 bump** (tag 含 `v`, version 不含): `gateway/package.json` / `ele-autopilot/package.json` / `ele-autopilot-local/pyproject.toml` / `ele-autotesting/package.json`. workflow 各自校验 manifest = tag 去 `v`, 不一致 fail.
+- `ele-autopilot-local/pyproject.toml` bump 后必须 `cd ele-autopilot-local && uv lock` 同步 `uv.lock` 里 project 自身 version (editable entry), 否则与 pyproject 脱节, `uv sync --locked/--frozen` 校验 fail. 仅 version 变时 diff 只该行, 不动依赖.
 
 ### CHANGELOG 写作
 
