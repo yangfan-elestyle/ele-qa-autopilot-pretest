@@ -2,12 +2,12 @@
   <div class="ds-ms-panel">
     <!-- Toolbar: 搜索 + 选中计数 + 录入 MS -->
     <div class="ds-ms-toolbar">
-      <span class="ds-ms-toolbar-title">AutoTest 用例 (示例)</span>
+      <span class="ds-ms-toolbar-title">AutoTest 用例</span>
       <input
         v-model="keyword"
         class="ds-ms-search"
         type="search"
-        placeholder="搜索 名称 / 模块 / 步骤 / 期望"
+        placeholder="搜索 名称 / 前置条件 / 模块 / 步骤 / 期望"
       />
       <span class="ds-ms-toolbar-meta">
         {{ filtered.length }} / {{ cases.length }} 条
@@ -43,11 +43,12 @@
               />
             </th>
             <th style="width: 56px">#</th>
-            <th style="width: 26%">名称</th>
-            <th style="width: 18%">模块</th>
+            <th style="width: 22%">名称</th>
+            <th style="width: 16%">前置条件</th>
+            <th style="width: 14%">模块</th>
             <th style="width: 72px">优先级</th>
             <th>步骤</th>
-            <th style="width: 22%">期望</th>
+            <th style="width: 18%">期望</th>
           </tr>
         </thead>
         <tbody>
@@ -67,6 +68,10 @@
                 <span v-for="t in row.tags" :key="t" class="ds-ms-tag">{{ t }}</span>
               </div>
             </td>
+            <td>
+              <span v-if="row.preconditions" class="ds-ms-precond">{{ row.preconditions }}</span>
+              <span v-else class="ds-ms-precond ds-ms-precond--empty">—</span>
+            </td>
             <td>{{ row.module }}</td>
             <td>
               <span class="ds-ms-prio" :class="`ds-ms-prio--${row.priority.toLowerCase()}`">{{ row.priority }}</span>
@@ -77,7 +82,11 @@
             <td>{{ row.expected }}</td>
           </tr>
           <tr v-if="!filtered.length">
-            <td colspan="7" class="ds-ms-empty">{{ cases.length ? '无匹配' : '暂无数据' }}</td>
+            <td colspan="8" class="ds-ms-empty">
+              <template v-if="!hasGenerated">尚无生成结果, 请先在「内容生成」面板生成测试用例</template>
+              <template v-else-if="cases.length">无匹配</template>
+              <template v-else>暂无数据</template>
+            </td>
           </tr>
         </tbody>
       </table>
@@ -170,10 +179,48 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { getApiBasePath } from '@prompt-optimizer/core'
-import { MOCK_AUTOTEST_CASES, type AutotestCase } from './_mock/autotest-cases'
 import SendToAutopilotModal, { type SourceItem } from './SendToAutopilotModal.vue'
+import { useGeneratedCases, type ParsedTestCase } from '../composables/useGeneratedCases'
 
-const cases: AutotestCase[] = MOCK_AUTOTEST_CASES
+// 联动表格里的一条用例 — 来源于 TestPanel 最近一次生成结果, 由 parseTestCases 解析.
+interface AutotestCase {
+  id: string
+  num: number
+  name: string
+  preconditions: string
+  module: string
+  priority: 'P0' | 'P1' | 'P2' | 'P3'
+  steps: string
+  expected: string
+  tags?: string[]
+}
+
+const ALLOWED_PRIORITIES = new Set<AutotestCase['priority']>(['P0', 'P1', 'P2', 'P3'])
+
+function normalizePriority(raw: string): AutotestCase['priority'] {
+  const upper = (raw || '').toUpperCase().trim()
+  return (ALLOWED_PRIORITIES.has(upper as AutotestCase['priority']) ? upper : 'P2') as AutotestCase['priority']
+}
+
+function toAutotestCase(p: ParsedTestCase, idx: number): AutotestCase {
+  const tags = p.tags
+    ? p.tags.split(',').map((t) => t.trim()).filter(Boolean)
+    : []
+  return {
+    id: `gen-${idx + 1}`,
+    num: idx + 1,
+    name: p.name || `用例 ${idx + 1}`,
+    preconditions: p.preconditions,
+    module: p.module,
+    priority: normalizePriority(p.level),
+    steps: p.steps,
+    expected: p.expected,
+    tags,
+  }
+}
+
+const { parsedCases, hasGenerated } = useGeneratedCases()
+const cases = computed<AutotestCase[]>(() => parsedCases.value.map(toAutotestCase))
 
 // AK/SK 已迁到集成中心 -> Cloudflare D1 (owner-scoped); 本面板仅读 configured 状态.
 const msConfigured = ref(false)
@@ -182,10 +229,11 @@ const keyword = ref('')
 const selectedIds = ref<Set<string>>(new Set())
 
 const filtered = computed(() => {
+  const list = cases.value
   const kw = keyword.value.trim().toLowerCase()
-  if (!kw) return cases
-  return cases.filter((c) =>
-    [c.name, c.module, c.steps, c.expected, ...(c.tags ?? [])]
+  if (!kw) return list
+  return list.filter((c) =>
+    [c.name, c.preconditions, c.module, c.steps, c.expected, ...(c.tags ?? [])]
       .some((s) => (s ?? '').toLowerCase().includes(kw)),
   )
 })
@@ -379,7 +427,7 @@ async function startIngest() {
   ingest.logs = []
   const moduleCache = new Map<string, MsModuleNode[]>()
   const templateCache = new Map<string, string>()
-  const targets = cases.filter((c) => selectedIds.value.has(c.id))
+  const targets = cases.value.filter((c) => selectedIds.value.has(c.id))
   try {
     for (const cs of targets) {
       ingest.currentName = `${cs.num}. ${cs.name}`
@@ -396,7 +444,7 @@ async function startIngest() {
           name: cs.name,
           moduleId,
           caseEditType: 'STEP' as const,
-          prerequisite: '',
+          prerequisite: cs.preconditions ?? '',
           steps: JSON.stringify(steps),
           description: cs.expected ? `期望结果:\n${cs.expected}` : '',
           tags: cs.tags ?? [],
@@ -429,7 +477,7 @@ const sendAutopilotDisabledReason = computed(() =>
 )
 
 const apSelectedCases = computed(() =>
-  cases.filter((c) => selectedIds.value.has(c.id)).sort((a, b) => a.num - b.num),
+  cases.value.filter((c) => selectedIds.value.has(c.id)).sort((a, b) => a.num - b.num),
 )
 
 // caseIndex 1-based 与聚合产物里的 "CASE N" 头一一对应; meta 保留原 case 便于
@@ -447,9 +495,10 @@ function buildAggregatedFromItems(items: SourceItem[]): string {
     const c = it.meta as AutotestCase | undefined
     if (!c) return `=== CASE ${it.caseIndex}: ${it.label ?? ''} ===`
     const tags = c.tags?.length ? `\n标签: ${c.tags.join(', ')}` : ''
+    const pre = c.preconditions ? `\n前置条件: ${c.preconditions}` : ''
     return `=== CASE ${it.caseIndex}: ${c.name} ===
 模块: ${c.module}
-优先级: ${c.priority}
+优先级: ${c.priority}${pre}
 步骤:
 ${c.steps}
 期望: ${c.expected}${tags}`
