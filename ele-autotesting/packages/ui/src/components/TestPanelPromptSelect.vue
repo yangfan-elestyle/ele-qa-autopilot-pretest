@@ -142,7 +142,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch, onUnmounted } from 'vue'
 import type { PropType } from 'vue'
 import type { Template, PromptRecord, PromptRecordChain } from '@prompt-optimizer/core'
 import { useToast } from '../composables/useToast'
@@ -271,6 +271,34 @@ const showTemplateSelection = async () => {
 const showHistorySelection = () => {
   showHistoryModal.value = true
 }
+
+// 按 Enter 直接确认当前打开的弹窗 (与 FullscreenDialog 的 Esc 关闭对称)
+const handleEnterKey = (event: KeyboardEvent) => {
+  if (event.key !== 'Enter' || event.isComposing) return
+  const target = event.target as HTMLElement | null
+  if (target) {
+    const tag = target.tagName
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable) return
+  }
+  if (showTemplateModal.value && selectedTemplates.value.size > 0) {
+    event.preventDefault()
+    confirmTemplateSelection()
+  } else if (showHistoryModal.value && selectedHistoryRecords.value.size > 0) {
+    event.preventDefault()
+    confirmHistorySelection()
+  }
+}
+
+watch([showTemplateModal, showHistoryModal], ([t, h], [pt, ph]) => {
+  const wasOpen = pt || ph
+  const isOpen = t || h
+  if (isOpen && !wasOpen) document.addEventListener('keydown', handleEnterKey)
+  else if (!isOpen && wasOpen) document.removeEventListener('keydown', handleEnterKey)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleEnterKey)
+})
 
 // 添加文本截断函数
 const truncateText = (text: string, maxLength: number) => {
