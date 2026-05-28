@@ -14,15 +14,15 @@
         </div>
         <div class="ds-panel-head-right">
           <!-- 模块多选下拉 -->
-          <div class="relative" ref="modulesDropdownRef">
+          <div class="modules-dropdown-wrap" ref="modulesDropdownRef">
             <button
               type="button"
-              class="h-10 px-3 text-sm theme-button-secondary inline-flex items-center gap-1.5"
+              class="modules-trigger"
               :class="{ 'is-open': showModulesDropdown }"
               :disabled="isTesting"
               @click="toggleModulesDropdown"
             >
-              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <svg class="modules-trigger-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <rect x="3" y="3" width="7" height="7" rx="1.5" />
                 <rect x="14" y="3" width="7" height="7" rx="1.5" />
                 <rect x="3" y="14" width="7" height="7" rx="1.5" />
@@ -31,69 +31,85 @@
               <span>模块</span>
               <span
                 v-if="selectedModuleIds.size > 0"
-                class="ds-chip ds-chip-neutral ds-text-mono ml-1"
+                class="modules-trigger-badge"
               >{{ selectedModuleIds.size }}</span>
+              <svg class="modules-trigger-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m6 9 6 6 6-6" />
+              </svg>
             </button>
 
+          </div>
+
+          <!-- 下拉面板用 Teleport 投放到 body, 用 fixed 定位, 规避左右 panel 同级 stacking context 的覆盖问题 -->
+          <Teleport to="body">
             <div
               v-show="showModulesDropdown"
-              class="theme-dropdown absolute right-0 mt-1 w-80 max-h-96 overflow-hidden flex flex-col shadow-lg rounded-lg z-50"
+              ref="modulesPanelRef"
+              class="modules-panel modules-panel--floating"
+              :style="modulesPanelStyle"
               role="menu"
             >
-              <div class="flex items-center justify-between px-3 py-2 border-b theme-manager-border">
-                <span class="text-xs theme-manager-text-secondary">
-                  在集成中心「模块」Tab 维护
-                </span>
+              <div class="modules-panel-head">
+                <span class="modules-panel-head-title">选择模块</span>
                 <button
                   type="button"
-                  class="text-xs theme-manager-button-edit"
+                  class="modules-panel-icon-btn"
                   :disabled="modulesLoading"
+                  :title="modulesLoading ? '刷新中…' : '刷新模块列表'"
+                  :aria-label="modulesLoading ? '刷新中' : '刷新模块列表'"
                   @click="loadModules"
                 >
-                  {{ modulesLoading ? '刷新中…' : '刷新' }}
+                  <svg :class="['modules-refresh-icon', { 'is-spinning': modulesLoading }]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M21 12a9 9 0 0 0-15-6.7L3 8" />
+                    <path d="M3 3v5h5" />
+                    <path d="M3 12a9 9 0 0 0 15 6.7L21 16" />
+                    <path d="M21 21v-5h-5" />
+                  </svg>
                 </button>
               </div>
 
-              <div class="flex-1 overflow-y-auto py-1">
-                <div v-if="modulesLoading && modulesList.length === 0" class="px-3 py-4 text-sm theme-manager-text-secondary text-center">
+              <div class="modules-panel-body">
+                <div v-if="modulesLoading && modulesList.length === 0" class="modules-panel-empty">
                   加载中…
                 </div>
-                <div v-else-if="modulesList.length === 0" class="px-3 py-4 text-sm theme-manager-text-secondary text-center">
+                <div v-else-if="modulesList.length === 0" class="modules-panel-empty">
                   暂无模块, 请到集成中心「模块」Tab 添加
                 </div>
                 <label
+                  v-else
                   v-for="m in modulesList"
                   :key="m.id"
-                  class="flex items-start gap-2 px-3 py-2 cursor-pointer hover:bg-[color:var(--ds-surface-2,#f3f4f6)]"
+                  class="modules-panel-item"
+                  :class="{ 'is-checked': selectedModuleIds.has(m.id) }"
                 >
                   <input
                     type="checkbox"
-                    class="theme-checkbox mt-0.5 flex-none"
+                    class="modules-panel-checkbox"
                     :checked="selectedModuleIds.has(m.id)"
                     @change="toggleModule(m.id)"
                   />
-                  <span class="min-w-0 flex-1">
-                    <code class="ds-text-mono text-sm theme-manager-text break-all">{{ m.path }}</code>
-                    <span v-if="m.name" class="block text-xs theme-manager-text-secondary mt-0.5">{{ m.name }}</span>
+                  <span class="modules-panel-item-text">
+                    <span class="modules-panel-item-path">{{ m.path }}</span>
+                    <span v-if="m.name" class="modules-panel-item-name">{{ m.name }}</span>
                   </span>
                 </label>
               </div>
 
-              <div v-if="modulesList.length > 0" class="flex items-center justify-between px-3 py-2 border-t theme-manager-border">
+              <div v-if="modulesList.length > 0" class="modules-panel-foot">
                 <button
                   type="button"
-                  class="text-xs theme-manager-button-edit"
+                  class="modules-panel-link"
                   :disabled="selectedModuleIds.size === 0"
                   @click="clearSelectedModules"
                 >
                   清空选中
                 </button>
-                <span class="text-xs theme-manager-text-secondary">
+                <span class="modules-panel-count">
                   已选 {{ selectedModuleIds.size }} / {{ modulesList.length }}
                 </span>
               </div>
             </div>
-          </div>
+          </Teleport>
 
           <ModelSelectUI
             ref="testModelSelect"
@@ -296,7 +312,43 @@ const selectedModuleIds = ref<Set<string>>(new Set())
 const showModulesDropdown = ref(false)
 const modulesLoading = ref(false)
 const modulesDropdownRef = ref<HTMLElement | null>(null)
+const modulesPanelRef = ref<HTMLElement | null>(null)
+const modulesPanelStyle = ref<Record<string, string>>({})
 let modulesLoadedOnce = false
+
+const MODULES_PANEL_WIDTH = 320
+const MODULES_PANEL_MAX_H = 380
+const MODULES_PANEL_OFFSET = 6
+const MODULES_PANEL_VIEWPORT_PAD = 8
+
+function updateModulesPanelPosition() {
+  const trigger = modulesDropdownRef.value
+  if (!trigger) return
+  const r = trigger.getBoundingClientRect()
+  const vw = window.innerWidth
+  const vh = window.innerHeight
+  // 默认右对齐到 trigger 右边
+  let left = r.right - MODULES_PANEL_WIDTH
+  // 防止溢出左边: 至少留 8px 边距
+  if (left < MODULES_PANEL_VIEWPORT_PAD) left = MODULES_PANEL_VIEWPORT_PAD
+  // 防止溢出右边
+  if (left + MODULES_PANEL_WIDTH > vw - MODULES_PANEL_VIEWPORT_PAD) {
+    left = vw - MODULES_PANEL_WIDTH - MODULES_PANEL_VIEWPORT_PAD
+  }
+  let top = r.bottom + MODULES_PANEL_OFFSET
+  // 下方空间不足时上翻
+  if (top + MODULES_PANEL_MAX_H > vh - MODULES_PANEL_VIEWPORT_PAD) {
+    const above = r.top - MODULES_PANEL_OFFSET - MODULES_PANEL_MAX_H
+    if (above >= MODULES_PANEL_VIEWPORT_PAD) {
+      top = r.top - MODULES_PANEL_OFFSET - MODULES_PANEL_MAX_H
+    }
+  }
+  modulesPanelStyle.value = {
+    position: 'fixed',
+    left: `${Math.round(left)}px`,
+    top: `${Math.round(top)}px`,
+  }
+}
 
 async function loadModules() {
   modulesLoading.value = true
@@ -323,11 +375,19 @@ async function loadModules() {
   }
 }
 
-const toggleModulesDropdown = () => {
+const toggleModulesDropdown = async () => {
   showModulesDropdown.value = !showModulesDropdown.value
-  if (showModulesDropdown.value && !modulesLoadedOnce) {
-    loadModules()
+  if (showModulesDropdown.value) {
+    // 打开时立即按当前 trigger 位置定位 panel; nextTick 确保 v-show 切换后 panel DOM 存在
+    await nextTick()
+    updateModulesPanelPosition()
+    if (!modulesLoadedOnce) loadModules()
   }
+}
+
+function handleModulesViewportChange() {
+  if (!showModulesDropdown.value) return
+  updateModulesPanelPosition()
 }
 
 const toggleModule = (id: string) => {
@@ -606,10 +666,14 @@ const addHistoryItem = (record: PromptRecord) => {
 
 // 点击外部关闭下拉菜单
 const handleClickOutside = (event: MouseEvent) => {
-  if (addActionDropdown.value && !addActionDropdown.value.contains(event.target as Node)) {
+  const target = event.target as Node
+  if (addActionDropdown.value && !addActionDropdown.value.contains(target)) {
     showAddAction.value = false
   }
-  if (modulesDropdownRef.value && !modulesDropdownRef.value.contains(event.target as Node)) {
+  // modules panel 被 Teleport 到 body, 不在 modulesDropdownRef 子树内, 需独立判定
+  const insideTrigger = modulesDropdownRef.value?.contains(target) ?? false
+  const insidePanel = modulesPanelRef.value?.contains(target) ?? false
+  if (!insideTrigger && !insidePanel) {
     showModulesDropdown.value = false
   }
 }
@@ -619,12 +683,17 @@ onMounted(() => {
     selectedTestModel.value = props.modelValue
   }
   document.addEventListener('click', handleClickOutside)
+  window.addEventListener('resize', handleModulesViewportChange)
+  // 任意祖先 scroll 都可能让 trigger 位置改变, 使用 capture 监听全局 scroll
+  window.addEventListener('scroll', handleModulesViewportChange, true)
   // 静默预加载, 失败不影响主流程
   loadModules()
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
+  window.removeEventListener('resize', handleModulesViewportChange)
+  window.removeEventListener('scroll', handleModulesViewportChange, true)
 })
 
 // 处理模板选择结果
@@ -691,6 +760,231 @@ const handleHistorySelected = (selectedRecords: PromptRecord[]) => {
   /* 确保OutputPanel可以正确扩展 */
   .flex-1 {
     flex: 1 0 auto;
+  }
+}
+
+/* ============================== 模块多选下拉 ============================== */
+.modules-dropdown-wrap {
+  position: relative;
+}
+
+.modules-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 8px;
+  background: #ffffff;
+  border: 1px solid var(--ds-border-default, #e5e7eb);
+  color: var(--ds-text-primary, #1f2937);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.modules-trigger:hover:not(:disabled) {
+  border-color: var(--ds-brand-500, #6366f1);
+}
+.modules-trigger.is-open {
+  border-color: var(--ds-brand-500, #6366f1);
+  box-shadow: 0 0 0 2px var(--ds-brand-50, #eef2ff);
+}
+.modules-trigger:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.modules-trigger-icon {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+.modules-trigger-caret {
+  width: 14px;
+  height: 14px;
+  opacity: 0.6;
+  flex: none;
+  transition: transform 0.15s ease;
+}
+.modules-trigger.is-open .modules-trigger-caret {
+  transform: rotate(180deg);
+}
+.modules-trigger-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  margin-left: 2px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  border-radius: 9999px;
+  background: var(--ds-brand-100, #e0e7ff);
+  color: var(--ds-brand-700, #4338ca);
+}
+
+.modules-panel {
+  width: 320px;
+  max-width: calc(100vw - 16px);
+  max-height: 380px;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border: 1px solid var(--ds-border-soft, #e5e7eb);
+  border-radius: 10px;
+  box-shadow: 0 10px 32px -8px rgba(15, 23, 42, 0.18), 0 4px 12px -2px rgba(15, 23, 42, 0.08);
+  overflow: hidden;
+}
+/* Teleport 到 body 后用 fixed 定位 (inline style 提供 top/left), 提到顶层 stacking 避免被同级 absolute 元素覆盖 */
+.modules-panel--floating {
+  position: fixed;
+  z-index: 9999;
+}
+
+.modules-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--ds-border-soft, #f1f5f9);
+  background: var(--ds-surface-subtle, #f8fafc);
+}
+.modules-panel-head-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ds-text-primary, #1f2937);
+}
+.modules-panel-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--ds-text-secondary, #6b7280);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.modules-panel-icon-btn:hover:not(:disabled) {
+  background: var(--ds-surface-muted, #f1f5f9);
+  color: var(--ds-text-primary, #1f2937);
+}
+.modules-panel-icon-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.modules-refresh-icon {
+  width: 15px;
+  height: 15px;
+}
+.modules-refresh-icon.is-spinning {
+  animation: modules-spin 0.9s linear infinite;
+}
+@keyframes modules-spin {
+  to { transform: rotate(360deg); }
+}
+
+.modules-panel-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 4px 0;
+  background: #ffffff;
+}
+.modules-panel-empty {
+  padding: 24px 16px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--ds-text-tertiary, #9ca3af);
+}
+
+.modules-panel-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+.modules-panel-item:hover {
+  background: var(--ds-surface-muted, #f3f4f6);
+}
+.modules-panel-item.is-checked {
+  background: var(--ds-brand-50, #eef2ff);
+}
+.modules-panel-item.is-checked:hover {
+  background: var(--ds-brand-100, #e0e7ff);
+}
+.modules-panel-checkbox {
+  margin-top: 3px;
+  width: 16px;
+  height: 16px;
+  flex: none;
+  accent-color: var(--ds-brand-600, #4f46e5);
+  cursor: pointer;
+}
+.modules-panel-item-text {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.modules-panel-item-path {
+  display: block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 13px;
+  color: var(--ds-text-primary, #1f2937);
+  word-break: break-all;
+  line-height: 1.4;
+}
+.modules-panel-item-name {
+  display: block;
+  font-size: 12px;
+  color: var(--ds-text-secondary, #6b7280);
+  line-height: 1.3;
+}
+
+.modules-panel-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  border-top: 1px solid var(--ds-border-soft, #f1f5f9);
+  background: var(--ds-surface-subtle, #f8fafc);
+}
+.modules-panel-link {
+  font-size: 12px;
+  color: var(--ds-brand-600, #4f46e5);
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.modules-panel-link:hover:not(:disabled) {
+  color: var(--ds-brand-700, #4338ca);
+  text-decoration: underline;
+}
+.modules-panel-link:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.modules-panel-count {
+  font-size: 12px;
+  color: var(--ds-text-secondary, #6b7280);
+}
+
+/* 小屏铺更宽, 不超出视口 */
+@media (max-width: 480px) {
+  .modules-panel {
+    width: calc(100vw - 24px);
+    right: -8px;
   }
 }
 </style>
