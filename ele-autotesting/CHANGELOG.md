@@ -2,6 +2,12 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.28.4] - 2026-05-29
+
+### Fixed
+
+- 「送至 AutoPilot」弹窗的 prompt preset 切换按钮现在高亮当前生效项, 不再两个都白底、看不出当前用的是哪个模板。
+
 ## [1.28.3] - 2026-05-29
 
 ### Changed

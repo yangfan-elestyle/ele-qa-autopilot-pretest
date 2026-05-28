@@ -56,8 +56,10 @@
                   v-for="p in promptPresets"
                   :key="p.key"
                   class="ds-ms-btn ds-ms-btn--mini"
+                  :class="{ 'ds-ms-btn--active': p.key === activePresetKey }"
                   type="button"
                   :title="p.tip"
+                  :aria-pressed="p.key === activePresetKey"
                   @click="applyPreset(p.key)"
                 >{{ p.label }}</button>
                 <span
@@ -382,6 +384,13 @@ function taskPreviewUrl(taskId: string): string {
 }
 
 // ── 业务 ─────────────────────────────────────────────────────────────────────
+// 当前 textarea 内容命中哪个 preset → 高亮该按钮; 手改过 (无命中) 则都不亮 = 自定义.
+const activePresetKey = computed<string | null>(() => {
+  const cur = promptTemplate.value.trim()
+  if (!cur) return null
+  return promptPresets.value.find((p) => p.template.trim() === cur)?.key ?? null
+})
+
 function applyPreset(key: string) {
   const preset = promptPresets.value.find((p) => p.key === key)
   if (preset) promptTemplate.value = preset.template
