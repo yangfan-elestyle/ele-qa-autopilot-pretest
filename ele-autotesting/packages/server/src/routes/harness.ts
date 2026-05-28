@@ -17,12 +17,12 @@ import { readHarnessLlmConfig } from './integrationsHarnessLlm.ts'
  * 注入 upstream body; 缺失则 412 + code=HARNESS_LLM_NOT_CONFIGURED 引导前端跳设置.
  *
  * 入参 (来自前端): { prompt, systemPrompt?, appendSystemPrompt?, source? }
- * 出参: { text, sessionId?, events } — text 取最后一个 `assistant_message` 的
- *       所有 text block 拼接, 等价 PLAN 中的 `lastAssistantText`.
+ * 出参: { text, sessionId?, events } — text 为 harness 聚合的最终文本.
  *
- * 注意: agentic-loop 一次性 (非流式) 调用同步 await 完整 turn 循环, 内含 LLM
- * 思考 + tool 调用; 单次可能耗时数十秒到数分钟. Worker 上限是 cpu_ms (wrangler 配),
- * 而非 wall-clock; 这里只做转发, 不在 Worker 上做长循环.
+ * 传输: 用 SSE (accept: text/event-stream) + quiet 模式调 harness. harness 全程
+ * 只发 15s 一次的 `: keepalive` 保活 + 末尾一个 final 事件, 既避免长 turn (数分钟)
+ * 期间 VPC/Tunnel 因连接零数据 (connection_read_timeout) 约 5min 断开, 又省去中间
+ * 事件的回传带宽. Worker 只转发, 不做长循环 (上限是 cpu_ms 而非 wall-clock).
  */
 
 type HarnessVars = HonoEnv['Variables'] & { ownerId: string }
@@ -63,16 +63,18 @@ function extractLastAssistantText(events: OneshotEvent[]): string {
  *
  * - 跳过 `: keepalive` 注释行 (harness streamSSE 每 15s 一次, 用于持续重置 CF
  *   VPC/Tunnel 的 connection_read_timeout, 避免长 turn 期间连接被判 idle).
- * - harness 内部异常会以 `{ type:'error', message }` 事件下发 (见 streamSSE),
- *   这里提取为 error 返回, 由调用方转 502.
+ * - quiet 模式 (本路由默认开): harness 末尾只发一个 `{ type:'final', text, sessionId }`,
+ *   中间事件不传输; 识别后经 final 返回, 调用方直接取 text.
+ * - harness 内部异常以 `{ type:'error', message }` 事件下发, 提取为 error, 由调用方转 502.
  */
 async function readSseEvents(
   body: ReadableStream<Uint8Array>,
-): Promise<{ events: OneshotEvent[]; error?: string }> {
+): Promise<{ events: OneshotEvent[]; error?: string; final?: { text: string; sessionId?: string } }> {
   const reader = body.getReader()
   const decoder = new TextDecoder()
   const events: OneshotEvent[] = []
   let error: string | undefined
+  let final: { text: string; sessionId?: string } | undefined
   let buf = ''
   for (;;) {
     // 不解构: 保留 discriminated union, 让 chunk.value 在 !done 分支 narrow 为 Uint8Array.
@@ -94,11 +96,12 @@ async function readSseEvents(
           continue
         }
         if (ev?.type === 'error') error = (ev as any).message ?? 'harness stream error'
+        else if (ev?.type === 'final') final = { text: ev.text ?? '', sessionId: ev.sessionId }
         else events.push(ev)
       }
     }
   }
-  return { events, error }
+  return { events, error, final }
 }
 
 router.post('/oneshot', async (c: Context<HarnessHonoEnv>) => {
@@ -173,7 +176,8 @@ router.post('/oneshot', async (c: Context<HarnessHonoEnv>) => {
     return c.json({ error: `harness ${upstream.status}`, detail: errText.slice(0, 1000) }, 502)
   }
 
-  let events: OneshotEvent[]
+  let events: OneshotEvent[] = []
+  let final: { text: string; sessionId?: string } | undefined
   const ctype = upstream.headers.get('content-type') ?? ''
   if (ctype.includes('text/event-stream') && upstream.body) {
     const parsed = await readSseEvents(upstream.body)
@@ -182,6 +186,7 @@ router.post('/oneshot', async (c: Context<HarnessHonoEnv>) => {
       return c.json({ error: `harness stream error: ${parsed.error}` }, 502)
     }
     events = parsed.events
+    final = parsed.final
   } else {
     // 兜底: 旧 harness 未识别 accept 时退回一次性 JSON (长任务仍会触发 read timeout).
     const text = await upstream.text()
@@ -193,23 +198,21 @@ router.post('/oneshot', async (c: Context<HarnessHonoEnv>) => {
     }
   }
 
-  if (!events.length) {
+  // quiet 模式下 harness 已聚合好最终结果 (final), 直接用; 否则从完整 events 提取
+  // (非 quiet / 旧 harness 回退). sessionId 仅用于排错时去 harness sessions 库捞.
+  if (!final && !events.length) {
     return c.json({ error: 'harness returned no events' }, 502)
   }
+  const text = final ? final.text : extractLastAssistantText(events)
+  const sessionId = final
+    ? final.sessionId
+    : events.find((e) => e?.type === 'request_start')?.sessionId
 
-  // 取 request_start 第一个事件里的 sessionId, 便于排错时去 harness sessions 库捞.
-  const requestStart = events.find((e) => e?.type === 'request_start')
-  const sessionId = typeof requestStart?.sessionId === 'string' ? requestStart.sessionId : undefined
-
-  const lastText = extractLastAssistantText(events)
-  if (!lastText.trim()) {
-    return c.json(
-      { error: 'harness returned no assistant text', events: events.slice(-5), sessionId },
-      502,
-    )
+  if (!text.trim()) {
+    return c.json({ error: 'harness returned no assistant text', sessionId }, 502)
   }
 
-  return c.json({ text: lastText, sessionId, events })
+  return c.json({ text, sessionId, events })
 })
 
 export default router

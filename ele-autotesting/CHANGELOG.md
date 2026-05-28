@@ -2,6 +2,12 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.28.6] - 2026-05-29
+
+### Changed
+
+- 「送至 AutoPilot」调用 ele-harness 的长任务传输优化: 仅保活心跳 + 末尾取最终结果, 减少无用数据经链路回传, 产物不变。
+
 ## [1.28.5] - 2026-05-29
 
 ### Fixed
