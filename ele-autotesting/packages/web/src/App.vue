@@ -176,6 +176,7 @@
         :services="services"
         :history="promptHistory.history"
         v-model="modelManager.selectedTestModel"
+        @send-to-linkage="handleSendToLinkage"
       />
     </MainLayoutUI>
 
@@ -193,6 +194,7 @@
       @reuse="handleHistoryReuse"
       @clear="promptHistory.handleClearHistory"
       @deleteChain="promptHistory.handleDeleteChain"
+      @reuseAutotestCases="handleReuseAutotestCases"
     />
     <DataManagerUI v-if="isReady" v-model:show="showDataManager" @imported="handleDataImported" />
     <DataLinkagePanelUI v-if="isReady" v-model:show="showDataLinkage" />
@@ -228,6 +230,7 @@ import {
   useTemplateManager,
   useAppInitializer,
   usePromptHistory,
+  useGeneratedCases,
 
   // Types from UI package
   type OptimizationMode,
@@ -338,6 +341,21 @@ const openTemplateManager = () => {
 // 处理优化模式变更
 const handleOptimizationModeChange = (mode: OptimizationMode) => {
   selectedOptimizationMode.value = mode
+}
+
+// 处理 AutoTest 用例历史还原: 把云端快照的 rawText 回灌到生成结果区, 并切到内容生成模式.
+const { setLatestRawText } = useGeneratedCases()
+const handleReuseAutotestCases = (payload: { rawText: string; meta: { casesCount: number } }) => {
+  setLatestRawText(payload.rawText)
+  if (selectedOptimizationMode.value !== 'verify') {
+    selectedOptimizationMode.value = 'verify'
+  }
+  toast.success(`已还原 ${payload.meta?.casesCount ?? 0} 条用例到生成结果`)
+}
+
+// 处理 TestPanel 「发送到联动」按钮: 数据已通过 latestRawText 实时共享, 这里只负责把联动面板打开.
+const handleSendToLinkage = () => {
+  showDataLinkage.value = true
 }
 
 // 处理历史记录使用 - 智能模式切换

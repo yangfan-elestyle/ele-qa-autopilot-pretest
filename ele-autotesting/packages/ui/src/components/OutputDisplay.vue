@@ -22,7 +22,11 @@
     @reasoning-toggle="emit('reasoning-toggle', $event)"
     @view-change="emit('view-change', $event)"
     @reasoning-auto-hide="emit('reasoning-auto-hide')"
-  />
+  >
+    <template #extra-actions>
+      <slot name="extra-actions" />
+    </template>
+  </OutputDisplayCore>
   <OutputDisplayFullscreen
     v-model="isShowingFullscreen"
     :content="content"

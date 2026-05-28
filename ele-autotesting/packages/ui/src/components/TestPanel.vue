@@ -204,7 +204,42 @@
               :enableExcel="true"
               mode="editable"
               class="flex-1 min-h-0"
-            />
+            >
+              <template #extra-actions>
+                <!-- 同步到云: 把当前生成结果存到 D1 (KV). 默认不持久化, 用户点了才上传. -->
+                <button
+                  type="button"
+                  class="ds-icon-btn-sm"
+                  :disabled="!canSyncCases"
+                  :title="syncDisabledHint"
+                  :aria-label="syncingCases ? '同步中…' : '同步到云'"
+                  @click="syncCases"
+                >
+                  <svg v-if="syncingCases" class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                  </svg>
+                  <svg v-else class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M17.5 19a4.5 4.5 0 1 0-1.7-8.674A6 6 0 0 0 4 13a4 4 0 0 0 2 7.465" />
+                    <polyline points="16 16 12 12 8 16" />
+                    <line x1="12" y1="12" x2="12" y2="21" />
+                  </svg>
+                </button>
+                <!-- 发送到联动面板: 把当前生成结果送到顶部「联动」面板. 数据通过 latestRawText 实时共享, 点击只是打开联动面板. -->
+                <button
+                  type="button"
+                  class="ds-icon-btn-sm"
+                  :disabled="!canSendToLinkage"
+                  :title="sendToLinkageHint"
+                  aria-label="发送到联动"
+                  @click="handleSendToLinkage"
+                >
+                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M22 2 11 13" />
+                    <path d="M22 2 15 22l-4-9-9-4 20-7Z" />
+                  </svg>
+                </button>
+              </template>
+            </OutputDisplay>
 
             <!-- Prompt Selection Component -->
             <TestPanelPromptSelect
@@ -233,6 +268,7 @@ import OutputDisplay from './OutputDisplay.vue'
 import TestPanelPromptSelect from './TestPanelPromptSelect.vue'
 import { v4 as uuidv4 } from 'uuid'
 import { useGeneratedCases } from '../composables/useGeneratedCases'
+import { useAutotestCasesHistory } from '../composables/useAutotestCasesHistory'
 
 interface AddedItem {
   id: string
@@ -270,7 +306,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue', 'send-to-linkage'])
 const testModelSelect = ref(null)
 const selectedTestModel = ref(props.modelValue || '')
 
@@ -295,9 +331,59 @@ const isTestingOptimized = ref(false)
 // 添加推理内容状态
 const optimizedTestReasoning = ref('')
 
-// 与联动面板共享最近一次生成结果, 见 useGeneratedCases.
-const { setLatestRawText } = useGeneratedCases()
+// 与联动面板共享最近一次生成结果, 见 useGeneratedCases. 双向 watch:
+//   - 本地 -> composable: 流式生成时实时回填给联动面板;
+//   - composable -> 本地: 历史抽屉「使用」恢复云端快照时把 rawText 推回 OutputDisplay.
+// setLatestRawText 内部有相等性检查, 不会出现无限循环.
+const { latestRawText, setLatestRawText } = useGeneratedCases()
 watch(optimizedTestResult, (v) => setLatestRawText(v))
+watch(latestRawText, (v) => {
+  if (v !== optimizedTestResult.value) optimizedTestResult.value = v
+})
+
+// 发送到联动: 打开顶部「联动」面板. 数据已通过 latestRawText 实时共享, 这里只通知 App 打开面板.
+const canSendToLinkage = computed(() => !!optimizedTestResult.value.trim() && !isTestingOptimized.value)
+const sendToLinkageHint = computed(() => {
+  if (isTestingOptimized.value) return '生成结束后再发送'
+  if (!optimizedTestResult.value.trim()) return '当前无生成结果可发送'
+  return '把当前生成结果送到顶部「联动」面板'
+})
+function handleSendToLinkage() {
+  if (!canSendToLinkage.value) return
+  emit('send-to-linkage')
+}
+
+// 手动同步生成结果到云 D1, 见 useAutotestCasesHistory.
+const { saveSnapshot: saveAutotestSnapshot } = useAutotestCasesHistory()
+const syncingCases = ref(false)
+const canSyncCases = computed(
+  () => !syncingCases.value && !isTestingOptimized.value && !!optimizedTestResult.value.trim(),
+)
+const syncDisabledHint = computed(() => {
+  if (syncingCases.value) return '正在同步'
+  if (isTestingOptimized.value) return '生成结束后再同步'
+  if (!optimizedTestResult.value.trim()) return '当前无生成结果可同步'
+  return '将当前生成结果保存到云端'
+})
+
+async function syncCases() {
+  if (!canSyncCases.value) return
+  syncingCases.value = true
+  try {
+    const meta = await saveAutotestSnapshot({
+      rawText: optimizedTestResult.value,
+      modelName: selectedTestModel.value,
+      originalPrompt: ensureString(props.originalPrompt),
+      optimizedPrompt: ensureString(props.optimizedPrompt),
+    })
+    toast.success(`已同步到云 · ${meta.casesCount} 条用例`)
+  } catch (e: any) {
+    console.warn('[TestPanel] sync cases failed', e?.message ?? e)
+    toast.error(`同步失败: ${e?.message || e}`)
+  } finally {
+    syncingCases.value = false
+  }
+}
 
 // Add Action 状态管理
 const showAddAction = ref(false)
