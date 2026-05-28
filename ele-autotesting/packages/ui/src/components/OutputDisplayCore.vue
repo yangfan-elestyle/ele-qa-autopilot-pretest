@@ -44,6 +44,8 @@
 
       <!-- 右侧：操作按钮 -->
       <div class="flex items-center gap-1">
+        <!-- 父组件可注入自定义 icon 按钮 (如同步到云 / 发送到联动), 渲染在内置按钮之前. -->
+        <slot name="extra-actions" />
         <button v-if="isActionEnabled('excel')" @click="handleExcel" class="ds-icon-btn-sm" title="导出 Excel" aria-label="导出 Excel">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
