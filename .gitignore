@@ -104,3 +104,4 @@ playwright-report/
 /.claude/
 ele-autopilot-local/.claude/
 ele-autotesting/.claude/
+.mcp.json
