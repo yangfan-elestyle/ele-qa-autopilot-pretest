@@ -42,13 +42,13 @@
                 aria-label="全选"
               />
             </th>
-            <th style="width: 56px">#</th>
-            <th style="width: 22%">名称</th>
-            <th style="width: 16%">前置条件</th>
-            <th style="width: 14%">模块</th>
-            <th style="width: 72px">优先级</th>
-            <th>步骤</th>
-            <th style="width: 18%">期望</th>
+            <th style="width: 40px">#</th>
+            <th style="width: 16%">名称</th>
+            <th style="width: 20%">前置条件</th>
+            <th style="width: 9%">模块</th>
+            <th style="width: 60px">优先级</th>
+            <th style="width: 27%">步骤</th>
+            <th style="width: 28%">期望</th>
           </tr>
         </thead>
         <tbody>
