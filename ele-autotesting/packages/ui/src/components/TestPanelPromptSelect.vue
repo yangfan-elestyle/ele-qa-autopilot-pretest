@@ -86,7 +86,7 @@
           >
             <div class="flex items-start justify-between">
               <div class="flex-1">
-                <h4 v-if="record.contentMark" class="font-medium theme-text">别名 : {{ record.contentMark }}</h4>
+                <h4 v-if="record.contentMark" class="font-medium theme-text">场景 : {{ record.contentMark }}</h4>
                 <p class="text-sm theme-text-secondary mt-1 break-all">
                   {{ truncateText(record.originalPrompt.replace(/\s+/g, ' '), 200) }}
                 </p>

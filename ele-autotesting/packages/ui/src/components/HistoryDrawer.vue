@@ -51,7 +51,7 @@
                   </div>
                   <div class="space-y-2">
                     <div v-if="(chain.rootRecord as ContextConfig).contentMark" class="text-xs theme-manager-text-secondary">
-                      <span class="font-medium">别名:</span>
+                      <span class="font-medium">场景:</span>
                       <span class="ml-1">{{ (chain.rootRecord as ContextConfig).contentMark }}</span>
                     </div>
                     <div class="text-sm theme-manager-text break-all">
