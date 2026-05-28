@@ -168,6 +168,7 @@
       </ContentCardUI>
 
       <TestPanelUI
+        ref="testPanelRef"
         v-show="selectedOptimizationMode !== 'context'"
         class="flex-1 min-w-0 flex flex-col"
         :prompt-service="promptService"
@@ -175,6 +176,7 @@
         :original-prompt="optimizer.prompt"
         :services="services"
         :history="promptHistory.history"
+        :optimization-mode="selectedOptimizationMode"
         v-model="modelManager.selectedTestModel"
         @send-to-linkage="handleSendToLinkage"
       />
@@ -237,6 +239,7 @@ import {
   ContextConfig,
 } from '@prompt-optimizer/ui'
 import type { IPromptService } from '@prompt-optimizer/core'
+import type { AutotestCaseSnapshot } from '@prompt-optimizer/ui'
 
 // 1. 基础 composables
 const toast = useToast()
@@ -262,6 +265,11 @@ const showDataLinkage = ref(false)
 const templateSelectRef = ref<{ refresh?: () => void } | null>(null)
 const promptPanelRef = ref<{
   refreshIterateTemplateSelect?: () => void
+} | null>(null)
+// TestPanel ref: 历史抽屉「使用」云端快照时, App.vue 通过这个 ref 调 restoreFromSnapshot
+// 还原 TestPanel 内部 addedItems / selectedModuleIds / selectedTestModel.
+const testPanelRef = ref<{
+  restoreFromSnapshot?: (snapshot: AutotestCaseSnapshot) => void
 } | null>(null)
 
 // 提示词类型数据
@@ -343,14 +351,32 @@ const handleOptimizationModeChange = (mode: OptimizationMode) => {
   selectedOptimizationMode.value = mode
 }
 
-// 处理 AutoTest 用例历史还原: 把云端快照的 rawText 回灌到生成结果区, 并切到内容生成模式.
+// 处理 AutoTest 用例历史还原: 把云端快照里的 rawText + 全量生成上下文一并回灌, 跨设备 / 跨会话恢复.
 const { setLatestRawText } = useGeneratedCases()
-const handleReuseAutotestCases = (payload: { rawText: string; meta: { casesCount: number } }) => {
-  setLatestRawText(payload.rawText)
-  if (selectedOptimizationMode.value !== 'verify') {
-    selectedOptimizationMode.value = 'verify'
+const handleReuseAutotestCases = (snapshot: AutotestCaseSnapshot) => {
+  // 1. 优化模式: 老快照(v1.27.0 之前)没存 mode, 兜底切 verify (sync 当时只允许 verify).
+  const mode = snapshot.selectedOptimizationMode
+  const nextMode: OptimizationMode = mode === 'context' || mode === 'verify' ? mode : 'verify'
+  if (selectedOptimizationMode.value !== nextMode) {
+    selectedOptimizationMode.value = nextMode
   }
-  toast.success(`已还原 ${payload.meta?.casesCount ?? 0} 条用例到生成结果`)
+  // 2. 输入区 + 优化结果: 直接覆盖 reactive 字段, InputPanel / PromptPanel 通过 v-model 自动刷新.
+  if (typeof snapshot.originalPrompt === 'string') optimizer.prompt = snapshot.originalPrompt
+  if (typeof snapshot.optimizedPrompt === 'string') optimizer.optimizedPrompt = snapshot.optimizedPrompt
+  // 3. 生成模型: 用 snapshot.selectedModelKey (modelKey), 兜底用 modelName (兼容老快照).
+  const modelKey = snapshot.selectedModelKey || snapshot.modelName
+  if (modelKey) modelManager.selectedTestModel = modelKey
+  // 4. TestPanel 内部 state (addedItems / selectedModuleIds): 走 ref 调 restoreFromSnapshot.
+  testPanelRef.value?.restoreFromSnapshot?.(snapshot)
+  // 5. 生成结果区: latestRawText 是模块级单例, 双向 watch 会推到 TestPanel optimizedTestResult.
+  setLatestRawText(snapshot.rawText)
+  const items = Array.isArray(snapshot.addedItems) ? snapshot.addedItems.length : 0
+  const mods = Array.isArray(snapshot.selectedModuleIds) ? snapshot.selectedModuleIds.length : 0
+  const extras: string[] = []
+  if (items > 0) extras.push(`${items} 个数据源`)
+  if (mods > 0) extras.push(`${mods} 个模块`)
+  const extraText = extras.length > 0 ? ` (含 ${extras.join(' · ')})` : ''
+  toast.success(`已还原 ${snapshot.casesCount ?? 0} 条用例${extraText}`)
 }
 
 // 处理 TestPanel 「发送到联动」按钮: 数据已通过 latestRawText 实时共享, 这里只负责把联动面板打开.

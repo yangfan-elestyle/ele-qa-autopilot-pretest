@@ -308,6 +308,7 @@ import type { PromptRecord, PromptRecordChain } from '@prompt-optimizer/core'
 import { useToast } from '../composables/useToast'
 import {
   useAutotestCasesHistory,
+  type AutotestCaseSnapshot,
   type AutotestCaseSnapshotMeta,
 } from '../composables/useAutotestCasesHistory'
 import type { ContextConfig } from '@/composables'
@@ -342,10 +343,8 @@ const emit = defineEmits<{
   ): void
   (e: 'clear'): void
   (e: 'deleteChain', chainId: string): void
-  (
-    e: 'reuseAutotestCases',
-    payload: { rawText: string; meta: AutotestCaseSnapshotMeta },
-  ): void
+  // 给上游传完整 snapshot, App.vue 据此还原 originalPrompt / optimizedPrompt / mode / model / addedItems / selectedModuleIds.
+  (e: 'reuseAutotestCases', payload: AutotestCaseSnapshot): void
 }>()
 
 const toast = useToast()
@@ -387,7 +386,7 @@ async function reuseAutotest(snap: AutotestCaseSnapshotMeta) {
       await loadAutotest(true)
       return
     }
-    emit('reuseAutotestCases', { rawText: full.rawText, meta: snap })
+    emit('reuseAutotestCases', full)
     emit('update:show', false)
   } catch (e: any) {
     toast.error(`恢复失败: ${e?.message || e}`)
