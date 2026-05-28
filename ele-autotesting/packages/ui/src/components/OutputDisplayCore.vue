@@ -178,6 +178,7 @@ import MarkdownRenderer from './MarkdownRenderer.vue'
 import TextDiffUI from './TextDiff.vue'
 import type { CompareResult, ICompareService } from '@prompt-optimizer/core'
 import writeXlsxFile from 'write-excel-file'
+import { parseTestCases, type ParsedTestCase } from '../utils/parseTestCases'
 
 type ActionName = 'fullscreen' | 'diff' | 'copy' | 'edit' | 'reasoning' | 'excel'
 
@@ -288,170 +289,10 @@ const handleSourceInput = (event: Event) => {
   emit('update:content', target.value)
 }
 
-// 下载 excel 功能
-type TestCaseRecord = {
-  name: string
-  preconditions: string
-  module: string
-  steps: string
-  expected: string
-  tags: string
-  level: string
-}
+// 下载 excel 功能 — 解析逻辑见 utils/parseTestCases.ts (与联动面板共享).
+type TestCaseRecord = ParsedTestCase
 
-// 移除首尾 ``` 代码块包裹（如果存在）
-const stripCodeFences = (raw: string): string => {
-  if (!raw) return ''
-  const lines = raw.replace(/\r\n?/g, '\n').split('\n')
-  // 仅当第一行是 ``` 开头时，移除首行
-  if (lines.length > 0 && /^\s*```/.test(lines[0])) {
-    lines.shift()
-  }
-  // 仅当最后一行是 ``` 时，移除末行
-  if (lines.length > 0 && /^\s*```\s*$/.test(lines[lines.length - 1])) {
-    lines.pop()
-  }
-  return lines.join('\n').trim()
-}
-
-// 将全文切割为多个区块。以单独一行的 --- 作为分隔
-const splitBlocks = (text: string): string[] => {
-  const lines = text.split('\n')
-  const blocks: string[] = []
-  let buf: string[] = []
-  const isSeparator = (line: string) => /^\s*-{3,}\s*$/.test(line)
-  for (const line of lines) {
-    if (isSeparator(line)) {
-      const chunk = buf.join('\n').trim()
-      if (chunk) blocks.push(chunk)
-      buf = []
-    } else {
-      buf.push(line)
-    }
-  }
-  const last = buf.join('\n').trim()
-  if (last) blocks.push(last)
-  return blocks.length ? blocks : [text.trim()].filter(Boolean)
-}
-
-// 别名映射，尽量覆盖常见写法
-const LABEL_ALIASES: Record<keyof TestCaseRecord, string[]> = {
-  name: ['用例名称', '用例名', '标题', '用例标题'],
-  preconditions: ['前置条件', '前提条件', '先决条件'],
-  module: ['所属模块', '模块', '模块路径', '所属目录'],
-  steps: ['步骤描述', '步骤', '测试步骤', '操作步骤'],
-  expected: ['预期结果', '期望结果', '预期', '期望'],
-  tags: ['标签', 'Tags', 'Tag', '标记'],
-  level: ['用例等级', '等级', '优先级', '优先级别', '用例级别', '级别', 'P级'],
-}
-
-const aliasToCanonical = (() => {
-  const map = new Map<string, keyof TestCaseRecord>()
-  ;(Object.keys(LABEL_ALIASES) as (keyof TestCaseRecord)[]).forEach((key) => {
-    LABEL_ALIASES[key].forEach((alias) => map.set(alias.toLowerCase(), key))
-  })
-  return map
-})()
-
-// 构建用于匹配“标签: 值”的正则（锚定在行首，冒号支持中英文）
-const buildLabelRegex = () => {
-  const allLabels = Array.from(aliasToCanonical.keys())
-    // 优先匹配更长的别名，避免如“模块”先匹配到而吞掉“所属模块”
-    .sort((a, b) => b.length - a.length)
-    .map((l) => l.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-    .join('|')
-  // (^|\n) 使其只能在行首出现，避免值中误匹配
-  return new RegExp(`(^|\n)\s*(${allLabels})\s*[:：]`, 'gi')
-}
-
-const LABEL_REGEX = buildLabelRegex()
-
-const parseBlock = (block: string): TestCaseRecord => {
-  const text = block.replace(/\r\n?/g, '\n')
-  const matches: { key: keyof TestCaseRecord; valueStart: number; matchIndex: number }[] = []
-
-  LABEL_REGEX.lastIndex = 0
-  let m: RegExpExecArray | null
-  while ((m = LABEL_REGEX.exec(text))) {
-    // m[2] 是实际匹配到的标签别名
-    const alias = (m[2] || '').toLowerCase()
-    const key = aliasToCanonical.get(alias)
-    if (!key) continue
-    matches.push({ key, valueStart: m.index + m[0].length, matchIndex: m.index })
-  }
-
-  const result: TestCaseRecord = {
-    name: '',
-    preconditions: '',
-    module: '',
-    steps: '',
-    expected: '',
-    tags: '',
-    level: '',
-  }
-
-  if (matches.length === 0) {
-    // 如果没有识别到任何标签，则将整块作为“步骤描述”兜底
-    result.steps = text.trim()
-    return result
-  }
-
-  for (let i = 0; i < matches.length; i++) {
-    const { key, valueStart } = matches[i]
-    const valueEnd = i + 1 < matches.length ? matches[i + 1].matchIndex : text.length
-    let value = text.slice(valueStart, valueEnd)
-    // 去除首个换行和两端空白
-    value = value.replace(/^\s*\n/, '').trim()
-    // 规范化换行，Excel中保留多行显示
-    value = value.replace(/\u00A0/g, ' ')
-    ;(result as any)[key] = value
-  }
-
-  // 标签字段：去除多余空白并统一分隔符（逗号/顿号/空格）
-  if (result.tags) {
-    const tags = result.tags
-      .replace(/[，、\s]+/g, ',')
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean)
-    result.tags = tags.join(', ')
-  }
-
-  return result
-}
-
-// 规范化步骤/预期里的 [1][2] 样式为换行分隔
-const normalizeIndexedList = (input: string): string => {
-  if (!input) return ''
-  let s = input.replace(/\r\n?/g, '\n')
-  // 在每个编号标记前插入换行（仅处理 [1]、[2] ... 形式，避免误伤小数等）
-  const token = /\s*(\[\d+\])/g
-  s = s.replace(token, (_m, g1) => `\n${String(g1).trim()}`)
-  // 去掉开头多余换行
-  s = s.replace(/^\n+/, '')
-  // 合并多余的空行
-  s = s.replace(/\n{2,}/g, '\n')
-  // 行内再清理首尾空格
-  s = s
-    .split('\n')
-    .map((l) => l.trim())
-    .filter((l) => l.length > 0)
-    .join('\n')
-  return s
-}
-
-const parseAll = (raw: string): TestCaseRecord[] => {
-  const text = stripCodeFences(raw || '')
-  if (!text) return []
-  const blocks = splitBlocks(text)
-  const records = blocks.map(parseBlock).map((r) => ({
-    ...r,
-    steps: normalizeIndexedList(r.steps),
-    expected: normalizeIndexedList(r.expected),
-  }))
-  // 过滤完全空的记录
-  return records.filter((r) => Object.values(r).some((v) => (v || '').trim().length > 0))
-}
+const parseAll = (raw: string): TestCaseRecord[] => parseTestCases(raw)
 
 const buildSchema = () => {
   return [

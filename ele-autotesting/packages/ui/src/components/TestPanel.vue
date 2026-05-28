@@ -232,6 +232,7 @@ import ModelSelectUI from './ModelSelect.vue'
 import OutputDisplay from './OutputDisplay.vue'
 import TestPanelPromptSelect from './TestPanelPromptSelect.vue'
 import { v4 as uuidv4 } from 'uuid'
+import { useGeneratedCases } from '../composables/useGeneratedCases'
 
 interface AddedItem {
   id: string
@@ -293,6 +294,10 @@ const isTestingOptimized = ref(false)
 
 // 添加推理内容状态
 const optimizedTestReasoning = ref('')
+
+// 与联动面板共享最近一次生成结果, 见 useGeneratedCases.
+const { setLatestRawText } = useGeneratedCases()
+watch(optimizedTestResult, (v) => setLatestRawText(v))
 
 // Add Action 状态管理
 const showAddAction = ref(false)

@@ -2510,6 +2510,17 @@ html * {
     word-break: break-word;
     color: var(--ds-text-secondary);
   }
+  .ds-ms-precond {
+    display: block;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--ds-text-secondary);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .ds-ms-precond--empty {
+    color: var(--ds-text-tertiary, #9ca3af);
+  }
   .ds-ms-pager {
     display: flex;
     align-items: center;
