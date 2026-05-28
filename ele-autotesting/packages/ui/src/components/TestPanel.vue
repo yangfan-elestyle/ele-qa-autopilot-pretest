@@ -268,7 +268,11 @@ import OutputDisplay from './OutputDisplay.vue'
 import TestPanelPromptSelect from './TestPanelPromptSelect.vue'
 import { v4 as uuidv4 } from 'uuid'
 import { useGeneratedCases } from '../composables/useGeneratedCases'
-import { useAutotestCasesHistory } from '../composables/useAutotestCasesHistory'
+import {
+  useAutotestCasesHistory,
+  type AddedItemSnapshot,
+  type AutotestCaseSnapshot,
+} from '../composables/useAutotestCasesHistory'
 
 interface AddedItem {
   id: string
@@ -303,6 +307,11 @@ const props = defineProps({
   history: {
     type: Array as PropType<PromptRecordChain[]>,
     default: () => [],
+  },
+  // 当前优化模式 (verify / context), 同步快照时一并落盘以便还原.
+  optimizationMode: {
+    type: String,
+    default: '',
   },
 })
 
@@ -366,15 +375,32 @@ const syncDisabledHint = computed(() => {
   return '将当前生成结果保存到云端'
 })
 
+// 收集当前 addedItems 为可序列化快照. data 直接克隆, 避免 Vue 响应式代理被 JSON.stringify 时挂掉.
+function snapshotAddedItems(): AddedItemSnapshot[] {
+  return addedItems.value.map((item) => ({
+    id: item.id,
+    type: item.type,
+    name: item.name,
+    data: JSON.parse(JSON.stringify(item.data)) as Template | PromptRecord,
+  }))
+}
+
 async function syncCases() {
   if (!canSyncCases.value) return
   syncingCases.value = true
   try {
+    const moduleIds = Array.from(selectedModuleIds.value)
+    const modulePaths = getSelectedModulePaths()
     const meta = await saveAutotestSnapshot({
       rawText: optimizedTestResult.value,
       modelName: selectedTestModel.value,
       originalPrompt: ensureString(props.originalPrompt),
       optimizedPrompt: ensureString(props.optimizedPrompt),
+      addedItems: snapshotAddedItems(),
+      selectedModuleIds: moduleIds,
+      selectedModulePaths: modulePaths,
+      selectedModelKey: selectedTestModel.value,
+      selectedOptimizationMode: props.optimizationMode || '',
     })
     toast.success(`已同步到云 · ${meta.casesCount} 条用例`)
   } catch (e: any) {
@@ -382,6 +408,33 @@ async function syncCases() {
     toast.error(`同步失败: ${e?.message || e}`)
   } finally {
     syncingCases.value = false
+  }
+}
+
+// 还原: 由 App.vue 在历史抽屉「使用」后通过 ref 调用. 仅恢复 TestPanel 内部状态,
+// 不动 latestRawText / optimizer.prompt 等跨组件 state (那些由 App.vue 自己还原).
+function restoreFromSnapshot(snapshot: AutotestCaseSnapshot) {
+  if (Array.isArray(snapshot.addedItems)) {
+    addedItems.value = snapshot.addedItems.map((it) => ({
+      id: it.id || uuidv4(),
+      type: it.type,
+      name: it.name,
+      data: it.data,
+    }))
+  } else {
+    addedItems.value = []
+  }
+  if (Array.isArray(snapshot.selectedModuleIds)) {
+    // 先按存盘 id 全量恢复; modulesList 加载完后 loadModules 内部会与最新 list 做交集, 去掉已失效模块.
+    selectedModuleIds.value = new Set(snapshot.selectedModuleIds)
+    // 如果列表还没拉过, 触发一次拉取, 让 reconcile 跑起来.
+    if (!modulesLoadedOnce) loadModules()
+  } else {
+    selectedModuleIds.value = new Set()
+  }
+  if (snapshot.selectedModelKey) {
+    selectedTestModel.value = snapshot.selectedModelKey
+    emit('update:modelValue', snapshot.selectedModelKey)
   }
 }
 
@@ -804,6 +857,12 @@ const handleHistorySelected = (selectedRecords: PromptRecord[]) => {
     addHistoryItem(record)
   })
 }
+
+// 暴露还原入口给 App.vue: 历史抽屉「使用」云端快照后, App.vue 拿到 ref 调 restoreFromSnapshot,
+// 用以恢复 TestPanel 内部 addedItems / selectedModuleIds / selectedTestModel.
+defineExpose({
+  restoreFromSnapshot,
+})
 </script>
 
 <style scoped>

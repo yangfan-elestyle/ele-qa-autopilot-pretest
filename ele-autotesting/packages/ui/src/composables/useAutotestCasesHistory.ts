@@ -1,15 +1,17 @@
 /**
  * AutoTest 用例历史: 把生成结果手动同步到云 D1 (KV 表), 用以跨设备 / 跨会话还原.
  *
- * - 默认不持久化: 仅当用户点【同步到云】按钮才上传当前 rawText.
+ * - 默认不持久化: 仅当用户点【同步到云】按钮才上传当前 rawText + 同步当时的全量生成上下文.
  * - 云端 schema 仿 /api/sync 现有 KV 语义 (单表 storage(owner_id,key,value)).
  *   - 索引:  autotest:cases-snapshot:__index__ -> JSON { items: SnapshotMeta[] }
  *   - 单条:  autotest:cases-snapshot:<id>      -> JSON Snapshot
  *   拆 index/item 是因为 D1 单 value 上限 900KB; 索引轻量可一次拉全, item 按需取.
  * - 模块级单例 ref, 多组件共享同一份 list.
+ * - meta 字段刻意精简 (index 拉全用), addedItems / 完整 prompt 等大对象只放单条 item.
  */
 
 import { ref, computed } from 'vue'
+import type { Template, PromptRecord } from '@prompt-optimizer/core'
 import { getApiBasePath } from '@prompt-optimizer/core'
 import { parseTestCases } from '../utils/parseTestCases'
 
@@ -26,10 +28,28 @@ export type AutotestCaseSnapshotMeta = {
   bytes: number
 }
 
+// 模板 / 上下文记录的内嵌快照: 原始对象可能在同步后被用户删除 / 改名,
+// 还原时直接读 snapshot 副本, 不查 services.templateManager / promptHistory.
+export type AddedItemSnapshot = {
+  id: string
+  type: 'template' | 'history'
+  name: string
+  data: Template | PromptRecord
+}
+
 export type AutotestCaseSnapshot = AutotestCaseSnapshotMeta & {
   rawText: string
   optimizedPrompt?: string
   originalPrompt?: string
+  // 数据源 chips (模板 + 上下文记录) 整体回填, 不依赖外部存储.
+  addedItems?: AddedItemSnapshot[]
+  // 模块多选: id 是 D1 真值, path 是显示 / 兜底 (id 失效时仍能让用户知道当时选了什么).
+  selectedModuleIds?: string[]
+  selectedModulePaths?: string[]
+  // 生成模型 key (modelManager.selectedTestModel 用以重选). modelName 仅显示名.
+  selectedModelKey?: string
+  // sync 当时的优化模式 (现仅 verify, 写下来便于未来 context 模式扩展).
+  selectedOptimizationMode?: string
 }
 
 type IndexEnvelope = { items: AutotestCaseSnapshotMeta[] }
@@ -66,8 +86,11 @@ function bytesOf(text: string): number {
   }
 }
 
-function deriveTitle(rawText: string, parsedCount: number): string {
-  // 用第一个用例名做 title; 取不到再拿前 40 字符兜底.
+function deriveTitle(rawText: string, parsedCount: number, originalPrompt?: string): string {
+  // 优先用用户原始 prompt: 用户最容易记住自己输入了什么, 历史抽屉一眼能认出.
+  const op = (originalPrompt ?? '').replace(/\s+/g, ' ').trim()
+  if (op) return op.slice(0, 80)
+  // 兜底: 老逻辑取首个用例名 / "N 条用例" / 前 40 字 / "空用例".
   const m = rawText.match(/(?:^|\n)\s*(?:用例名称|用例名|标题|用例标题)\s*[:：]\s*([^\n]+)/)
   if (m && m[1]) return m[1].trim().slice(0, 80)
   if (parsedCount === 0) return rawText.trim().slice(0, 40) || '空用例'
@@ -147,6 +170,12 @@ export type SaveSnapshotInput = {
   optimizedPrompt?: string
   originalPrompt?: string
   title?: string
+  // 同步当时的生成上下文 (全部可选, 缺省视作未选).
+  addedItems?: AddedItemSnapshot[]
+  selectedModuleIds?: string[]
+  selectedModulePaths?: string[]
+  selectedModelKey?: string
+  selectedOptimizationMode?: string
 }
 
 async function saveSnapshot(input: SaveSnapshotInput): Promise<AutotestCaseSnapshotMeta> {
@@ -162,7 +191,7 @@ async function saveSnapshot(input: SaveSnapshotInput): Promise<AutotestCaseSnaps
     id: genId(),
     savedAt: Date.now(),
     casesCount: parsed.length,
-    title: (input.title ?? deriveTitle(rawText, parsed.length)).trim(),
+    title: (input.title ?? deriveTitle(rawText, parsed.length, input.originalPrompt)).trim(),
     modelName: (input.modelName ?? '').trim(),
     sceneMark: (input.sceneMark ?? '').trim(),
     bytes: bytesOf(rawText),
@@ -172,6 +201,11 @@ async function saveSnapshot(input: SaveSnapshotInput): Promise<AutotestCaseSnaps
     rawText,
     optimizedPrompt: input.optimizedPrompt,
     originalPrompt: input.originalPrompt,
+    addedItems: input.addedItems,
+    selectedModuleIds: input.selectedModuleIds,
+    selectedModulePaths: input.selectedModulePaths,
+    selectedModelKey: input.selectedModelKey,
+    selectedOptimizationMode: input.selectedOptimizationMode,
   }
 
   const nextItems = [meta, ...list.value]
