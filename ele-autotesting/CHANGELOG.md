@@ -2,6 +2,12 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.27.2] - 2026-05-28
+
+### Fixed
+
+- 「联动」面板 AutoTest 用例表格里, 模块路径 (如 `/OneQR/Dashboard`) 会溢出列宽视觉上盖住右侧「优先级」列. 现在模块列变宽, 任何 cell 内的长串都会自动换行而非撑出列宽, 模块 / 名称鼠标 hover 可看完整内容.
+
 ## [1.27.1] - 2026-05-28
 
 ### Changed
