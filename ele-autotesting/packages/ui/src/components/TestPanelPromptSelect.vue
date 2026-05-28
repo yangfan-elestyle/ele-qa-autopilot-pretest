@@ -85,9 +85,17 @@
             @click="toggleHistorySelection(record.id)"
           >
             <div class="flex items-start justify-between">
-              <div class="flex-1">
-                <h4 v-if="record.contentMark" class="font-medium theme-text">场景 : {{ record.contentMark }}</h4>
-                <p class="text-sm theme-text-secondary mt-1 break-all">
+              <div class="flex-1 min-w-0">
+                <div class="ds-history-scene-title mb-2">
+                  <span class="ds-history-scene-tag">场景</span>
+                  <span
+                    class="ds-history-scene-name"
+                    :class="{ 'ds-history-scene-name--placeholder': !record.contentMark?.trim() }"
+                  >
+                    {{ record.contentMark?.trim() || '未命名场景' }}
+                  </span>
+                </div>
+                <p class="text-sm theme-text-secondary break-all">
                   {{ truncateText(record.originalPrompt.replace(/\s+/g, ' '), 200) }}
                 </p>
                 <div class="flex items-center gap-2 mt-2">

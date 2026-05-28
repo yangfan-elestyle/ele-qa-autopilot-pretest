@@ -31,7 +31,7 @@
         <input
           :value="contextConfig.contentMark"
           @input="$emit('update:contextConfig', { ...contextConfig, contentMark: ($event.target as HTMLInputElement).value })"
-          placeholder="需求场景（必填，便于后续查找复用）"
+          placeholder="需求场景（必填，便于复用）"
           aria-label="需求场景，必填，用于后续按场景查找与复用此上下文"
           title="给该上下文标注所属需求场景，例如「登录页改版」「下单流程」；后续可在历史与测试面板按场景查找复用"
           :class="['theme-input min-w-[150px] flex-1 sm:max-w-xs !py-2 !text-[13px]', { 'ds-input-error': !contextConfig.contentMark?.trim() }]"

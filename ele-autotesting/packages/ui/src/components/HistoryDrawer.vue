@@ -32,28 +32,33 @@
               <div v-for="chain in sortedHistory" :key="chain.chainId" class="theme-history-card">
                 <!-- 历史记录头部信息 -->
                 <div class="theme-history-card-header">
-                  <div class="flex items-center justify-between mb-2 gap-2 flex-wrap">
-                    <div class="flex items-center gap-2 text-xs theme-manager-text-secondary">
-                      <span class="ds-text-mono">{{ formatDate(chain.rootRecord.timestamp) }}</span>
+                  <div class="flex items-start justify-between mb-2 gap-2 flex-wrap">
+                    <div class="ds-history-scene-title">
+                      <span class="ds-history-scene-tag">场景</span>
                       <span
-                        v-if="(chain.rootRecord as ContextConfig).contentType"
-                        class="ds-chip ds-chip-brand"
-                        >{{ promptTypeLabel((chain.rootRecord as ContextConfig).contentType) }}</span
+                        class="ds-history-scene-name"
+                        :class="{ 'ds-history-scene-name--placeholder': !(chain.rootRecord as ContextConfig).contentMark?.trim() }"
                       >
+                        {{ (chain.rootRecord as ContextConfig).contentMark?.trim() || '未命名场景' }}
+                      </span>
                     </div>
                     <button
                       @click.stop="deleteChain(chain.chainId)"
-                      class="ds-text-link-danger"
+                      class="ds-text-link-danger flex-none"
                       title="删除整条上下文"
                     >
                       删除
                     </button>
                   </div>
+                  <div class="flex items-center gap-2 text-xs theme-manager-text-secondary mb-2 flex-wrap">
+                    <span class="ds-text-mono">{{ formatDate(chain.rootRecord.timestamp) }}</span>
+                    <span
+                      v-if="(chain.rootRecord as ContextConfig).contentType"
+                      class="ds-chip ds-chip-brand"
+                      >{{ promptTypeLabel((chain.rootRecord as ContextConfig).contentType) }}</span
+                    >
+                  </div>
                   <div class="space-y-2">
-                    <div v-if="(chain.rootRecord as ContextConfig).contentMark" class="text-xs theme-manager-text-secondary">
-                      <span class="font-medium">场景:</span>
-                      <span class="ml-1">{{ (chain.rootRecord as ContextConfig).contentMark }}</span>
-                    </div>
                     <div class="text-sm theme-manager-text break-all">
                       {{ truncateText(chain.rootRecord.originalPrompt.replace(/\s+/g, ' '), 200) }}
                     </div>
