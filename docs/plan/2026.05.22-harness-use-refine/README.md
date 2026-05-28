@@ -83,11 +83,11 @@ qa-orchestrator/
     case-self-checker.md                   # 前景, maxTurns=5, 校验产物
   skills/
     qa-browser-orchestrator/SKILL.md       # 入口, Flow 编排 (切片 → fan-out → 自检 → 拼接)
-    elestyle-test-envs/SKILL.md            # 知识: Sys/Dashboard/Business/ACQ 全量 URL
-    business-glossary/SKILL.md             # 知识: 中日英术语 + 实体归属链
-    browser-use-patterns/SKILL.md          # 知识: selector / 等待 / 验证 最佳实践
   assets/
     example-acq-invitation.md              # 标杆样本, 被 agent 用相对路径引用
+    elestyle-test-envs.md                  # 知识: Sys/Dashboard/Business/ACQ 全量 URL
+    business-glossary.md                   # 知识: 中日英术语 + 实体归属链
+    browser-use-patterns.md                # 知识: selector / 等待 / 验证 最佳实践
 ```
 
 命名空间: `qa-orchestrator:<name>` (skill / agent 自动加前缀).
@@ -134,7 +134,7 @@ N 条产物全部回收后, 对每条调 `Agent(subagent_type='qa-orchestrator:c
 <!-- prettier-ignore -->
 | Agent | frontmatter 关键字段 | 职责 |
 | --- | --- | --- |
-| `case-to-browser-task` | `background: true` | 单条 case 深度编排. 必要时 invoke 知识 skill (`qa-orchestrator:elestyle-test-envs` / `business-glossary` / `browser-use-patterns`) + EleVault MCP (用例命中 PRD-xxx / 业务流程图等线索时). few-shot 参考 `@assets/example-acq-invitation.md`. 输出: `=== CASE N: <title> ===` 头 + body. |
+| `case-to-browser-task` | `background: true` | 单条 case 深度编排. 必要时 `Read` 知识 asset (`elestyle-test-envs.md` / `business-glossary.md` / `browser-use-patterns.md`) + EleVault MCP (用例命中 PRD-xxx / 业务流程图等线索时). few-shot 参考 `@assets/example-acq-invitation.md`. 输出: `=== CASE N: <title> ===` 头 + body. |
 | `case-self-checker` | `maxTurns: 5` | 按检查清单逐项校验, 输出 `pass: true/false` + `missing: [<项>]` 列表. 评分锚点 `@assets/example-acq-invitation.md`. |
 
 ## case-self-checker 检查清单
@@ -173,8 +173,8 @@ skill 输入与 plugin 评分锚点已就位:
 <!-- prettier-ignore -->
 | 文件 | 用途 | 落点 |
 | --- | --- | --- |
-| [staging-urls.md](./staging-urls.md) | Sys / Dashboard / Business / ACQ 四套主 Web 工程 staging URL 全量清单 | `skills/elestyle-test-envs/SKILL.md` body |
-| [business-glossary.md](./business-glossary.md) | 上述四套工程业务术语 (中日英三语 + 实体归属链 + 同名异义辨析) | `skills/business-glossary/SKILL.md` body |
+| [staging-urls.md](./staging-urls.md) | Sys / Dashboard / Business / ACQ 四套主 Web 工程 staging URL 全量清单 | `assets/elestyle-test-envs.md` |
+| [business-glossary.md](./business-glossary.md) | 上述四套工程业务术语 (中日英三语 + 实体归属链 + 同名异义辨析) | `assets/business-glossary.md` |
 | [example.md](./example.md) | hand-written browser-use 任务样例 (ACQ 加盟店申請新規 邀请流程) | `assets/example-acq-invitation.md` |
 
 其余项 (账号池 / browser-use 常见坑 / 失败标志库 / 业务流程图 / 端末×角色矩阵 / 测试数据约束 / EleVault 命中线索) 不再单独整理, 由 plugin agent 实战中通过 EleVault MCP 拉取或迭代积累.
