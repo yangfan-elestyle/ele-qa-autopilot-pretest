@@ -2,51 +2,50 @@
   <div class="ds-ms-panel">
     <!-- 凭据 + 项目/模块选择 -->
     <div class="ds-ms-controls">
-      <div class="ds-ms-field ds-ms-field--status">
-        <label>MeterSphere 凭证</label>
-        <div class="ds-ms-status-row">
-          <span v-if="msConfigured" class="ds-integration-status-tag ds-integration-status-tag--ok">已配置 · 云端</span>
-          <span v-else-if="msStatusLoaded" class="ds-integration-status-tag ds-integration-status-tag--off">未配置</span>
-          <span v-else class="ds-integration-status-tag">检查中…</span>
-          <span v-if="msStatusLoaded && !msConfigured" class="ds-ms-hint">
-            请到「集成中心 → MeterSphere」填写 AK / SK
-          </span>
-        </div>
-      </div>
-      <div class="ds-ms-field">
-        <label>项目</label>
-        <select v-model="projectId" :disabled="!projects.length">
-          <option value="">{{ projects.length ? '请选择' : '尚未加载' }}</option>
+      <div class="ds-ms-field ds-ms-field--inline">
+        <label>
+          <span>项目</span>
+          <span class="ds-ms-required" aria-hidden="true">*</span>
+        </label>
+        <select
+          v-model="projectId"
+          class="ds-ms-select"
+          :disabled="!projects.length || loading.projects"
+          :aria-busy="loading.projects"
+        >
+          <option v-if="!projects.length" value="" disabled>
+            {{ msStatusLoaded && !msConfigured ? '请先在集成中心配置凭证' : '加载中…' }}
+          </option>
           <option v-for="p in projects" :key="p.id" :value="p.id">{{ p.name }}</option>
         </select>
+        <span v-if="loading.projects" class="ds-ms-field-spinner">加载中…</span>
       </div>
-      <div class="ds-ms-field ds-ms-field--tree">
-        <label>模块 (可选, 不选 = 全部)</label>
-        <input
-          v-model="moduleKeyword"
-          class="ds-ms-search"
-          type="search"
-          placeholder="搜索模块名…"
-          :disabled="!modulesFlat.length"
-          style="max-width: none; margin-bottom: 4px"
-        />
-        <select v-model="moduleId" :disabled="!modulesFlat.length" @change="onModuleChange">
-          <option value="">{{ modulesFlat.length ? '全部' : '尚未加载' }}</option>
+      <div class="ds-ms-field ds-ms-field--inline">
+        <label><span>模块</span></label>
+        <select
+          v-model="moduleId"
+          class="ds-ms-select"
+          :disabled="!modulesFlat.length || loading.modules"
+          @change="onModuleChange"
+        >
+          <option value="">{{ modulesFlat.length ? '全部模块' : '—' }}</option>
           <option v-for="m in modulesFiltered" :key="m.id" :value="m.id">
             {{ '— '.repeat(m.depth) }}{{ m.name }}
           </option>
         </select>
+        <input
+          v-if="modulesFlat.length > 8"
+          v-model="moduleKeyword"
+          class="ds-ms-mod-search"
+          type="search"
+          placeholder="筛选模块"
+        />
+        <span v-if="loading.modules" class="ds-ms-field-spinner">加载中…</span>
       </div>
-      <div class="ds-ms-actions">
-        <button class="ds-ms-btn" :disabled="!msConfigured || loading.projects" @click="loadProjects">
-          {{ loading.projects ? '加载…' : '拉项目' }}
-        </button>
-        <button class="ds-ms-btn" :disabled="!projectId || loading.modules" @click="loadModules">
-          {{ loading.modules ? '加载…' : '拉模块' }}
-        </button>
-        <button class="ds-ms-btn ds-ms-btn--primary" :disabled="!projectId || loading.cases" @click="loadCases(1)">
-          {{ loading.cases ? '加载…' : '拉用例' }}
-        </button>
+      <div class="ds-ms-controls-status">
+        <span v-if="msConfigured" class="ds-integration-status-tag ds-integration-status-tag--ok">已配置</span>
+        <span v-else-if="msStatusLoaded" class="ds-integration-status-tag ds-integration-status-tag--off">未配置</span>
+        <span v-else class="ds-integration-status-tag">检查中…</span>
       </div>
     </div>
 
@@ -160,7 +159,7 @@
             </tr>
           </template>
           <tr v-if="!cases.length">
-            <td colspan="8" class="ds-ms-empty">{{ loading.cases ? '加载中…' : (caseKeyword.trim() ? '无匹配' : '尚未拉取或无数据') }}</td>
+            <td colspan="8" class="ds-ms-empty">{{ emptyCaseHint }}</td>
           </tr>
         </tbody>
       </table>
@@ -266,6 +265,17 @@ const modulesFiltered = computed(() => {
   return modulesFlat.value.filter((m) => m.name.toLowerCase().includes(kw))
 })
 
+// 空表态文案: 区分"加载中 / 关键词无匹配 / 凭证未配置 / 无数据"四档,
+// 不再出现"尚未拉取"——onMounted 全自动后这个状态不可达.
+const emptyCaseHint = computed(() => {
+  if (loading.value.cases) return '加载中…'
+  if (caseKeyword.value.trim()) return '无匹配用例'
+  if (!msStatusLoaded.value) return '加载中…'
+  if (!msConfigured.value) return '请先在集成中心配置 MeterSphere 凭证'
+  if (!projects.value.length) return '当前账号下没有可读项目'
+  return '该项目 / 模块下暂无用例'
+})
+
 // 用例检索改走上游 MS `/functional/case/page` 的 keyword 字段 (按 name/num/id/tag 模糊匹配),
 // 不再仅过滤本页. 客户端只渲染上游返回结果.
 const allSelected = computed(() => cases.value.length > 0 && cases.value.every((c) => selectedIds.value.has(c.id)))
@@ -334,7 +344,22 @@ async function loadProjects() {
     const res = await callApi<any>('POST', '/api/ms/projects', { current: 1, pageSize: 100 })
     const list: MsProject[] = res?.data?.list ?? res?.data ?? []
     projects.value = list.map((p) => ({ id: p.id, name: p.name, organizationId: p.organizationId }))
-    if (!projects.value.length) error.value = '项目列表为空 (确认 AK 是否有项目读权限)'
+    if (!projects.value.length) {
+      error.value = '项目列表为空 (确认 AK 是否有项目读权限)'
+      return
+    }
+    // 自动默认: 缓存命中 → 用缓存 (watch 不触发, 手动拉下游); 否则 → projects[0], watch 级联.
+    const cached = projectId.value
+    if (cached && projects.value.find((p) => p.id === cached)) {
+      await loadModules()
+      if (moduleId.value && !modulesFlat.value.find((m) => m.id === moduleId.value)) {
+        moduleId.value = ''
+      }
+      loadCases(1)
+    } else {
+      moduleId.value = ''
+      projectId.value = projects.value[0].id
+    }
   } catch (e: any) {
     error.value = `拉项目失败: ${e?.message ?? e}`
   } finally {
@@ -473,11 +498,9 @@ onBeforeUnmount(() => {
   }
 })
 
-// 挂载时基于浏览器缓存自动级联:
-//   AK/SK 缓存 → 拉项目 → 命中缓存 projectId → 拉模块 + 用例 (用例用缓存 moduleId, 若有效)
-// 任一缓存失效 (上游已删 / 换组织等), 清掉该层缓存避免下次再误命中;
-// watch(projectId) 已处理"项目变 → 重置 modules/cases", 失效时设 projectId.value=''
-// 即可触发清空, 不必在此重复.
+// 挂载时全自动级联 (无任何手动按钮):
+//   检查凭证 → 拉项目 → 默认选缓存项目 (或 projects[0]) → 自动拉模块 + 用例.
+//   级联细节在 loadProjects 内: 缓存命中走"手动并发拉下游"; 否则赋值触发 watch(projectId).
 async function loadMsConfigured() {
   try {
     const res = await fetch(`${getApiBasePath()}/api/integrations/metersphere`, { credentials: 'include' })
@@ -496,18 +519,6 @@ onMounted(async () => {
   await loadMsConfigured()
   if (!msConfigured.value) return
   await loadProjects()
-  const cachedPid = projectId.value
-  if (!cachedPid) return
-  if (!projects.value.find((p) => p.id === cachedPid)) {
-    projectId.value = ''
-    return
-  }
-  // 缓存项目仍有效: 不会触发 watch(projectId) (值没变), 手动并发拉模块 + 用例.
-  await loadModules()
-  if (moduleId.value && !modulesFlat.value.find((m) => m.id === moduleId.value)) {
-    moduleId.value = ''
-  }
-  loadCases(1)
 })
 
 function formatTs(ts?: number) {

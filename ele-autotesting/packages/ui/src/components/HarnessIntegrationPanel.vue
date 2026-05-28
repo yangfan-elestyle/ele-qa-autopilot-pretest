@@ -6,7 +6,7 @@
         ELE-Harness LLM 凭证
       </h3>
       <p class="ds-integration-intro-text">
-        用于驱动 ELE-Harness Agent 跑测试用例。凭证以登录账号维度保存在云端 D1（不写入本地浏览器），跨设备一致；apiKey 已配置后，留空即可保留原值。
+        用于驱动 ELE-Harness Agent 跑测试用例。
       </p>
     </div>
 

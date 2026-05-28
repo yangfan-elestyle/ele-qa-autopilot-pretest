@@ -6,7 +6,7 @@
         Figma 访问凭证
       </h3>
       <p class="ds-integration-intro-text">
-        用于解析 Figma 文件链接生成上下文。Token 以登录账号维度保存在云端 D1（不写入本地浏览器），跨设备一致；token 已配置后，留空即可保留原值。
+        用于解析 Figma 文件链接生成上下文。
       </p>
     </div>
 

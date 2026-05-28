@@ -6,7 +6,7 @@
         MeterSphere 访问凭证
       </h3>
       <p class="ds-integration-intro-text">
-        用于对接 MeterSphere 拉取项目 / 模块 / 用例。AK 与 SK 以登录账号维度保存在云端 D1（不写入本地浏览器），跨设备一致；已配置后留空即可保留原值。
+        用于对接 MeterSphere 拉取项目 / 模块 / 用例。
       </p>
     </div>
 

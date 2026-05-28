@@ -6,7 +6,7 @@
         送至 Autopilot · prompt 模板
       </h3>
       <p class="ds-integration-intro-text">
-        在「AutoTest 用例」与「MeterSphere」tab 的「送至 Autopilot」弹窗里, 这里配置的模板会作为 preset 按钮一键填入. 系统默认模板随版本升级全员同步, 不可编辑; 自定义模板按账号同步到云端 (D1) 多端共用.
+        在「AutoTest 用例」与「MeterSphere」tab 的「送至 Autopilot」弹窗里, 这里配置的模板会作为 preset 按钮一键填入.
       </p>
     </div>
 

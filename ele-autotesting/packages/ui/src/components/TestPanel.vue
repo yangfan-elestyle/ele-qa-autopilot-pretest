@@ -8,9 +8,6 @@
             <span class="ds-panel-title-dot" aria-hidden="true"></span>
             内容生成
           </h3>
-          <span class="ds-panel-subtitle hidden sm:inline">
-            将左侧优化结果应用到具体提示, 检查输出
-          </span>
         </div>
         <div class="ds-panel-head-right">
           <!-- 模块多选下拉 -->
@@ -126,6 +123,32 @@
           </button>
         </div>
       </header>
+
+      <!--
+        来源指示条: 替代原副标题, 全断点常驻, 让用户清楚知道
+        点「开始生成」时会用左侧上下哪一栏的内容. 文案完全用户视角, 不出现技术词.
+        逻辑: 优化结果非空 -> 用「优化结果」; 否则用「输入框原文」.
+      -->
+      <div
+        class="ds-prompt-source flex-none"
+        :class="{ 'ds-prompt-source--fallback': !hasOptimizedPrompt }"
+        role="note"
+      >
+        <svg class="ds-prompt-source-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="10" />
+          <path d="M12 16v-4" />
+          <path d="M12 8h.01" />
+        </svg>
+        <span class="ds-prompt-source-chip">
+          {{ hasOptimizedPrompt ? '已优化' : '未优化' }}
+        </span>
+        <span class="ds-prompt-source-label">
+          {{ hasOptimizedPrompt
+            ? '本次将基于优化后的内容来生成测试用例'
+            : '本次将直接用你左侧输入的内容来生成测试用例'
+          }}
+        </span>
+      </div>
 
       <!-- Test Results Area -->
       <div class="ds-test-body flex-1 min-h-0 md:overflow-hidden overflow-visible">
@@ -558,6 +581,10 @@ const promptSelectRef = ref<InstanceType<typeof TestPanelPromptSelect> | null>(n
 
 const isTesting = computed(() => isTestingOptimized.value)
 
+// 判断「优化结果」是否非空, 决定 user prompt 来源指示条的状态与文案.
+// 与 testOptimizedPrompt 内 `props.optimizedPrompt || props.originalPrompt` 的 fallback 行为保持同语义.
+const hasOptimizedPrompt = computed(() => ensureString(props.optimizedPrompt).trim().length > 0)
+
 // 排序后的添加项列表，template 类型永远排在最前面
 const sortedAddedItems = computed(() => {
   return [...addedItems.value].sort((a, b) => {
@@ -879,6 +906,56 @@ defineExpose({
 }
 .ds-test-body {
   padding: 14px 16px 16px;
+}
+
+/* ============================== User Prompt 来源指示条 ============================== */
+/* 设计目标: 让用户在任何屏幕宽度下都能看到「本次 user prompt 取自左侧哪一栏」,
+   动态高亮当前生效项, fallback 状态 (优化结果为空) 用橙色提醒. */
+.ds-prompt-source {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin: 6px 16px 0;
+  padding: 3px 10px;
+  border-radius: 6px;
+  background: var(--ds-brand-50, #eef2ff);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ds-text-primary, #1f2937);
+}
+.ds-prompt-source--fallback {
+  background: #fff7ed;
+}
+.ds-prompt-source-icon {
+  width: 13px;
+  height: 13px;
+  flex: none;
+  color: var(--ds-brand-600, #4f46e5);
+}
+.ds-prompt-source--fallback .ds-prompt-source-icon {
+  color: #ea580c;
+}
+.ds-prompt-source-label {
+  font-weight: 500;
+  color: var(--ds-text-secondary, #4b5563);
+}
+.ds-prompt-source-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 7px;
+  border-radius: 9999px;
+  font-weight: 600;
+  font-size: 11px;
+  line-height: 17px;
+  background: #ffffff;
+  border: 1px solid #c7d2fe;
+  color: #4338ca;
+  white-space: nowrap;
+}
+.ds-prompt-source--fallback .ds-prompt-source-chip {
+  border-color: #fdba74;
+  color: #c2410c;
 }
 
 /* 自定义滚动条样式 */

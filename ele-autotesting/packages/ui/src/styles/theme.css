@@ -2299,11 +2299,14 @@ html * {
     flex-direction: column;
     gap: 12px;
   }
+  /* 紧凑横排: label 与控件 inline-flex 同行, 让节奏不再松散.
+     status chip 用 margin-left:auto 推到行尾, 与项目/模块视觉不抢. */
   .ds-ms-controls {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 8px 12px;
-    padding: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 20px;
+    padding: 10px 14px;
     border: 1px solid var(--ds-border);
     border-radius: 8px;
     background: var(--ds-surface-subtle);
@@ -2315,8 +2318,34 @@ html * {
     font-size: 12px;
     color: var(--ds-text-secondary);
   }
+  .ds-ms-field--inline {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
   .ds-ms-field label {
     font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--ds-text-primary);
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  .ds-ms-required {
+    color: var(--ds-danger, #dc2626);
+    font-weight: 600;
+  }
+  .ds-ms-field-spinner {
+    font-weight: 400;
+    color: var(--ds-text-tertiary, #9ca3af);
+    font-size: 11px;
+  }
+  .ds-ms-controls-status {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
   }
   .ds-ms-field input,
   .ds-ms-field select {
@@ -2328,8 +2357,53 @@ html * {
     color: var(--ds-text-primary);
     font-size: 13px;
   }
+  /* 自定义下拉箭头: 浏览器原生 select 没有 affordance, 用 SVG 显式标记可下拉.
+     appearance:none 后内置箭头消失, 由 background-image 顶上; 右侧留 28px 给图标.
+     min-width 220 保证短项目名(如 ai-example)显示完整且不过分占宽; max-width 280 防止
+     超长名称把整行撑爆. */
+  .ds-ms-field select.ds-ms-select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    padding-right: 28px;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%236b7280' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5l5 5 5-5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 10px 7px;
+    cursor: pointer;
+    min-width: 200px;
+    max-width: 280px;
+  }
+  .ds-ms-field select.ds-ms-select:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+    background-color: var(--ds-surface-subtle);
+  }
+  .ds-ms-field input:hover:not(:disabled),
+  .ds-ms-field select:hover:not(:disabled) {
+    border-color: var(--ds-brand-400, #818cf8);
+  }
   .ds-ms-field input:focus,
   .ds-ms-field select:focus {
+    outline: none;
+    box-shadow: var(--ds-focus-ring);
+    border-color: var(--ds-brand-500, #6366f1);
+  }
+  /* 模块筛选输入: 仅在模块 > 8 时显示, inline 紧贴 select 右侧, 更窄. */
+  .ds-ms-mod-search {
+    height: 32px;
+    padding: 0 8px;
+    border: 1px solid var(--ds-border);
+    border-radius: 6px;
+    background: var(--ds-surface);
+    color: var(--ds-text-primary);
+    font-size: 12px;
+    width: 130px;
+  }
+  .ds-ms-mod-search:hover {
+    border-color: var(--ds-brand-400, #818cf8);
+  }
+  .ds-ms-mod-search:focus {
     outline: none;
     box-shadow: var(--ds-focus-ring);
     border-color: var(--ds-brand-500, #6366f1);
@@ -2662,17 +2736,6 @@ html * {
     height: 14px;
     color: var(--ds-brand-600, #4f46e5);
   }
-  .ds-ms-field--status .ds-ms-status-row {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    height: 32px;
-    font-size: 12px;
-  }
-  .ds-ms-field--status .ds-ms-hint {
-    color: var(--ds-text-tertiary);
-  }
-
   /* ===== Mobile (<640px) responsive overrides =====
      Inline `style="max-width: ..."` 与 Tailwind `max-w-3xl/4xl` 在小屏会溢出;
      这里统一收口为 100vw - 安全边距, 不改业务结构. */
@@ -2711,8 +2774,23 @@ html * {
       flex: 1 1 100%;
     }
     .ds-ms-controls {
-      grid-template-columns: 1fr;
+      flex-direction: column;
+      align-items: stretch;
       padding: 10px;
+    }
+    .ds-ms-field--inline {
+      flex-wrap: wrap;
+    }
+    .ds-ms-field select.ds-ms-select {
+      min-width: 0;
+      max-width: none;
+      flex: 1 1 200px;
+    }
+    .ds-ms-mod-search {
+      flex: 1 1 120px;
+    }
+    .ds-ms-controls-status {
+      margin-left: 0;
     }
     .ds-ms-table {
       min-width: 640px;
