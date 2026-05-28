@@ -584,7 +584,7 @@ async function fetchMsDetails(onProgress: (fetched: number, failed: number) => v
   // 按原列表 num 排序, 避免并发顺序错乱.
   results.sort((a, b) => (a.num ?? 0) - (b.num ?? 0))
 
-  // caseIndex 是 1-based, 对应聚合产物里的 "CASE N" 头, 也是 SendToAutopilotModal
+  // caseIndex 是 1-based, 对应聚合产物里 \`\`\`case id=N\` 的 N, 也是 SendToAutopilotModal
   // 解析 harness 返回切片后回填 source meta 的索引依据.
   const items: SourceItem<MsCaseDetail>[] = results.map((d, idx) => ({
     caseIndex: idx + 1,
@@ -594,10 +594,22 @@ async function fetchMsDetails(onProgress: (fetched: number, failed: number) => v
   return { items }
 }
 
+// FCB-CASE title escape: backtick / 换行变空格, 双引号转义为 \", 防引号撕裂 info string.
+function escapeFcbTitle(raw: string): string {
+  return String(raw ?? '')
+    .replace(/[`\r\n]+/g, ' ')
+    .replace(/"/g, '\\"')
+    .trim()
+}
+
+// 输出符合 FCB-CASE 协议的聚合文本: 每条 case 一个 \`\`\`case id=N title="..." ... \`\`\` block, 之间空行分隔.
+// case body 由 "模块/前置/步骤(或描述)/期望/标签" 字段块组成, 不含 \`\`\` 行 (避免撕裂 fence).
 function buildAggregatedFromItems(items: SourceItem[]): string {
   const parts = items.map((it) => {
     const d = it.meta as MsCaseDetail | undefined
-    if (!d) return `=== CASE ${it.caseIndex}: ${it.label ?? ''} ===`
+    const title = escapeFcbTitle(d?.name ?? it.label ?? `CASE ${it.caseIndex}`)
+    const header = `\`\`\`case id=${it.caseIndex} title="${title}"`
+    if (!d) return `${header}\n\`\`\``
     let stepsBlock = ''
     if (d.caseEditType === 'STEP') {
       try {
@@ -618,8 +630,9 @@ function buildAggregatedFromItems(items: SourceItem[]): string {
     const expectedLine = d.expectedResult?.trim() ? `\n期望: ${d.expectedResult.trim()}` : ''
     const preReqLine = d.prerequisite?.trim() ? `\n前置: ${d.prerequisite.trim()}` : ''
     const tagsLine = d.tags?.length ? `\n标签: ${d.tags.join(', ')}` : ''
-    return `=== CASE ${it.caseIndex}: ${d.name} ===
-模块: ${resolveModulePath(d) || '—'}${preReqLine}${stepsBlock}${expectedLine}${tagsLine}`
+    return `${header}
+模块: ${resolveModulePath(d) || '—'}${preReqLine}${stepsBlock}${expectedLine}${tagsLine}
+\`\`\``
   })
   return parts.join('\n\n')
 }

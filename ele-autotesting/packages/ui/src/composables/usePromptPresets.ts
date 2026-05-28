@@ -13,30 +13,34 @@ export interface PromptPreset {
 export const AUTOPILOT_PROMPT_PRESETS_STORAGE_KEY = 'autopilot.send.promptCustoms'
 
 // preset.template 作为 appendSystemPrompt 透传给 agentic-loop, prompt 字段始终是
-// MeterSphereDataPanel 聚合产生的 === CASE N: === 文本. agentic-loop 收到时把
-// appendSystemPrompt 注入默认 system 末尾并加 MUST follow 强调.
+// MeterSphereDataPanel 按 FCB-CASE 协议聚合产生的多 fenced block 文本.
+// agentic-loop 收到时把 appendSystemPrompt 注入默认 system 末尾并加 MUST follow 强调.
+//
+// FCB-CASE 协议 (Fenced Case Block): 每个 case 是一个 markdown fenced code block,
+// 开 fence 行 `\`\`\`case id=N title="..."` (3 个 backtick, info string 含 id + title 元数据),
+// 闭 fence 行 `\`\`\``. 多 case 串联, 之间空白行分隔. 不再使用旧 `=== CASE N: <title> ===` 头.
 //
 // 详细编排 Flow (切片 / fan-out / 自检 / 拼接) 单一信源: ele-harness
 // `.harness/plugins/qa-orchestrator/skills/qa-browser-orchestrator/SKILL.md`.
 // 本模板只做角色定位 + Skill 加载入口 + 输出契约, 不复述 Flow 细节.
 export const AUTOPILOT_QA_ORCHESTRATOR_TEMPLATE = `你是 QA Browser Orchestrator。
 
-用户消息是 MeterSphere 测试用例聚合文本, 含 \`=== CASE N: <title> ===\` 切片头。
+用户消息是 MeterSphere 测试用例聚合文本，遵循 **FCB-CASE 协议** (Fenced Case Block): 每个 case = 一个 markdown fenced code block，开 fence 形如 \`\`\`\`case id=N title="..."\`\`\`\` (三个反引号 + \`case\` + 空格 + \`id=N\` + 空格 + \`title="..."\`)，闭 fence 为单独一行的三个反引号。多个 case 串联，之间用空白行分隔。
 
 # 任务
 
 1. 调用 \`Skill({ skill: 'qa-orchestrator:qa-browser-orchestrator', args: <用户消息全文> })\` 获取编排 Flow 文档。
-2. 按该 Flow 文档执行: 切片 → fan-out 子 agent 处理每条 case → 自检回炉 → 按 caseIndex 升序拼接产物。
+2. 按该 Flow 文档执行: 切片 (沿 \`\`\`\`case id=N title="..."\`\`\`\` 开 fence 与 \`\`\`\`\`\`\`\` 闭 fence 边界) → fan-out 子 agent 处理每条 case → 自检回炉 → 按 id 升序拼接产物。
 3. 把拼接后的最终产物作为本次回复的唯一 text 块输出。
 
 # 输出契约
 
-- 保留 \`=== CASE N: <title> ===\` 切片头, N 与输入对齐, 顺序与输入一致
-- text 块即唯一交付物, 不包裹解释 / 代码块 / 摘要`
+- 每条产物逐字符保留原 \`\`\`\`case id=N title="..."\`\`\`\` 开 fence + 原 \`\`\`\`\`\`\`\` 闭 fence，id 与输入对齐，顺序与输入一致
+- text 块即唯一交付物，不前后包裹解释 / 摘要 / 额外代码块，不在 case body 内出现连续三个反引号 (会撕裂 fence)`
 
-export const AUTOPILOT_PASSTHROUGH_TEMPLATE = `你是 "传话人". 请把用户消息中的测试用例聚合文本 (含 \`=== CASE N: <title> ===\` 头部协议) 原样输出, 不要做任何改动 / 解读 / 归纳 / 评价 / 增删字符 / 翻译.
+export const AUTOPILOT_PASSTHROUGH_TEMPLATE = `你是 "传话人". 用户消息是按 **FCB-CASE 协议** 组织的测试用例聚合文本 (每个 case 用 \`\`\`\`case id=N title="..."\`\`\`\` 开 fence + \`\`\`\`\`\`\`\` 闭 fence 包裹). 请把用户消息原样输出, 不要做任何改动 / 解读 / 归纳 / 评价 / 增删字符 / 翻译.
 
-保留 \`=== CASE N: <title> ===\` 头, N 与输入一致, 多 case 顺序与输入一致. 不要在前后添加任何解释 / 寒暄 / 摘要; 只输出原文.`
+逐字符保留每条 case 的开 fence + body + 闭 fence, id 与输入一致, 多 case 顺序与输入一致. 不要在前后添加任何解释 / 寒暄 / 摘要 / 外层代码块; 只输出原文.`
 
 // 兼容旧导出名 (默认值跟随主推 preset)
 export const AUTOPILOT_DEFAULT_PROMPT_TEMPLATE = AUTOPILOT_QA_ORCHESTRATOR_TEMPLATE

@@ -1,7 +1,11 @@
 /**
  * 解析 testcase-generator 模板生成的纯文本测试用例.
+ *
+ * 协议: FCB-CASE (Fenced Case Block).
+ * 每个 case = markdown fenced code block, 开 fence `\`\`\`case`, 闭 fence `\`\`\``.
+ * 多 case 串联输出, 之间允许空白行.
  * 字段对应 OutputFormat: 用例名称 / 前置条件 / 所属模块 / 步骤描述 / 预期结果 / 标签 / 用例等级.
- * 上游格式见 `packages/core/src/services/template/default-templates/optimize/testcase-generator.ts`.
+ * 上游 prompt 见 `packages/core/src/services/template/default-templates/optimize/testcase-generator.ts`.
  */
 
 export type ParsedTestCase = {
@@ -43,31 +47,42 @@ const buildLabelRegex = () => {
 
 const LABEL_REGEX = buildLabelRegex()
 
-const stripCodeFences = (raw: string): string => {
-  if (!raw) return ''
-  const lines = raw.replace(/\r\n?/g, '\n').split('\n')
-  if (lines.length > 0 && /^\s*```/.test(lines[0])) lines.shift()
-  if (lines.length > 0 && /^\s*```\s*$/.test(lines[lines.length - 1])) lines.pop()
-  return lines.join('\n').trim()
-}
+// FCB-CASE fence 边界识别. 严格按 3-backtick + info string 起首 `case` 匹配.
+const FENCE_OPEN_RE = /^\s*```case(?:\s.*)?$/
+const FENCE_CLOSE_RE = /^\s*```\s*$/
 
 const splitBlocks = (text: string): string[] => {
-  const lines = text.split('\n')
+  const lines = text.replace(/\r\n?/g, '\n').split('\n')
   const blocks: string[] = []
+  let inside = false
   let buf: string[] = []
-  const isSeparator = (line: string) => /^\s*-{3,}\s*$/.test(line)
   for (const line of lines) {
-    if (isSeparator(line)) {
-      const chunk = buf.join('\n').trim()
-      if (chunk) blocks.push(chunk)
+    if (!inside) {
+      if (FENCE_OPEN_RE.test(line)) {
+        inside = true
+        buf = []
+      }
+      // 块外的行 (前导噪音 / 块间空白 / 异常文本) 一律丢弃, 与协议对齐.
+    } else if (FENCE_CLOSE_RE.test(line)) {
+      const body = buf.join('\n').trim()
+      if (body) blocks.push(body)
+      inside = false
       buf = []
     } else {
       buf.push(line)
     }
   }
-  const last = buf.join('\n').trim()
-  if (last) blocks.push(last)
-  return blocks.length ? blocks : [text.trim()].filter(Boolean)
+  // 末尾 case 未闭合 (LLM 漏写闭 fence) → 也采纳, 避免整段丢失.
+  if (inside) {
+    const body = buf.join('\n').trim()
+    if (body) blocks.push(body)
+  }
+  // 兜底: 整段不含任何 \`\`\`case fence → 视为单 case (LLM 违规但内容尚可救).
+  if (blocks.length === 0) {
+    const fallback = text.trim()
+    if (fallback) blocks.push(fallback)
+  }
+  return blocks
 }
 
 const parseBlock = (block: string): ParsedTestCase => {
@@ -103,7 +118,7 @@ const parseBlock = (block: string): ParsedTestCase => {
     const valueEnd = i + 1 < matches.length ? matches[i + 1].matchIndex : text.length
     let value = text.slice(valueStart, valueEnd)
     value = value.replace(/^\s*\n/, '').trim()
-    value = value.replace(/ /g, ' ')
+    value = value.replace(/ /g, ' ')
     ;(result as any)[key] = value
   }
 
@@ -135,7 +150,7 @@ const normalizeIndexedList = (input: string): string => {
 }
 
 export function parseTestCases(raw: string): ParsedTestCase[] {
-  const text = stripCodeFences(raw || '')
+  const text = (raw || '').trim()
   if (!text) return []
   const blocks = splitBlocks(text)
   const records = blocks.map(parseBlock).map((r) => ({

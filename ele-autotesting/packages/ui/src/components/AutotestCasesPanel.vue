@@ -480,7 +480,7 @@ const apSelectedCases = computed(() =>
   cases.value.filter((c) => selectedIds.value.has(c.id)).sort((a, b) => a.num - b.num),
 )
 
-// caseIndex 1-based 与聚合产物里的 "CASE N" 头一一对应; meta 保留原 case 便于
+// caseIndex 1-based 与聚合产物里 \`\`\`case id=N\` 一一对应; meta 保留原 case 便于
 // 未来扩展 enrichTask, 当前 autotest 不注入元数据故未传 enrich-task prop.
 const apSourceItems = computed<SourceItem[]>(() =>
   apSelectedCases.value.map((c, idx) => ({
@@ -490,18 +490,31 @@ const apSourceItems = computed<SourceItem[]>(() =>
   })),
 )
 
+// FCB-CASE title escape: backtick / 换行变空格, 双引号转义为 \", 防引号撕裂 info string.
+function escapeFcbTitle(raw: string): string {
+  return String(raw ?? '')
+    .replace(/[`\r\n]+/g, ' ')
+    .replace(/"/g, '\\"')
+    .trim()
+}
+
+// 输出符合 FCB-CASE 协议的聚合文本 (与 MeterSphereDataPanel 同步): 每条 case 一个
+// \`\`\`case id=N title="..." ... \`\`\` block, 之间空行分隔.
 function buildAggregatedFromItems(items: SourceItem[]): string {
   const parts = items.map((it) => {
     const c = it.meta as AutotestCase | undefined
-    if (!c) return `=== CASE ${it.caseIndex}: ${it.label ?? ''} ===`
+    const title = escapeFcbTitle(c?.name ?? it.label ?? `CASE ${it.caseIndex}`)
+    const header = `\`\`\`case id=${it.caseIndex} title="${title}"`
+    if (!c) return `${header}\n\`\`\``
     const tags = c.tags?.length ? `\n标签: ${c.tags.join(', ')}` : ''
     const pre = c.preconditions ? `\n前置条件: ${c.preconditions}` : ''
-    return `=== CASE ${it.caseIndex}: ${c.name} ===
+    return `${header}
 模块: ${c.module}
 优先级: ${c.priority}${pre}
 步骤:
 ${c.steps}
-期望: ${c.expected}${tags}`
+期望: ${c.expected}${tags}
+\`\`\``
   })
   return parts.join('\n\n')
 }

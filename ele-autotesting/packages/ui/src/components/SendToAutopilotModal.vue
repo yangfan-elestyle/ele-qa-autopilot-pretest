@@ -44,7 +44,7 @@
             <div style="font-size: 13px; opacity: 0.8; margin-bottom: 8px">
               已就绪 <strong>{{ items.length }}</strong> 条用例
               <template v-if="failedFetch">· <span style="color: var(--theme-danger, #b00)">{{ failedFetch }} 条失败 (已跳过)</span></template>.
-              聚合文本作为 prompt 发给 harness, 模板内容注入 system. 输出按 "=== CASE N: " 头切片录入 Autopilot.
+              聚合文本作为 prompt 发给 harness, 模板内容注入 system. 输出按 FCB-CASE 协议 (<code>```case id=N title="..."</code> 开 fence + <code>```</code> 闭 fence) 切片录入 Autopilot.
             </div>
 
             <div style="margin-bottom: 10px">
@@ -106,7 +106,7 @@
           <!-- 步骤 4: 审阅切片 + 编辑 folder + 录入 -->
           <section v-if="step === 'edit'">
             <div style="font-size: 13px; opacity: 0.8; margin-bottom: 8px">
-              harness 返回原文已展示. 可直接编辑下方文本, 切片按 "=== CASE N: " 头进行,
+              harness 返回原文已展示. 可直接编辑下方文本, 切片按 FCB-CASE 协议 (<code>```case id=N title="..."</code> 开 fence + <code>```</code> 闭 fence) 进行,
               解析得到 <strong>{{ parsedTasks.length }}</strong> 条 task.
             </div>
             <label style="display: block; font-size: 12px; opacity: 0.8; margin-bottom: 4px">harness 返回 (可编辑)</label>
@@ -122,7 +122,7 @@
                   {{ idx + 1 }}. <strong>{{ t.title }}</strong> ({{ t.text.length }} chars)
                 </li>
                 <li v-if="!parsedTasks.length" style="color: var(--theme-danger, #b00); font-size: 12px">
-                  未解析到任何 task. 请检查文本是否包含 "=== CASE N: &lt;title&gt; ===" 头.
+                  未解析到任何 task. 请检查文本是否符合 FCB-CASE 协议 (每条用 <code>```case id=N title="..."</code> 开 fence + 单独一行 <code>```</code> 闭 fence 包裹).
                 </li>
               </ul>
             </div>
@@ -265,8 +265,15 @@ type FetchProgressCb = (fetched: number, failed: number) => void
 export type FetchSourcesFn = (onProgress: FetchProgressCb) => Promise<{ items: SourceItem[] }>
 
 // ── 默认 ─────────────────────────────────────────────────────────────────────
-const AP_CASE_HEADER_RE = /^===\s*CASE\s+(\d+):\s*(.*?)\s*===\s*$/i
+// FCB-CASE 协议: 开 fence `\`\`\`case id=N title="..."`, 闭 fence `\`\`\``. title 支持 \" 转义.
+// 详见 ele-harness/.harness/plugins/qa-orchestrator/skills/qa-browser-orchestrator/SKILL.md.
+const AP_CASE_FENCE_OPEN_RE = /^\s*```case\s+id=(\d+)\s+title="((?:[^"\\]|\\.)*)"\s*$/
+const AP_CASE_FENCE_CLOSE_RE = /^\s*```\s*$/
 const AP_FOLDER_HISTORY_MAX = 8
+
+function unescapeFcbTitle(s: string): string {
+  return s.replace(/\\(.)/g, '$1')
+}
 
 // presets 现由用户在【集成中心 → Autopilot 模板】配置 (账号同步到云端 D1),
 // 内置仅【传话人】1 个作默认.
@@ -391,20 +398,40 @@ function buildHarnessPayload(template: string, aggregated: string): {
   return sys ? { prompt: aggregated, appendSystemPrompt: sys } : { prompt: aggregated }
 }
 
+// FCB-CASE state machine: 扫开 fence → 收 body → 遇闭 fence 收尾. 末尾未闭合也采纳, 避免丢数据.
 function parseHarnessText(text: string): ParsedTask[] {
   const lines = text.split(/\r?\n/)
   const sections: ParsedTask[] = []
   let current: { title: string; bodyLines: string[]; caseIndex: number } | null = null
   for (const line of lines) {
-    const m = line.match(AP_CASE_HEADER_RE)
-    if (m) {
-      if (current) sections.push({ title: current.title, text: current.bodyLines.join('\n').trim(), caseIndex: current.caseIndex })
-      current = { title: m[2] || `CASE ${m[1]}`, bodyLines: [], caseIndex: Number(m[1]) }
-    } else if (current) {
+    if (!current) {
+      const m = line.match(AP_CASE_FENCE_OPEN_RE)
+      if (m) {
+        current = {
+          caseIndex: Number(m[1]),
+          title: unescapeFcbTitle(m[2] ?? '') || `CASE ${m[1]}`,
+          bodyLines: [],
+        }
+      }
+      // 块外行 (前导噪音 / 块间空白) 丢弃.
+    } else if (AP_CASE_FENCE_CLOSE_RE.test(line)) {
+      sections.push({
+        title: current.title,
+        text: current.bodyLines.join('\n').trim(),
+        caseIndex: current.caseIndex,
+      })
+      current = null
+    } else {
       current.bodyLines.push(line)
     }
   }
-  if (current) sections.push({ title: current.title, text: current.bodyLines.join('\n').trim(), caseIndex: current.caseIndex })
+  if (current) {
+    sections.push({
+      title: current.title,
+      text: current.bodyLines.join('\n').trim(),
+      caseIndex: current.caseIndex,
+    })
+  }
   return sections.filter((s) => s.text.length > 0)
 }
 

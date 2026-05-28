@@ -1,5 +1,11 @@
 # harness 用例编排优化
 
+> **DEPRECATED 协议片段**: 本文档落地时使用的 case 切片协议是 `=== CASE N: <title> ===` 头行. 已被 **FCB-CASE (Fenced Case Block) 协议** 取代 (每个 case 用 ` ```case id=N title="..." ` 开 fence + ` ``` ` 闭 fence 包裹). 新协议事实源:
+> - 工程实现: `ele-autotesting` 的 `MeterSphereDataPanel.vue:buildAggregatedFromItems` / `AutotestCasesPanel.vue:buildAggregatedFromItems` / `SendToAutopilotModal.vue:parseHarnessText` / `parseTestCases.ts`
+> - LLM prompt 信源: `ele-harness/.harness/plugins/qa-orchestrator/skills/qa-browser-orchestrator/SKILL.md` 的 "FCB-CASE 协议" 段
+>
+> 本规划文档保留作历史归档, 涉及 `=== CASE` 字样请以当前代码 / SKILL.md 为准.
+
 ## 背景
 
 `autotesting` → `harness oneshot` → `autopilot` 链路当前在转换环节用【传话人】prompt (原样复述), 没用到 harness 推理能力. 这一步是 **测试用例 → browser-use 任务** 的核心, 需要真正做编排 (补全起点 / 动作 / 数据 / 验证, 把业务意图编排成可执行步骤序列).

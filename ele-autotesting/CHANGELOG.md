@@ -2,6 +2,13 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.28.0] - 2026-05-28
+
+### Changed
+
+- 多测试用例的「聚合 / 切片」格式统一升级为 **FCB-CASE (Fenced Case Block) 协议**: 每个测试用例渲染为一个独立的 markdown fenced code block (` ```case ... ``` `), MeterSphere / AutoTest → Autopilot 聚合产物再额外携带 `id` 与 `title` 元数据 (` ```case id=N title="..." `). 取代旧 `---` 与 `=== CASE N: <title> ===` 分隔约定, 不与正文 markdown 混淆, 渲染兼容主流 markdown 工具.
+- 「测试用例生成」提示词与下游 parser 同步切换到新协议, 取消「整体输出再外包一层 ` ```text ` 代码块」的旧约定. 生成模板版本号升至 1.4.0.
+
 ## [1.27.3] - 2026-05-28
 
 ### Changed
