@@ -2,6 +2,13 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.26.5] - 2026-05-28
+
+### Changed
+
+- 顶部「联动」面板的 AutoTest 用例不再是写死的示例数据, 改为直接读取「内容生成」面板最近一次的生成结果, 选中后即可送至 Autopilot 或录入 MeterSphere.
+- 联动表格新增「前置条件」列, 录入 MeterSphere 时 `prerequisite` 字段同步使用生成的前置条件, 不再固定为空.
+
 ## [1.26.4] - 2026-05-28
 
 ### Changed
