@@ -47,7 +47,9 @@ const buildLabelRegex = () => {
 
 const LABEL_REGEX = buildLabelRegex()
 
-// FCB-CASE fence 边界识别. 严格按 3-backtick + info string 起首 `case` 匹配.
+// FCB-CASE fence 边界识别. 严格按 3-backtick + info string 起首 `case` 匹配,
+// info string 之后可跟 `id=N` 元数据 (prompt v1.4.1 起强制要求, parser 兼容裸 `case` 兜底).
+// `id=N` 表达 "本次共生成几条 / 当前是第几条", 解析时不强制读取 (调用方按数组顺序即知序号).
 const FENCE_OPEN_RE = /^\s*```case(?:\s.*)?$/
 const FENCE_CLOSE_RE = /^\s*```\s*$/
 

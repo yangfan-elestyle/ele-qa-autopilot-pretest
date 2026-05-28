@@ -2,6 +2,12 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.28.1] - 2026-05-28
+
+### Changed
+
+- 「测试用例生成」FCB-CASE 开 fence 加入 `id=N` 序号 (例: ` ```case id=1 `、` ```case id=2 `), N 从 1 起严格递增到本次用例总数, 让"共生成几条 / 当前是第几条"在原文里一眼可见. parser 兼容历史无 id 的 fence (兜底), 生成模板版本号升至 1.4.1.
+
 ## [1.28.0] - 2026-05-28
 
 ### Changed
