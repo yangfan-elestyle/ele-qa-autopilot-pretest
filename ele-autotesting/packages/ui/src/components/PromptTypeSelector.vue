@@ -19,7 +19,7 @@
         </button>
 
         <button
-          @click="selectType('prompt_url')"
+          @click="handleConfluenceTypeSelect"
           :class="[
             'px-2 py-1.5 text-xs rounded border transition-colors duration-150',
             'focus:outline-none focus:ring-1 focus:ring-blue-400',
@@ -32,7 +32,7 @@
         </button>
 
         <button
-          @click="selectType('prompt_figma')"
+          @click="handleFigmaTypeSelect"
           :class="[
             'px-2 py-1.5 text-xs rounded border transition-colors duration-150',
             'focus:outline-none focus:ring-1 focus:ring-blue-400',
@@ -73,36 +73,61 @@
 
       <!-- 内容输入区域 -->
       <div class="w-full min-w-0 flex-1 sm:min-w-[200px]">
-        <!-- Confluence URL 类型 -->
+        <!-- Confluence URL 类型: 状态条 -->
         <template v-if="contextConfig.contentType === 'prompt_url'">
-          <div class="flex items-center space-x-2">
-            <input
-              :value="contextConfig.contents || ''"
-              @input="updateUrl(($event.target as HTMLInputElement).value)"
-              @keydown.enter="handleUrlEnter"
-              type="url"
-              placeholder="请输入 Confluence 页面链接"
-              class="w-full px-2 py-0.5 text-sm theme-input"
-              :disabled="isLoading"
-            />
+          <div class="flex items-center gap-2 min-h-[28px]">
+            <template v-if="contextConfig.contents">
+              <span
+                class="flex-1 min-w-0 truncate px-2 py-1 text-xs rounded theme-text-secondary"
+                style="background: var(--theme-bg-secondary, rgba(0,0,0,0.04))"
+                :title="contextConfig.contents"
+              >
+                {{ contextConfig.contents }}
+              </span>
+              <button
+                type="button"
+                class="px-2 py-1 text-xs theme-button-secondary flex-shrink-0"
+                :disabled="isLoading"
+                @click="openUrlModal('confluence')"
+              >更改</button>
+            </template>
+            <template v-else>
+              <button
+                type="button"
+                class="px-2 py-1 text-xs theme-button-primary"
+                :disabled="isLoading"
+                @click="openUrlModal('confluence')"
+              >输入 Confluence 链接</button>
+            </template>
           </div>
         </template>
 
-        <!-- Figma URL 类型 -->
+        <!-- Figma URL 类型: 状态条 -->
         <template v-else-if="contextConfig.contentType === 'prompt_figma'">
-          <div class="flex flex-col gap-1">
-            <input
-              :value="contextConfig.contents || ''"
-              @input="updateUrl(($event.target as HTMLInputElement).value)"
-              @keydown.enter="handleFigmaEnter"
-              type="url"
-              placeholder="请输入 Figma 文件链接"
-              class="w-full px-2 py-0.5 text-sm theme-input"
-              :disabled="isLoading"
-            />
-            <p class="text-xs theme-text-secondary">
-              Token 已托管在「集成中心 → Figma」(云端, 跨设备)。未配置时请先到顶部「集成中心」填写。
-            </p>
+          <div class="flex items-center gap-2 min-h-[28px]">
+            <template v-if="contextConfig.contents">
+              <span
+                class="flex-1 min-w-0 truncate px-2 py-1 text-xs rounded theme-text-secondary"
+                style="background: var(--theme-bg-secondary, rgba(0,0,0,0.04))"
+                :title="contextConfig.contents"
+              >
+                {{ contextConfig.contents }}
+              </span>
+              <button
+                type="button"
+                class="px-2 py-1 text-xs theme-button-secondary flex-shrink-0"
+                :disabled="isLoading"
+                @click="openUrlModal('figma')"
+              >更改</button>
+            </template>
+            <template v-else>
+              <button
+                type="button"
+                class="px-2 py-1 text-xs theme-button-primary"
+                :disabled="isLoading"
+                @click="openUrlModal('figma')"
+              >输入 Figma 链接</button>
+            </template>
           </div>
         </template>
 
@@ -145,6 +170,69 @@
       </div>
     </div>
 
+    <!-- Confluence / Figma URL 输入弹窗 -->
+    <Teleport to="body">
+      <div
+        v-if="showUrlModal"
+        class="fixed inset-0 theme-mask z-50 flex items-center justify-center p-4"
+        @click="onUrlModalMaskClick"
+      >
+        <div
+          class="theme-manager-container w-full mx-auto flex flex-col overflow-hidden"
+          style="max-width: 480px"
+          @click.stop
+        >
+          <header class="ds-modal-head">
+            <div class="ds-modal-head-left">
+              <h3 class="ds-modal-title">{{ urlModalTitle }}</h3>
+            </div>
+            <div class="ds-modal-head-right">
+              <button
+                class="ds-icon-btn-sm"
+                type="button"
+                :disabled="isLoading"
+                aria-label="关闭"
+                @click="cancelUrlModal"
+              >
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M18 6 6 18" />
+                  <path d="m6 6 12 12" />
+                </svg>
+              </button>
+            </div>
+          </header>
+
+          <div class="ds-modal-body" style="padding: 16px">
+            <input
+              ref="urlModalInputRef"
+              v-model="urlModalValue"
+              @keydown.enter.prevent="submitUrlModal"
+              @keydown.esc.prevent="cancelUrlModal"
+              type="url"
+              :placeholder="urlModalPlaceholder"
+              class="w-full px-3 py-2 text-sm theme-input"
+              :disabled="isLoading"
+            />
+
+            <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px">
+              <button
+                class="ds-ms-btn"
+                type="button"
+                :disabled="isLoading"
+                @click="cancelUrlModal"
+              >取消</button>
+              <button
+                class="ds-ms-btn ds-ms-btn--primary"
+                type="button"
+                :disabled="isLoading || !urlModalValue.trim()"
+                @click="submitUrlModal"
+              >解析</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
     <!-- 图片预览弹窗 -->
     <div
       v-if="showImagePreview && contextConfig.contents"
@@ -172,7 +260,7 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, ref, type PropType } from 'vue'
+import { computed, nextTick, ref, type PropType } from 'vue'
 import { type ContentType, getApiBasePath, getAuthHeaders } from '@prompt-optimizer/core'
 import { createMcpServiceFor, getMcpTextContents } from '../services/mcp-client'
 import type { ContextConfig } from '@/composables'
@@ -209,15 +297,21 @@ const isLoading = ref(false)
 const allowedFileExtensions = ['pdf', 'docx', 'pptx', 'csv', 'doc', 'epub', 'html', 'htm', 'txt', 'text', 'plaintext', 'xlsx']
 const allowedFileAccept = allowedFileExtensions.map((ext) => `.${ext}`).join(',')
 
+// URL 输入弹窗状态
+const showUrlModal = ref(false)
+const urlModalMode = ref<'confluence' | 'figma'>('confluence')
+const urlModalValue = ref('')
+const urlModalInputRef = ref<HTMLInputElement>()
+const urlModalTitle = computed(() => (urlModalMode.value === 'confluence' ? '输入 Confluence 页面链接' : '输入 Figma 文件链接'))
+const urlModalPlaceholder = computed(() =>
+  urlModalMode.value === 'confluence' ? 'https://...atlassian.net/wiki/...' : 'https://www.figma.com/...'
+)
+
 const updatePromptContent = (value: string) => {
   emit('update:contents', value)
 }
 
 // ================= URL 相关逻辑 =================
-
-const updateUrl = (value: string) => {
-  emit('update:contextConfig', { ...props.contextConfig, contents: value })
-}
 
 // 创建 MCP 服务实例（用于 text -> markdown 内容）
 const markitdownMcpService = createMcpServiceFor({
@@ -238,9 +332,9 @@ function extractConfluencePageId(url: string): string | null {
   return best || null
 }
 
-// URL回车处理（直接调用服务端 confluence-parse API）
-const handleUrlEnter = async () => {
-  const url = props.contextConfig.contents?.trim()
+// Confluence 解析 (modal 提交或外部按需触发都走这里)
+const handleUrlEnter = async (urlOverride?: string) => {
+  const url = (urlOverride ?? props.contextConfig.contents ?? '').trim()
   if (!url) return
 
   isLoading.value = true
@@ -321,8 +415,8 @@ const handleUrlEnter = async () => {
   }
 }
 
-const handleFigmaEnter = async () => {
-  const url = (props.contextConfig.contents || '').trim()
+const handleFigmaEnter = async (urlOverride?: string) => {
+  const url = (urlOverride ?? props.contextConfig.contents ?? '').trim()
   if (!url) return
 
   isLoading.value = true
@@ -393,6 +487,54 @@ const selectType = (type: ContentType) => {
   }
 
   emit('update:contextConfig', newData)
+}
+
+// ================= URL Modal 相关逻辑 =================
+
+const openUrlModal = (mode: 'confluence' | 'figma') => {
+  urlModalMode.value = mode
+  urlModalValue.value = props.contextConfig.contents || ''
+  showUrlModal.value = true
+  nextTick(() => urlModalInputRef.value?.focus())
+}
+
+const handleConfluenceTypeSelect = () => {
+  if (props.contextConfig.contentType !== 'prompt_url') {
+    selectType('prompt_url')
+  }
+  openUrlModal('confluence')
+}
+
+const handleFigmaTypeSelect = () => {
+  if (props.contextConfig.contentType !== 'prompt_figma') {
+    selectType('prompt_figma')
+  }
+  openUrlModal('figma')
+}
+
+const cancelUrlModal = () => {
+  if (isLoading.value) return
+  showUrlModal.value = false
+  // 取消时若无已确认的 URL, 自动切回文本类型, 避免遗留空白状态
+  if (!props.contextConfig.contents?.trim()) {
+    selectType('prompt_plaintext')
+  }
+}
+
+const onUrlModalMaskClick = () => {
+  cancelUrlModal()
+}
+
+const submitUrlModal = async () => {
+  const trimmed = urlModalValue.value.trim()
+  if (!trimmed || isLoading.value) return
+  emit('update:contextConfig', { ...props.contextConfig, contents: trimmed })
+  showUrlModal.value = false
+  if (urlModalMode.value === 'confluence') {
+    await handleUrlEnter(trimmed)
+  } else {
+    await handleFigmaEnter(trimmed)
+  }
 }
 
 // ================= File 相关逻辑 =================
