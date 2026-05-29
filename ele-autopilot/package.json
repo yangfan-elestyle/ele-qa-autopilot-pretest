@@ -1,6 +1,6 @@
 {
   "name": "ele-autopilot",
-  "version": "1.28.7",
+  "version": "1.28.8",
   "private": true,
   "type": "module",
   "scripts": {

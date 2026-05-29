@@ -1,7 +1,5 @@
 import {
   BranchesOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
   DeleteOutlined,
   EditOutlined,
   EyeOutlined,
@@ -23,7 +21,6 @@ import { useMemo, useState } from 'react';
 
 import type { Folder, Id, Task, TaskJobStats } from '../_types';
 import EmptyState from './empty-state';
-import MetricTile from './metric-tile';
 import TableSkeleton from './table-skeleton';
 import SourceTag from './source-tag';
 import TaskTitleTag from './task-title-tag';
@@ -318,64 +315,6 @@ export default function TaskContent({
           </div>
         </div>
       </div>
-
-      {/* KPI strip */}
-      {selectedFolder && (
-        <div className="mb-4 grid flex-shrink-0 grid-cols-2 gap-2 sm:grid-cols-4 lg:gap-3">
-          <MetricTile
-            label="任务总数"
-            value={taskCount}
-            hint={
-              aggregate.executed
-                ? `${aggregate.executed} 已运行 · ${aggregate.idle} 待执行`
-                : taskCount === 0
-                  ? '尚无任务'
-                  : '尚未运行'
-            }
-            tone="neutral"
-            icon={<FileTextOutlined />}
-          />
-          <MetricTile
-            label="成功率"
-            value={aggregate.successRate == null ? '—' : `${aggregate.successRate}%`}
-            hint={
-              aggregate.completed + aggregate.failed > 0
-                ? `跨 ${aggregate.total} 次执行`
-                : '暂无完成记录'
-            }
-            tone={
-              aggregate.successRate == null
-                ? 'neutral'
-                : aggregate.successRate >= 80
-                  ? 'success'
-                  : aggregate.successRate >= 50
-                    ? 'warning'
-                    : 'danger'
-            }
-            icon={<CheckCircleOutlined />}
-          />
-          <MetricTile
-            label="进行中"
-            value={aggregate.active}
-            hint={aggregate.active > 0 ? '执行 / 排队中' : '当前空闲'}
-            tone={aggregate.active > 0 ? 'info' : 'neutral'}
-            icon={aggregate.active > 0 ? <LoadingOutlined /> : <CheckCircleOutlined />}
-          />
-          <MetricTile
-            label="失败累计"
-            value={aggregate.failed}
-            hint={
-              aggregate.failed === 0
-                ? '健康'
-                : aggregate.total > 0
-                  ? `占 ${Math.round((aggregate.failed / aggregate.total) * 100)}% · ${failedTaskCount} 任务`
-                  : ''
-            }
-            tone={aggregate.failed === 0 ? 'neutral' : 'danger'}
-            icon={<CloseCircleOutlined />}
-          />
-        </div>
-      )}
 
       {/* Surface card */}
       <div className="ds-section flex min-h-0 flex-1 flex-col">
