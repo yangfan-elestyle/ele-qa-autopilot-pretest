@@ -401,7 +401,7 @@ export default function TaskContent({
               })}
               size="middle"
               tableLayout="fixed"
-              scroll={{ x: 'max-content' }}
+              scroll={{ x: 720 }}
               locale={{
                 emptyText: (
                   <EmptyState
