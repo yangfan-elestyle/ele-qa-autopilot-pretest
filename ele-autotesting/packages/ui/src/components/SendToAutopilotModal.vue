@@ -384,16 +384,29 @@ function taskPreviewUrl(taskId: string): string {
 }
 
 // ── 业务 ─────────────────────────────────────────────────────────────────────
-// 当前 textarea 内容命中哪个 preset → 高亮该按钮; 手改过 (无命中) 则都不亮 = 自定义.
+// 用户最近显式点击的 preset key. 高亮优先认它, 这样内容逐字符相同的克隆副本与原始
+// 也能区分 (副本 template === 原始 template, 仅凭内容反查会恒命中靠前那个).
+// null = 没点过 / 手改后已偏离, 回退按内容反查.
+const selectedPresetKey = ref<string | null>(null)
+
+// 高亮规则: 1) 点过某 preset 且 textarea 仍等于它的 template → 高亮它;
+//          2) 否则按内容反查命中的首个 preset; 3) 手改到无命中则都不亮 = 自定义.
 const activePresetKey = computed<string | null>(() => {
   const cur = promptTemplate.value.trim()
   if (!cur) return null
+  if (selectedPresetKey.value) {
+    const sel = promptPresets.value.find((p) => p.key === selectedPresetKey.value)
+    if (sel && sel.template.trim() === cur) return sel.key
+  }
   return promptPresets.value.find((p) => p.template.trim() === cur)?.key ?? null
 })
 
 function applyPreset(key: string) {
   const preset = promptPresets.value.find((p) => p.key === key)
-  if (preset) promptTemplate.value = preset.template
+  if (preset) {
+    selectedPresetKey.value = key
+    promptTemplate.value = preset.template
+  }
 }
 
 // 协议: prompt = 聚合文本本身, template 作为 appendSystemPrompt 透传给 agentic-loop.
