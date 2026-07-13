@@ -48,8 +48,8 @@ router.all('/', async (c: Context<HonoEnv>) => {
       }
     })
 
-    // 直接把上游 body 流式回传, 不要 .text() 把整个响应缓存到 Worker 内存:
-    // CF Workers 单实例 128MB 上限, 上游返回大附件 (PDF/图床) 会直接 OOM 502.
+    // 直接把上游 body 流式回传, 不要 .text() 把整个响应缓存进内存:
+    // 上游大附件 (PDF/图床) 全量读入会撑高内存, 流式转发避免 OOM.
     return new Response(fetchResponse.body, {
       status: fetchResponse.status,
       headers: responseHeaders,

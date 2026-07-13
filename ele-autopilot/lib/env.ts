@@ -1,6 +1,6 @@
-// ele-autopilot Node/Bun 运行时 env (替代 CF Worker Env + wrangler vars/secrets).
-// D1 → libSQL embedded (DATABASE_URL=file:/data/autopilot.db); R2 → MinIO (S3 兼容);
-// CF Access → X-Auth-User-Email header (gateway 收口后注入).
+// ele-autopilot Node/Bun 运行时 env.
+// 持久化: libSQL embedded (DATABASE_URL=file:/data/autopilot.db); 对象存储: MinIO (S3 兼容);
+// 身份: gateway 注入的 X-Auth-User-Email header.
 
 export interface Env {
   DATABASE_URL: string;

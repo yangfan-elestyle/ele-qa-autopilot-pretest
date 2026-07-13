@@ -25,12 +25,12 @@ export default [
   // External ingest API (v1). 外部系统建 task / chain 的入口, 公网可达, 本期无鉴权, 无幂等.
   route('api/v1/ingest/tasks', 'routes/api.v1.ingest.tasks.tsx'),
 
-  // Static screenshot files (R2 bucket ele-autopilot-screenshots, URL 形如 /screenshots/{job_task_id}/{i}.png)
+  // Static screenshot files (对象存储 bucket ele-autopilot-screenshots, URL 形如 /screenshots/{job_task_id}/{i}.png)
   route('screenshots/*', 'routes/screenshots.$.tsx'),
 
-  // ele-autopilot-local 发布产物代理 (R2 bucket ele-autopilot-releases, URL 形如 /releases/local/{version}/{file})
+  // ele-autopilot-local 发布产物代理 (对象存储 bucket ele-autopilot-releases, URL 形如 /releases/local/{version}/{file})
   route('releases/local/*', 'routes/releases.local.$.tsx'),
 
-  // ele-autopilot-local 安装脚本 (Worker 动态生成, BASE_URL 自带)
+  // ele-autopilot-local 安装脚本 (loader 动态生成, BASE_URL 自带)
   route('install.sh', 'routes/install-script.tsx'),
 ] satisfies RouteConfig;

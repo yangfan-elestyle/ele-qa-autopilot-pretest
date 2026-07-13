@@ -2,13 +2,14 @@
  * 共享代理 URL 校验与响应头过滤。
  *
  * 历史上 /http-proxy 与 /stream-proxy 直接 fetch 用户给的 targetUrl, 等于把
- * Worker 暴露成开放 SSRF 跳板:
+ * 本服务暴露成开放 SSRF 跳板:
  *   - 探测内网 / 云元数据 (169.254.169.254, 127.0.0.1, 10/172/192 段)
  *   - 跳到非 http(s) scheme
  *   - 把上游 set-cookie / authorization 等敏感头转回客户端 (cookie 注入 / 凭据回灌)
  *
- * 这里只做字符串级 host 校验, 拦不住 DNS rebind, 但能挡 99% 的探测请求,
- * 配合 CF Worker 平台层对内网 IP 的拒绝, 风险可控.
+ * 服务现直接跑在内网 (Docker), 内网 IP 正是可达目标; 原先依赖的平台层内网拒绝
+ * 已不存在 — 下面的字符串级 host 校验是唯一防线. 它拦不住 DNS rebind, 但能挡
+ * 绝大多数直接探测.
  */
 
 const BLOCKED_HOST_PATTERNS: RegExp[] = [
@@ -88,7 +89,7 @@ export function mergeIncomingQuery(target: string, requestUrl: string): string {
  * 上游响应头中需要剥离的敏感字段.
  * - set-cookie / set-cookie2: 防止上游 cookie 注入到 gateway domain 的浏览器
  * - authorization / proxy-authenticate / www-authenticate: 凭据 / 认证挑战回流
- * - content-encoding / transfer-encoding / content-length: Worker 重写 body 时由 fetch 重算
+ * - content-encoding / transfer-encoding / content-length: 服务端重写 body 时由 fetch 重算
  */
 const STRIPPED_RESPONSE_HEADERS = new Set([
   'set-cookie',

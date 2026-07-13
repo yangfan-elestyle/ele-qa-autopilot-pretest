@@ -1,6 +1,6 @@
 // MCP 浏览器直连客户端 (Streamable HTTP)
 //
-// 前端直接走 MCP Streamable HTTP 协议与同源 Worker 反代的 MCP 服务器通信，
+// 前端直接走 MCP Streamable HTTP 协议与同源服务反代的 MCP 服务器通信，
 // 不再依赖任何后端 mcp-proxy session 缓存层。
 //
 // 协议参考: https://spec.modelcontextprotocol.io/specification/basic/transports/

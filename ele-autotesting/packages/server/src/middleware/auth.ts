@@ -13,7 +13,7 @@ import { AUTH_HEADER } from '../lib/constants.ts'
  * 本地 dev (直连 :8787, 不经 gateway):
  *   - 缺 header → 看 `c.env.DEV_FALLBACK_EMAIL` (经 .env 注入), 否则 401.
  *
- * ownerId 前缀化 (`google:`) 是身份来源标记, 不要去掉. D1 schema 见 migrations/0001_init.sql.
+ * ownerId 前缀化 (`google:`) 是身份来源标记, 不要去掉. schema 见 migrations/0001_init.sql.
  */
 
 export type VerifyOutcome =

@@ -1,6 +1,6 @@
 # 一次性配置
 
-内网单机 docker-compose 部署 (Phase B, 已抛弃 Cloudflare). 编排细节见 [deploy/README.md](./deploy/README.md).
+内网单机 docker-compose 部署. 编排细节见 [deploy/README.md](./deploy/README.md).
 
 ## GitHub
 

@@ -1,9 +1,7 @@
 import { Resvg } from '@resvg/resvg-js'
 
-// Phase B: @resvg/resvg-wasm → @resvg/resvg-js (native, 无 initWasm / CompiledWasm).
-// 字体: resvg-js 不支持 fontBuffers, 改用系统字体 (loadSystemFonts). 容器需装 CJK 字体
-// (Dockerfile: fonts-noto-cjk). 这也去掉了原 wasm 版运行时从 jsdelivr 拉字体的公网出站依赖
-// (更适合内网部署), 同时移除 caches.default / cf: fetch 选项 (workerd 专有).
+// @resvg/resvg-js (native): 用系统字体渲染 (resvg-js 不支持 fontBuffers, 靠 loadSystemFonts).
+// 容器需装 CJK 字体 (Dockerfile: fonts-noto-cjk); 字体走系统安装而非运行时公网拉取, 适合内网.
 
 export const renderSvgToPng = async (
   svg: string,

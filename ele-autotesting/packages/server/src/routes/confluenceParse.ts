@@ -14,8 +14,8 @@ interface ConfluencePageResponse {
 
 const router = new Hono<HonoEnv>()
 
-// 上游 (Atlassian Cloud) 调用超时. CF Workers subrequest 上限 30s, 显式 AbortSignal
-// 提前止血, 命中后返回 504 而非 Worker 平台层 524.
+// 上游 (Atlassian Cloud) 调用超时. 显式 AbortSignal 提前止血, 命中后返回 504,
+// 避免慢上游长时间占住连接.
 const CONFLUENCE_FETCH_TIMEOUT_MS = 25_000
 
 router.get('/', async (c: Context<HonoEnv>) => {

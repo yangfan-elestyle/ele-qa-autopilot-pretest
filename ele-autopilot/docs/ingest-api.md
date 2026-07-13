@@ -89,7 +89,7 @@
 
 - **无幂等**: 重复推送同 payload 会产生 N 份记录. 调用方自行管理是否重发.
 - **不做 update / delete**: 修改 / 删除走 autopilot web 工作台.
-- **D1 无事务**: 中途失败留半成品 (folder / 部分 task). 调用方可重新整 payload 重试; 残留 folder 可在 web UI 删.
+- **非原子写入**: 中途失败留半成品 (folder / 部分 task). 调用方可重新整 payload 重试; 残留 folder 可在 web UI 删.
 - **folder 同名 sibling**: 表无 `(name, parent_id)` unique 约束, 并发推同 path 可能生成两条同名. 当前 ingest 调用方都是 batch / 低并发, 不补救.
 
 ## curl 示例

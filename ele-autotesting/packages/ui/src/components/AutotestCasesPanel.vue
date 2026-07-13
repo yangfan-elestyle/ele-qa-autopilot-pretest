@@ -296,7 +296,7 @@ function closeIngest() {
 }
 
 function buildHeaders(): HeadersInit {
-  // AK/SK 由 Worker 按 ownerId 从 D1 集成中心配置读出后做签名, 前端不再透传.
+  // AK/SK 由服务端按 ownerId 从集成中心配置读出后做签名, 前端不再透传.
   return {
     'content-type': 'application/json',
   }

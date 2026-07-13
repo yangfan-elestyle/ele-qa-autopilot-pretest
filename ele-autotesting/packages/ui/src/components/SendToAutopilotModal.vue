@@ -277,7 +277,7 @@ function unescapeFcbTitle(s: string): string {
   return s.replace(/\\(.)/g, '$1')
 }
 
-// presets 现由用户在【集成中心 → Autopilot 模板】配置 (账号同步到云端 D1),
+// presets 现由用户在【集成中心 → Autopilot 模板】配置 (账号同步到云端),
 // 内置仅【传话人】1 个作默认.
 const { presets: promptPresets } = usePromptPresets()
 

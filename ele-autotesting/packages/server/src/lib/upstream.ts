@@ -1,9 +1,9 @@
 import type { Env } from '../types/env.ts'
 
 /**
- * 下游寻址 (A1 → Phase B 内网 HTTP).
+ * 下游寻址 (内网 HTTP).
  *
- * `<NAME>_URL` (含 scheme) 直连 global fetch. CF service / VPC binding 已随迁移移除.
+ * `<NAME>_URL` (含 scheme) 直连 global fetch.
  *   - AUTOPILOT_URL / AGENTIC_LOOP_URL: compose service (如 http://autopilot:8080).
  *   - METERSPHERE_URL: 内网可达域名 https://bi.elepay.link (出站上游, 可 https).
  *

@@ -9,11 +9,11 @@ import {
 import { getBindings } from './bindings';
 
 /**
- * 对象存储 seam (A2 → Phase B MinIO 实现).
+ * 对象存储 seam (MinIO 实现).
  *
- * 抽象出本仓实际用到的 R2 表面 (put / get / list / delete + httpMetadata / httpEtag),
+ * 抽象出本仓实际用到的对象存储表面 (put / get / list / delete + httpMetadata / httpEtag),
  * `createS3Store()` 用 aws-sdk-v3 打到 MinIO (S3 兼容). screenshots.ts / releases.local
- * 调用不改. 仅覆盖用到的字段, 不追平完整 R2 API.
+ * 调用不改. 仅覆盖用到的字段, 不追平完整 API.
  */
 
 export interface StoredObject {

@@ -6,10 +6,10 @@ import { getDb } from '../lib/db.ts'
 /**
  * /api/integrations/figma — 集成中心 Figma Tab 的 PAT 存储.
  *
- * 字段: { token: string }. 不存任何回显字段, Worker 在 /figma-parse 内部读 token
+ * 字段: { token: string }. 不存任何回显字段, 服务端在 /figma-parse 内部读 token
  * 调用 https://api.figma.com, 浏览器侧不再持有明文.
  *
- * 存储: D1 storage 表, owner-scoped (c.var.ownerId), key = 'integration:figma'.
+ * 存储: libSQL storage 表, owner-scoped (c.var.ownerId), key = 'integration:figma'.
  * 与通用 /api/sync 走同一张表, 但走专用路由避免明文 token 命中浏览器掩码逻辑.
  *
  * GET 默认返掩码; GET ?raw=1 不开放 (前端用不到, 也避免明文落浏览器).

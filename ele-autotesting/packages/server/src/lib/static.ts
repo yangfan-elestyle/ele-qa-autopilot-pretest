@@ -1,7 +1,7 @@
 import { readFile, stat } from 'node:fs/promises'
 import { extname, join, normalize, sep } from 'node:path'
 
-// 静态资源服务 (替代 CF ASSETS binding). 服务 web/dist (Vue SPA 构建产物) + SPA index 兜底.
+// 静态资源服务: 服务 web/dist (Vue SPA 构建产物) + SPA index 兜底.
 // 注意: gateway 转发时已剥掉 /autotest 前缀, 故此处按剥后路径映射到 web/dist.
 
 const TYPES: Record<string, string> = {

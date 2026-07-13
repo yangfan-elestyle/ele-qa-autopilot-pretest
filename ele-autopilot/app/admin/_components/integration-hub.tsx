@@ -28,7 +28,7 @@ import type { JobConfig } from '../_types';
 
 // ────────────────────────────────────────────────────────────────────────────
 // 执行参数 schema — 与 ele-autopilot-local/autopilot/config.py `JobConfig`
-// pydantic 模型一一对应; 改字段名前必须同步两端 (本文件 + pydantic + D1 init).
+// pydantic 模型一一对应; 改字段名前必须同步两端 (本文件 + pydantic + migrations init).
 // `defaultValue` 是用户视角的默认值 (= migrations/0001_init.sql `agent_config` 初值),
 // 不是 pydantic 的 None — 后者代表"使用 browser-use 内部默认", 终端用户不需要暴露.
 // ────────────────────────────────────────────────────────────────────────────
@@ -260,7 +260,7 @@ function LocalAgentPanel() {
 
 // ────────────────────────────────────────────────────────────────────────────
 // LLM API Key 面板.
-// 集成中心存 D1, 任务下发时由 executeJob 拉取并注入到 local /autopilot/run.
+// 集成中心存服务端库 (libSQL), 任务下发时由 executeJob 拉取并注入到 local /autopilot/run.
 // GET 默认 mask, 仅显示 has_key + 首尾 4 字符预览; 永不展示明文.
 // ────────────────────────────────────────────────────────────────────────────
 
@@ -352,7 +352,7 @@ function LlmApiKeyPanel() {
   return (
     <div className="space-y-4">
       <p className="text-sm text-(--ant-color-text-secondary)">
-        Gemini API Key. 保存到云端 D1, 任务下发时随 <code>/autopilot/run</code> 请求注入到本地{' '}
+        Gemini API Key. 保存到云端, 任务下发时随 <code>/autopilot/run</code> 请求注入到本地{' '}
         <code>ele-autopilot-local</code>. 服务端永不返回明文, UI 只显示首尾 4 字符预览.
       </p>
 
@@ -560,7 +560,7 @@ function AgentConfigPanel({ onDirtyChange }: { onDirtyChange: (dirty: boolean) =
   return (
     <div className="space-y-4">
       <p className="text-sm text-(--ant-color-text-secondary)">
-        本机 Agent 执行任务时使用的 browser-use 参数. 保存到云端 D1, 下一个 Job 创建时读取最新值.
+        本机 Agent 执行任务时使用的 browser-use 参数. 保存到云端, 下一个 Job 创建时读取最新值.
       </p>
 
       {/* 预设方案 */}

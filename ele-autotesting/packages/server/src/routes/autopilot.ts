@@ -26,7 +26,7 @@ router.post('/ingest', async (c: Context<HonoEnv>) => {
     return c.json({ error: 'invalid json body' }, 400)
   }
 
-  // 调用方 (autotesting Worker) 总以 source=`autotesting` 上报, 无视客户端传入.
+  // 调用方 (autotesting) 总以 source=`autotesting` 上报, 无视客户端传入.
   // 上游 ingest 用 source 在 web UI 做色 hash 标识, 这里强制保证统一.
   const payload = { ...body, source: 'autotesting' }
 
@@ -39,7 +39,7 @@ router.post('/ingest', async (c: Context<HonoEnv>) => {
     })
   } catch (e: any) {
     console.error('autopilot ingest fetch failed:', e?.message || e)
-    return c.json({ error: `autopilot binding fetch failed: ${e?.message ?? e}` }, 502)
+    return c.json({ error: `autopilot fetch failed: ${e?.message ?? e}` }, 502)
   }
 
   const text = await upstream.text()

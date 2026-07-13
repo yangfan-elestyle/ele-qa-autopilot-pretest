@@ -1,5 +1,4 @@
-// Gateway Node/Bun 运行时 env (替代 CF Worker `Env` + wrangler vars).
-// 迁移 (Phase B): 去掉 CF Access (TEAM_DOMAIN / POLICY_AUD) 与 service binding,
+// Gateway Node/Bun 运行时 env.
 // 下游全部走内网 HTTP; 身份由 gateway 自签 cookie / X-Auth-User-Email header 荣誉制收口.
 
 export interface Env {

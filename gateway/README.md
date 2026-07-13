@@ -1,10 +1,10 @@
 # gateway
 
-内网唯一入口 (Phase B: 原 CF Worker → Bun Node server). React Router v7 (framework mode, SSR) + React 19, Bun. 无 DB / 对象存储 / secret; 只渲染 landing + 路由分发 + 身份收口. 部署形态见根 [AGENTS.md](../AGENTS.md#部署形态-phase-b-已抛弃-cloudflare) / [deploy/](../deploy).
+内网唯一入口 (Bun Node server). React Router v7 (framework mode, SSR) + React 19, Bun. 无 DB / 对象存储 / secret; 只渲染 landing + 路由分发 + 身份收口. 部署形态见根 [AGENTS.md](../AGENTS.md#部署形态-内网单机-docker-compose) / [deploy/](../deploy).
 
 ## 身份收口 (荣誉制, 仅 `@elestyle.jp`)
 
-无 CF Access / OIDC. gateway 自签明文 cookie 收口 (`lib/auth.ts`):
+无第三方 IdP. gateway 自签明文 cookie 收口 (`lib/auth.ts`):
 
 - **浏览器**: `/login` 输公司邮箱 → 写 cookie `ele_auth_email` (`Max-Age` 400 天, `SameSite=Lax; HttpOnly`); `/logout` 清除.
 - **脚本 / CLI**: 直接带 `X-Auth-User-Email: <email>` header (荣誉制, 内网边界是唯一防线).

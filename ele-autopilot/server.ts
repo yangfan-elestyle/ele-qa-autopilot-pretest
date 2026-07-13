@@ -1,4 +1,4 @@
-// ele-autopilot — Node/Bun HTTP 入口 (替代原 CF Worker `workers/app.ts`).
+// ele-autopilot — Node/Bun HTTP 入口.
 // 启动时建 libSQL client (file:) + S3 store (MinIO) 各一次, 跑 migrations,
 // 每个请求经 runWithBindings 注入 bindings 后交给 RR7 handler. 静态资源由 build/client 托管.
 

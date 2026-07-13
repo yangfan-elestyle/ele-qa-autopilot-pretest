@@ -1,10 +1,8 @@
-// qa gateway — Node/Bun HTTP 入口 (替代原 CF Worker `workers/app.ts`).
-// 唯一对外入口: 路径分发 + 身份收口 + 下游转发. 详见 ./README.md / ./AGENTS.md.
-//
-// 与 CF 版差异 (Phase B):
-//   - service binding → 内网 HTTP fetch (AUTOPILOT_URL / AUTOTEST_URL).
-//   - CF Access JWT → gateway 自签 cookie / X-Auth-User-Email 荣誉制 (lib/auth.ts).
-//   - assets binding → 本地 build/client 静态托管 (Bun.file), 缺失则透传下游.
+// qa gateway — Node/Bun HTTP 入口. 唯一对外入口: 路径分发 + 身份收口 + 下游转发.
+// 详见 ./README.md / ./AGENTS.md.
+//   - 下游: 内网 HTTP fetch (AUTOPILOT_URL / AUTOTEST_URL).
+//   - 身份: gateway 自签 cookie / X-Auth-User-Email 荣誉制 (lib/auth.ts).
+//   - 静态: 本地 build/client 托管 (Bun.file), 缺失则透传下游.
 
 import { createRequestHandler, type ServerBuild } from "react-router";
 import { fileURLToPath } from "node:url";
@@ -71,7 +69,7 @@ async function serveStatic(pathname: string): Promise<Response | null> {
   return new Response(file, { headers });
 }
 
-// service binding → 内网 HTTP. 转发时删入站 AUTH_HEADER (防伪造透传), 再按需注入已解析 email.
+// 下游内网 HTTP. 转发时删入站 AUTH_HEADER (防伪造透传), 再按需注入已解析 email.
 async function forward(
   base: string,
   request: Request,

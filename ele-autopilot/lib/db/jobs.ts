@@ -248,7 +248,7 @@ export async function createJob(input: { task_id: Id; config?: JobConfig }): Pro
     throw new Error('No tasks to execute');
   }
 
-  // D1 batch: 整个 job + job_tasks 链原子写入. 任一条失败整体回滚, 避免
+  // libSQL batch: 整个 job + job_tasks 链原子写入. 任一条失败整体回滚, 避免
   // 半成品 job (jobs 写入但 job_tasks 缺失) 留在表里.
   // started_at 留空: pending 阶段还未真正启动, 由 syncJobStatusFromTasks 在状态
   // 首次推进到 running 时回填, 避免前端把"创建 -> 启动"的等待时长算进任务耗时.
@@ -328,8 +328,8 @@ export async function deleteJobById(id: Id): Promise<{ changes: number; jobTaskI
 }
 
 /**
- * 给级联清理 R2 截图用: 返回一组 task 关联的所有 job_task id.
- * 内部走 jobs.task_id → job_tasks 两段查询, 跟 D1 cascade 链路一致.
+ * 给级联清理对象存储截图用: 返回一组 task 关联的所有 job_task id.
+ * 内部走 jobs.task_id → job_tasks 两段查询, 跟 FK cascade 链路一致.
  */
 export async function getJobTaskIdsByTaskIds(taskIds: Id[]): Promise<Id[]> {
   if (taskIds.length === 0) return [];

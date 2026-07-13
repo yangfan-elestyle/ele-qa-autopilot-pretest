@@ -49,7 +49,7 @@ jobs:
           sha256sum "${files[@]}" > checksums.txt
           cat checksums.txt
 
-      # 迁移: CF R2 put → GitHub Release (CI 到不了内网 MinIO). 宿主侧把 Release 产物
+      # wheel/sdist 发到 GitHub Release (CI 到不了内网 MinIO). 宿主侧把 Release 产物
       # mc cp 到 MinIO ele-autopilot-releases/local/<ver>/ + 更新 local/latest.txt (见 deploy/README.md).
       - name: Publish artifacts to GitHub Release
         env:

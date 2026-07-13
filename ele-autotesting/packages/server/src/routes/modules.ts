@@ -35,7 +35,7 @@ export interface ModuleRow {
 }
 
 function genId(): string {
-  // 16 字节随机十六进制 id; 不依赖 ULID, D1 worker 运行时无该 package.
+  // 16 字节随机十六进制 id; 不依赖 ULID 等外部 package.
   const bytes = new Uint8Array(16)
   crypto.getRandomValues(bytes)
   return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
@@ -79,7 +79,7 @@ router.post('/', async (c: Context<ModulesEnv>) => {
     return c.json({ module: { id, path, name, created_at: now, updated_at: now } satisfies ModuleRow })
   } catch (e: any) {
     const msg = String(e?.message || e)
-    // D1 UNIQUE 冲突: SQLITE_CONSTRAINT_UNIQUE / "UNIQUE constraint failed"
+    // libSQL/SQLite UNIQUE 冲突: SQLITE_CONSTRAINT_UNIQUE / "UNIQUE constraint failed"
     if (/UNIQUE/i.test(msg)) {
       const existing = await getDb(c).prepare(
         'SELECT id, path, name, created_at, updated_at FROM modules WHERE owner_id = ? AND path = ?',

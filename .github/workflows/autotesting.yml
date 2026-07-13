@@ -54,7 +54,7 @@ jobs:
             ghcr.io/${{ env.OWNER }}/ele-qa-autotesting:${{ github.ref_name }}
             ghcr.io/${{ env.OWNER }}/ele-qa-autotesting:latest
 
-      # markitdown sidecar (原 CF Container 同 image); 随 autotesting lockstep 发.
+      # markitdown sidecar; 随 autotesting lockstep 发.
       - name: Build & push markitdown
         uses: docker/build-push-action@v6
         with:

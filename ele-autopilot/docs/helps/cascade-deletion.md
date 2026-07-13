@@ -31,7 +31,7 @@ task/chain → job (task_id, ON DELETE CASCADE) → job_tasks (job_id, ON DELETE
 | 所有后代 subfolder | 是 | 递归 CTE 查找，按深度从叶子到根逐个删除 |
 | 所有后代 folder 下的 task | 是 | 批量删除 |
 | 相关 task 的 jobs + job_tasks | 是 | `jobs.task_id` 外键 `ON DELETE CASCADE` 级联清理 |
-| 相关 job_tasks 的 R2 截图对象 | 是 | DELETE handler 在删 D1 前抓 job_task id 链, 删 D1 后调 `deleteScreenshotsByJobTaskIds` 按前缀分页 list + batch delete R2 |
+| 相关 job_tasks 的对象存储截图 | 是 | DELETE handler 在删库行前抓 job_task id 链, 删库后调 `deleteScreenshotsByJobTaskIds` 按前缀分页 list + batch delete 对象 |
 | 其他 folder 中 task 的 `sub_ids` 引用 | 否 | 悬空引用，运行时安全跳过（见下方说明） |
 
 代码入口：`lib/db/folders.ts` — `deleteFolderById` (返回 `{ changes, jobTaskIds }`) + `app/routes/api.admin.folders.$id.tsx` DELETE handler.
@@ -42,7 +42,7 @@ task/chain → job (task_id, ON DELETE CASCADE) → job_tasks (job_id, ON DELETE
 | 级联对象 | 是否删除 | 说明 |
 | --- | --- | --- |
 | 该 task 的 jobs + job_tasks | 是 | `jobs.task_id` 外键 `ON DELETE CASCADE` 级联清理 |
-| 该 task 关联 job_tasks 的 R2 截图对象 | 是 | DELETE handler 同上, 走 `deleteScreenshotsByJobTaskIds` |
+| 该 task 关联 job_tasks 的对象存储截图 | 是 | DELETE handler 同上, 走 `deleteScreenshotsByJobTaskIds` |
 | `sub_ids` 引用的子 task | 否 | 子 task 保持不变，不受影响 |
 | 其他 chain 的 `sub_ids` 引用 | 否 | 悬空引用，运行时安全跳过（见下方说明） |
 | 引用该 task 的其他 chain 的执行历史 | 否 | 历史是快照，不受子 task 删除影响 |
@@ -55,7 +55,7 @@ task/chain → job (task_id, ON DELETE CASCADE) → job_tasks (job_id, ON DELETE
 | 级联对象 | 是否删除 | 说明 |
 | --- | --- | --- |
 | 该 job 的 job_tasks | 是 | `job_tasks.job_id` 外键 `ON DELETE CASCADE` |
-| 该 job 关联 job_tasks 的 R2 截图对象 | 是 | DELETE handler 同上, 走 `deleteScreenshotsByJobTaskIds` |
+| 该 job 关联 job_tasks 的对象存储截图 | 是 | DELETE handler 同上, 走 `deleteScreenshotsByJobTaskIds` |
 | 该 job 引用的 task | 否 | task 保持不变 |
 
 代码入口：`lib/db/jobs.ts` — `deleteJobById` (返回 `{ changes, jobTaskIds }`) + `app/routes/api.admin.jobs.$id.tsx` DELETE handler.

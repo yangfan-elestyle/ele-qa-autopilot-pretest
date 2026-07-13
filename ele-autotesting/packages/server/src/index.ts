@@ -1,6 +1,6 @@
-// ele-autotesting — Node HTTP 入口 (替代原 CF Worker `ExportedHandler` + Container).
+// ele-autotesting — Node HTTP 入口 (@hono/node-server).
 // 启动建 libSQL client (file:) + 跑 migrations, 注入 env; @hono/node-server 起服务.
-// markitdown → HTTP sidecar; Hono 404 → 静态 web/dist / SPA index 兜底 (替代 ASSETS binding).
+// markitdown → HTTP sidecar; Hono 404 → 静态 web/dist / SPA index 兜底.
 
 import { serve } from '@hono/node-server'
 import { createClient } from '@libsql/client'

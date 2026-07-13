@@ -51,7 +51,7 @@ export async function downloadFile(url: string, options: DownloadFileOptions = {
 }
 
 export function bytesToBase64(bytes: Uint8Array): string {
-  // Workers 全局有 btoa；分块处理避免 String.fromCharCode 调用栈溢出
+  // 全局有 btoa；分块处理避免 String.fromCharCode 调用栈溢出
   let binary = ''
   const chunkSize = 0x8000
   for (let i = 0; i < bytes.length; i += chunkSize) {

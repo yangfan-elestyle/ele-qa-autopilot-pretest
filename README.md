@@ -18,7 +18,7 @@ QA AutoPilot 合并仓库. `gateway` + 三个独立业务子项目并存; 非 mo
 
 ## 系统拓扑
 
-内网单机 docker-compose, 无公网入口 (Phase B: 已抛弃 Cloudflare). 唯一对外 = nginx 反代 gateway (裸 http, 绑内网 IP). 身份由 gateway 自签 cookie + `X-Auth-User-Email` 荣誉制收口 (仅 `@elestyle.jp`). 路径分发表见 [gateway/README.md](./gateway/README.md#路径分发-worker-处理顺序).
+内网单机 docker-compose, 无公网入口. 唯一对外 = nginx 反代 gateway (裸 http, 绑内网 IP). 身份由 gateway 自签 cookie + `X-Auth-User-Email` 荣誉制收口 (仅 `@elestyle.jp`). 路径分发表见 [gateway/README.md](./gateway/README.md#路径分发-server-处理顺序).
 
 ```
                         ┌───────────┐   ┌────────────────────────┐

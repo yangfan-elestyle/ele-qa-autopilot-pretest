@@ -13,16 +13,17 @@ import { upstreamFetch } from '../lib/upstream.ts'
  *
  * BYOK (ele-harness v0.6.0): 每个 oneshot 必须带 credentials = { provider, model,
  * apiKey, baseUrl } 四字段, 可选 maxTurns / maxTokens / temperature. 凭证不由调用方传入,
- * 而是服务端按 ownerId 从 autotesting 自家 D1 (集成中心 ele-harness Tab) 读取后
+ * 而是服务端按 ownerId 从 autotesting 自家 libSQL (集成中心 ele-harness Tab) 读取后
  * 注入 upstream body; 缺失则 412 + code=HARNESS_LLM_NOT_CONFIGURED 引导前端跳设置.
  *
  * 入参 (来自前端): { prompt, systemPrompt?, appendSystemPrompt?, source? }
  * 出参: { text, sessionId?, events } — text 为 harness 聚合的最终文本.
  *
  * 传输: 用 SSE (accept: text/event-stream) + quiet 模式调 harness. harness 全程
- * 只发 15s 一次的 `: keepalive` 保活 + 末尾一个 final 事件, 既避免长 turn (数分钟)
- * 期间 VPC/Tunnel 因连接零数据 (connection_read_timeout) 约 5min 断开, 又省去中间
- * 事件的回传带宽. Worker 只转发, 不做长循环 (上限是 cpu_ms 而非 wall-clock).
+ * 只发 15s 一次的 `: keepalive` 保活 + 末尾一个 final 事件, 省去中间事件回传带宽.
+ * (保活最初为熬过 CF Tunnel 约 5min 的零数据 idle 断连; 迁内网 HTTP 后是否仍必要
+ * 取决于 agentic-loop 联调时的实际链路超时, 待确认, 保活无害故保留.)
+ * 本服务只转发, 不做长循环.
  */
 
 type HarnessVars = HonoEnv['Variables'] & { ownerId: string }
@@ -61,8 +62,8 @@ function extractLastAssistantText(events: OneshotEvent[]): string {
 /**
  * 读 harness SSE 流, 累积 oneshot 事件.
  *
- * - 跳过 `: keepalive` 注释行 (harness streamSSE 每 15s 一次, 用于持续重置 CF
- *   VPC/Tunnel 的 connection_read_timeout, 避免长 turn 期间连接被判 idle).
+ * - 跳过 `: keepalive` 注释行 (harness streamSSE 每 15s 一次; 原为重置 CF Tunnel
+ *   的 idle 超时, 迁内网后实际作用待上游联调确认, 保活本身无害).
  * - quiet 模式 (本路由默认开): harness 末尾只发一个 `{ type:'final', text, sessionId }`,
  *   中间事件不传输; 识别后经 final 返回, 调用方直接取 text.
  * - harness 内部异常以 `{ type:'error', message }` 事件下发, 提取为 error, 由调用方转 502.
@@ -151,12 +152,12 @@ router.post('/oneshot', async (c: Context<HarnessHonoEnv>) => {
     upstreamBody.appendSystemPrompt = body.appendSystemPrompt
   }
 
-  // VPC binding 的 URL hostname 仅为 placeholder, VPC service 路由到 agentic-loop:3000.
+  // 下游经 AGENTIC_LOOP_URL 直连 agentic-loop (内网 HTTP; 尚未接通, 见 .env.example).
   //
   // 用 SSE 流式 (accept: text/event-stream) 走 harness streamSSE 分支: 它每 15s 发
-  // `: keepalive`, 让连接持续有字节流动, 从而不断重置 CF VPC/Tunnel 的
-  // connection_read_timeout. 否则非流式时整个 turn (可能数分钟) 期间连接零数据,
-  // 约 5min 被判 idle, Worker 侧 fetch 抛 "Network connection lost".
+  // `: keepalive` 保活. 原动因是熬过 CF Tunnel 约 5min 的零数据 idle 断连 (否则长 turn
+  // 期间连接零数据被判 idle, fetch 抛 "Network connection lost"); 迁内网后是否仍需
+  // 取决于联调时的链路超时, 保活无害故保留.
   let upstream: Response
   try {
     upstream = await upstreamFetch(c.env, 'AGENTIC_LOOP', '/v1/oneshot', {
@@ -165,8 +166,8 @@ router.post('/oneshot', async (c: Context<HarnessHonoEnv>) => {
       body: JSON.stringify(upstreamBody),
     })
   } catch (e: any) {
-    console.error('harness vpc fetch failed:', e?.message || e)
-    return c.json({ error: `harness vpc fetch failed: ${e?.message ?? e}` }, 502)
+    console.error('harness fetch failed:', e?.message || e)
+    return c.json({ error: `harness fetch failed: ${e?.message ?? e}` }, 502)
   }
 
   // 校验失败 (400/412/500) harness 在进入 SSE 前就以 JSON 返回, 原样透传.

@@ -8,7 +8,7 @@ export interface PromptPreset {
   template: string
 }
 
-// D1 仅存 user customs (key 不在 DEFAULT 中的 preset). DEFAULT 永远从代码读 →
+// 云端仅存 user customs (key 不在 DEFAULT 中的 preset). DEFAULT 永远从代码读 →
 // 升级即对全员生效, 不会被旧账号同步快照覆盖. display = [...DEFAULT, ...customs].
 export const AUTOPILOT_PROMPT_PRESETS_STORAGE_KEY = 'autopilot.send.promptCustoms'
 
@@ -78,7 +78,7 @@ function sanitizeCustoms(list: unknown): PromptPreset[] | null {
     const tip = typeof r.tip === 'string' ? r.tip : ''
     const template = typeof r.template === 'string' ? r.template : ''
     if (!key || !label || !template.trim()) continue
-    // 过滤掉与 DEFAULT key 冲突的项 (兼容旧 D1 快照里可能混杂的 default 副本)
+    // 过滤掉与 DEFAULT key 冲突的项 (兼容旧云端快照里可能混杂的 default 副本)
     if (DEFAULT_KEY_SET.has(key)) continue
     if (seen.has(key)) continue
     seen.add(key)
@@ -87,7 +87,7 @@ function sanitizeCustoms(list: unknown): PromptPreset[] | null {
   return out
 }
 
-// localStorage 仅作 cold-start cache 让 UI 立即可用; 真正的事实源是 D1
+// localStorage 仅作 cold-start cache 让 UI 立即可用; 真正的事实源是云端
 // (`/api/sync/items/:key`), bootstrap 期 GET 覆盖, 写入时 PUT 推送.
 function loadLocalRaw(): string {
   if (typeof window === 'undefined' || !window.localStorage) return ''
@@ -154,7 +154,7 @@ async function pushRemote(value: string): Promise<void> {
 }
 
 export interface UsePromptPresetsReturn {
-  /** 完整展示 list = DEFAULT (代码) + customs (D1). 升级 DEFAULT 全员立即可见. */
+  /** 完整展示 list = DEFAULT (代码) + customs (云端). 升级 DEFAULT 全员立即可见. */
   presets: WritableComputedRef<PromptPreset[]>
   /** 仅 user customs, 不含 DEFAULT. integration panel 应在此基础上做编辑. */
   customs: WritableComputedRef<PromptPreset[]>

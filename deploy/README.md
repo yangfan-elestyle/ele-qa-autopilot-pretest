@@ -1,14 +1,14 @@
 # deploy — 内网单机 docker-compose
 
-Phase B 落地: 抛弃 Cloudflare, 用内网单机 docker-compose 承接 gateway + 三业务 + markitdown + MinIO. 背景与决策见 [../plans/20260713-001/feature.md](../plans/20260713-001/feature.md).
+内网单机 docker-compose 承接 gateway + 三业务 + markitdown + MinIO. 迁移背景与决策见 [../plans/20260713-001/feature.md](../plans/20260713-001/feature.md).
 
 ## 拓扑
 
 - **nginx**: 唯一对外入口 (裸 http, 绑内网 IP). 全部转发 gateway.
 - **gateway**: 身份收口 (cookie / X-Auth-User-Email) + 路径分发 + 静态 landing.
 - **autopilot** / **autotesting**: 业务, 各自 libSQL (`/data` volume) + 内网互通; **不对外**.
-- **markitdown**: MCP sidecar (原 CF Container 同 image); **不对外**.
-- **minio**: 对象存储 (承接 R2 screenshots / releases); **不对外**.
+- **markitdown**: markitdown-mcp sidecar; **不对外**.
+- **minio**: 对象存储 (screenshots / releases 两 bucket); **不对外**.
 
 安全前提: **仅 nginx publish 端口**. 下游任一暴露端口 → 自带 `X-Auth-User-Email` 即冒充, 统一收口破.
 

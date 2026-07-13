@@ -1,4 +1,4 @@
-# ele-qa-autopilot 内网单机编排 (Phase B, 替代 Cloudflare).
+# ele-qa-autopilot 内网单机编排 (docker-compose).
 # 安全前提: 仅 nginx publish 端口; gateway/autopilot/autotesting/markitdown/minio 一律不对外,
 # 只经 compose 内部网络互通 —— 否则任何人直连下游自带 X-Auth-User-Email 即冒充, 统一收口即破.
 #

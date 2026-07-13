@@ -229,7 +229,7 @@
               class="flex-1 min-h-0"
             >
               <template #extra-actions>
-                <!-- 同步到云: 把当前生成结果存到 D1 (KV). 默认不持久化, 用户点了才上传. -->
+                <!-- 同步到云: 把当前生成结果存到云端 (KV). 默认不持久化, 用户点了才上传. -->
                 <button
                   type="button"
                   class="ds-icon-btn-sm"
@@ -385,7 +385,7 @@ function handleSendToOrchestration() {
   emit('send-to-orchestration')
 }
 
-// 手动同步生成结果到云 D1, 见 useAutotestCasesHistory.
+// 手动同步生成结果到云端, 见 useAutotestCasesHistory.
 const { saveSnapshot: saveAutotestSnapshot } = useAutotestCasesHistory()
 const syncingCases = ref(false)
 const canSyncCases = computed(

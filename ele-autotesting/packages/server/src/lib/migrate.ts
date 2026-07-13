@@ -2,7 +2,7 @@ import { readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { Client } from '@libsql/client'
 
-// 迁移 (Phase B): D1 靠 `wrangler d1 migrations apply`, libSQL 自建 runner.
+// libSQL 自建 migration runner (无外部 CLI 依赖).
 // 顺序执行 migrationsDir/*.sql (纯 SQLite 方言), 已执行的记进 _migrations 表, 幂等.
 // executeMultiple 整文件执行 (不手 split `;`). server 入口 boot 时调用一次.
 export async function runMigrations(client: Client, migrationsDir: string): Promise<void> {

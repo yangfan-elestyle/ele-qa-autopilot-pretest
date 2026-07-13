@@ -1,11 +1,11 @@
 /**
- * AutoTest 用例历史: 把生成结果手动同步到云 D1 (KV 表), 用以跨设备 / 跨会话还原.
+ * AutoTest 用例历史: 把生成结果手动同步到云端 (KV 表), 用以跨设备 / 跨会话还原.
  *
  * - 默认不持久化: 仅当用户点【同步到云】按钮才上传当前 rawText + 同步当时的全量生成上下文.
  * - 云端 schema 仿 /api/sync 现有 KV 语义 (单表 storage(owner_id,key,value)).
  *   - 索引:  autotest:cases-snapshot:__index__ -> JSON { items: SnapshotMeta[] }
  *   - 单条:  autotest:cases-snapshot:<id>      -> JSON Snapshot
- *   拆 index/item 是因为 D1 单 value 上限 900KB; 索引轻量可一次拉全, item 按需取.
+ *   拆 index/item 是因为服务端单 value 上限 900KB; 索引轻量可一次拉全, item 按需取.
  * - 模块级单例 ref, 多组件共享同一份 list.
  * - meta 字段刻意精简 (index 拉全用), addedItems / 完整 prompt 等大对象只放单条 item.
  */
@@ -43,7 +43,7 @@ export type AutotestCaseSnapshot = AutotestCaseSnapshotMeta & {
   originalPrompt?: string
   // 数据源 chips (模板 + 上下文记录) 整体回填, 不依赖外部存储.
   addedItems?: AddedItemSnapshot[]
-  // 模块多选: id 是 D1 真值, path 是显示 / 兜底 (id 失效时仍能让用户知道当时选了什么).
+  // 模块多选: id 是云端真值, path 是显示 / 兜底 (id 失效时仍能让用户知道当时选了什么).
   selectedModuleIds?: string[]
   selectedModulePaths?: string[]
   // 生成模型 key (modelManager.selectedTestModel 用以重选). modelName 仅显示名.
@@ -209,7 +209,7 @@ async function saveSnapshot(input: SaveSnapshotInput): Promise<AutotestCaseSnaps
   }
 
   const nextItems = [meta, ...list.value]
-  // 内容 + 索引一次性提交, batch 内任一失败 D1 整体回滚, 避免出现 index 有条目但 item 缺失.
+  // 内容 + 索引一次性提交, batch 内任一失败整体回滚, 避免出现 index 有条目但 item 缺失.
   await postBatch([
     { op: 'set', key: itemKey(meta.id), value: JSON.stringify(snapshot) },
     { op: 'set', key: INDEX_KEY, value: JSON.stringify({ items: nextItems } satisfies IndexEnvelope) },

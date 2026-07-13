@@ -1,11 +1,11 @@
 # gateway
 
-内网唯一入口 (Phase B: 原 CF Worker → Bun Node server). 部署形态见根 [AGENTS.md](../AGENTS.md#部署形态-phase-b-已抛弃-cloudflare).
+内网唯一入口 (Bun Node server). 部署形态见根 [AGENTS.md](../AGENTS.md#部署形态-内网单机-docker-compose).
 
 ## 运行
 
 - `server.ts`: Bun.serve 入口. 路由分发 + 身份收口 + 下游转发 + 静态托管. 无 `workers/`.
-- 下游寻址走 `AUTOPILOT_URL` / `AUTOTEST_URL` (compose service, HTTP fetch); 无 service binding.
+- 下游寻址走 `AUTOPILOT_URL` / `AUTOTEST_URL` (compose service, 内网 HTTP fetch).
 - `build/server/index.js` 由 `bun run build` (RR7) 产出, `server.ts` 运行时动态 import; `build/client` 静态托管 (缺失则透传 AUTOPILOT).
 
 ## 边界
@@ -16,7 +16,7 @@
 
 ## 身份收口 (lib/auth.ts)
 
-- 无 CF Access / OIDC. 浏览器: 明文 cookie `ele_auth_email` (`/login` 输公司邮箱签发, `Max-Age` 400 天); 脚本/CLI: 直接带 `X-Auth-User-Email` header (荣誉制).
+- 无第三方 IdP. 浏览器: 明文 cookie `ele_auth_email` (`/login` 输公司邮箱签发, `Max-Age` 400 天); 脚本/CLI: 直接带 `X-Auth-User-Email` header (荣誉制).
 - 校验优先级: 有效 `@elestyle.jp` cookie > 入站 header > 302 `/login` (Accept html) / 401. 转发下游时删入站 header 再注入解析出的 email (防伪造透传).
 - **bypass** (`server.ts#isBypass`, 免鉴权): `/healthz` + `/login` + `/logout` + `/install.sh` + `/releases/*` + `/api/v1/ingest/*` + `/api/jobs/*/callback/*` (机器消费, 天生无浏览器身份; 内网边界是真实防线).
 - header 名 `X-Auth-User-Email` (`lib/constants.ts`) 与两下游锁同值.

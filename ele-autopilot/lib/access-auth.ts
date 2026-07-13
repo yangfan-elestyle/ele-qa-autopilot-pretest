@@ -1,4 +1,4 @@
-// 身份校验 (Phase B): 放弃 CF Access JWT, 改读 gateway 注入的 X-Auth-User-Email header.
+// 身份校验: 读 gateway 注入的 X-Auth-User-Email header.
 //
 // 背景: gateway 统一收口鉴权后, 除少数 bypass 端点外, 所有转发都带 gateway 解析出的 email
 // (荣誉制, 内网边界是唯一防线). 下游只需读一次 header, 不再各自校验 JWT / cookie.

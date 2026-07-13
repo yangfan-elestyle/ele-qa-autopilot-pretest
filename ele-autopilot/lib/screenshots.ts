@@ -3,10 +3,10 @@ import type { TaskActionResult } from './db';
 
 const URL_PREFIX = '/screenshots';
 
-// 单张截图 base64 上限. Worker 单实例内存 128MB, 一次 callback 可能携带 N 步
-// 截图; 这里收 6MB/张, 解码后原图体积 ~4.5MB, 留出 Worker 处理余量.
-// 超限的截图直接丢弃 (字段置空), 不让 base64 字符串落到 R2 — 既能让任务结果
-// 仍写回 D1, 又避免被恶意 / 异常 client 撑爆 R2 配额或 Worker 内存.
+// 单张截图 base64 上限. 一次 callback 可能携带 N 步截图; 这里收 6MB/张,
+// 解码后原图体积 ~4.5MB, 留出处理余量.
+// 超限的截图直接丢弃 (字段置空), 不让 base64 字符串落到对象存储 — 既能让任务结果
+// 仍写回库, 又避免被恶意 / 异常 client 撑爆对象存储配额或进程内存.
 const MAX_SCREENSHOT_BASE64_LENGTH = 6 * 1024 * 1024;
 
 function stripDataUriPrefix(value: string): string {
@@ -51,10 +51,10 @@ async function writeScreenshotToR2(
 
 /**
  * 删除一批 job_task 对应的全部截图。
- * R2 没有原生级联, D1 FK CASCADE 只清表行, 截图会留成孤儿对象占用配额.
+ * 对象存储没有原生级联, 库里 FK CASCADE 只清表行, 截图会留成孤儿对象占用配额.
  * 分批列举 `<jobTaskId>/` 前缀下所有对象后 delete; 单次 list 上限 1000 对象,
- * 通过 cursor 分页吃完整桶. 失败仅 console.warn — 删 D1 数据已先完成,
- * 残留 R2 对象比删除中断更可接受.
+ * 通过 cursor 分页吃完整桶. 失败仅 console.warn — 删库数据已先完成,
+ * 残留对象比删除中断更可接受.
  */
 export async function deleteScreenshotsByJobTaskIds(jobTaskIds: string[]): Promise<void> {
   if (jobTaskIds.length === 0) return;
@@ -80,10 +80,10 @@ export async function deleteScreenshotsByJobTaskIds(jobTaskIds: string[]): Promi
 }
 
 /**
- * 把 result.steps[].thinking_image 的 base64 内嵌图片抽出落盘到 R2,
+ * 把 result.steps[].thinking_image 的 base64 内嵌图片抽出落盘到对象存储,
  * 字段值替换为 /screenshots/{id}/{i}.png. 幂等 (已经是路径的不动).
  *
- * 单张截图失败 (base64 解码异常 / R2 暂态故障) 不打断整条 callback —
+ * 单张截图失败 (base64 解码异常 / 对象存储暂态故障) 不打断整条 callback —
  * 该字段置 null + console.warn, 其他步骤继续处理. 没有这层隔离时,
  * 一张坏图 → atob() 抛 InvalidCharacterError → callback 整体 500
  * → local agent 重试到上限后整个 task 永远卡在 running.

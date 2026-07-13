@@ -1,12 +1,11 @@
 import type { Env } from '../types/env.ts'
 
 /**
- * `/mcps/markitdown/<sub>` → markitdown 服务 (A5 → Phase B 内网 HTTP sidecar).
+ * `/mcps/markitdown/<sub>` → markitdown 服务 (内网 HTTP sidecar).
  *
  * 寻址优先级:
  *   1. `MARKITDOWN_URL` — 内网 Docker compose 同 image 的 HTTP 端点;
  *   2. `MARKITDOWN_DEV_URL` — 本地 dev 兜底.
- * CF DO+Container 分支已随迁移移除.
  *
  * Starlette `Mount("/mcp")` 会把 `/mcp` 307 → `/mcp/`, 故入口 path 显式补斜杠.
  */

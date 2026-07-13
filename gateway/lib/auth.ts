@@ -1,7 +1,7 @@
-// 身份收口 (Phase B): 放弃 CF Access / Google OIDC, 改内网荣誉制.
+// 身份收口: 内网荣誉制, 无第三方 IdP.
 //   - 浏览器: gateway 自签明文 cookie (email), 关浏览器不失效靠 Max-Age.
 //   - 脚本/CLI: 直接带 X-Auth-User-Email header (荣誉制, 内网边界是唯一防线).
-// 校验优先级见 §0.3: 有效 cookie > 入站 header > 无 (302 /login 或 401).
+// 校验优先级: 有效 cookie > 入站 header > 无 (302 /login 或 401).
 // gateway 是唯一签发/校验方; 转发下游时用解析出的 email 覆盖入站 header, 下游只读一次 header.
 
 import { AUTH_HEADER } from "./constants";

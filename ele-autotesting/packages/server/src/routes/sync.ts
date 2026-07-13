@@ -4,7 +4,7 @@ import { resolveOwner } from '../middleware/auth.ts'
 import { getDb } from '../lib/db.ts'
 
 /**
- * /api/sync — D1 远程 KV 存储。语义与浏览器侧 IStorageProvider 一一对应:
+ * /api/sync — libSQL 远程 KV 存储。语义与浏览器侧 IStorageProvider 一一对应:
  *   GET    /api/sync/items          -> 列出当前 owner 的所有 (key,value), 给迁移/导出用
  *   GET    /api/sync/items/:key     -> 单 key 读
  *   PUT    /api/sync/items/:key     -> 单 key 写, body { value: string }
@@ -13,7 +13,7 @@ import { getDb } from '../lib/db.ts'
  *   DELETE /api/sync/items          -> 清空当前 owner 的所有数据
  *
  * 所有路由依赖 resolveOwner 中间件注入的 c.var.ownerId.
- * D1 单表 storage(owner_id, key, value, updated_at), 见 migrations/0001_init.sql.
+ * libSQL 单表 storage(owner_id, key, value, updated_at), 见 migrations/0001_init.sql.
  */
 
 // 子路由对 ownerId 有强依赖, 用本地类型把可选字段收紧成必填,
@@ -28,7 +28,7 @@ const router = new Hono<SyncEnv>()
 router.use('*', resolveOwner)
 
 const MAX_KEY_LEN = 256
-// 留点余量给 D1 SQL 1MB 限制. 按 UTF-8 字节数算, 而不是 string.length —
+// 单值大小上限 (防超大 value 撑高内存 / 撑爆行). 按 UTF-8 字节数算, 而不是 string.length —
 // 后者对中文等多字节字符会严重低估实际占用.
 const MAX_VALUE_BYTES = 900 * 1024
 const VALUE_BYTE_COUNTER = new TextEncoder()

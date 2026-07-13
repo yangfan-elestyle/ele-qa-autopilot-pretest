@@ -226,7 +226,7 @@ export async function updateTaskById(
 
 /**
  * 把一组被删除的 task id 从所有父 task 的 sub_ids JSON 链上摘掉.
- * sub_ids 不是 FK, D1 cascade 管不到, 必须显式扫表清理.
+ * sub_ids 不是 FK, cascade 管不到, 必须显式扫表清理.
  * 不清理会留下悬挂引用: flattenTaskTree 走到时拿不到 task 会 skip (不崩),
  * 但 admin UI 展示 / 导出会带着幽灵 id, 影响数据完整性.
  *
@@ -236,8 +236,8 @@ export async function updateTaskById(
 export async function pruneSubIdReferencesUnsafe(deletedIds: Id[]) {
   if (deletedIds.length === 0) return;
   const deleted = new Set(deletedIds);
-  // sub_ids 是 JSON 字符串, SQLite 没办法在 SQL 层做数组项移除 (json_remove 在 D1
-  // 上不一定可用); 拉出所有可能含被删 id 的行再回写, 量级可控 (后台总 task 数 << 1e5).
+  // sub_ids 是 JSON 字符串, SQLite 没办法在 SQL 层做数组项移除 (json_remove 不保证
+  // 可用); 拉出所有可能含被删 id 的行再回写, 量级可控 (后台总 task 数 << 1e5).
   const candidates = await queryAll<{ id: Id; sub_ids: string }>(
     `SELECT id, sub_ids FROM tasks WHERE sub_ids != '[]'`,
   );

@@ -15,7 +15,7 @@ export const links: Route.LinksFunction = () => [
   { rel: "alternate icon", href: "/favicon.ico", sizes: "any" },
   { rel: "apple-touch-icon", href: "/apple-touch-icon.png", sizes: "180x180" },
   { rel: "mask-icon", href: "/favicon.svg", color: "#0969da" },
-  // manifest 默认 credentials=omit 同源也不带 cookie -> 被 CF Access 302 跳登录页 -> CORS 阻断; 必须 use-credentials.
+  // manifest 默认 credentials=omit 同源也不带 cookie -> 未登录被 gateway 302 跳 /login -> CORS 阻断; 必须 use-credentials.
   { rel: "manifest", href: "/site.webmanifest", crossOrigin: "use-credentials" },
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
   {

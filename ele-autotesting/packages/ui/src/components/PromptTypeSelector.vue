@@ -315,7 +315,7 @@ const updatePromptContent = (value: string) => {
 
 // 创建 MCP 服务实例（用于 text -> markdown 内容）
 // serverUrl 必须带 SPA 子路径 (`/autotest`); 缺前缀时 gateway 看不到 `/autotest/*` 路由
-// 会把请求分流到 AUTOPILOT Worker, 404 兜底返回 SPA HTML 让 MCP 解析失败.
+// 会把请求分流到 AUTOPILOT 服务, 404 兜底返回 SPA HTML 让 MCP 解析失败.
 const markitdownMcpService = createMcpServiceFor({
   serverUrl: `${getApiBasePath()}/mcps/markitdown/mcp`,
   client: { name: 'qa-autotest', version: '1.0' },
@@ -348,7 +348,7 @@ const handleUrlEnter = async (urlOverride?: string) => {
       return
     }
 
-    // 经 gateway 时身份由 CF Access 边缘注入; getAuthHeaders 通常返回空对象, 仍 spread 留口子.
+    // 经 gateway 时身份由 gateway 注入 X-Auth-User-Email header; getAuthHeaders 通常返回空对象, 仍 spread 留口子.
     const response = await fetch(`${getApiBasePath()}/confluence-parse?page_id=${encodeURIComponent(pageId)}`, {
       headers: { ...getAuthHeaders() },
     })
@@ -425,8 +425,8 @@ const handleFigmaEnter = async (urlOverride?: string) => {
 
   try {
     const promptParam = getImageResearchPrompt()
-    // Token 由 Worker 按 ownerId 从 D1 (集成中心 → Figma) 读, 前端不再透传明文.
-    // Worker 未配置时返 412 + 引导文案, 由下方错误分支 toast 给用户.
+    // Token 由服务端按 ownerId 从集成中心 (Figma) 读, 前端不再透传明文.
+    // 服务端未配置时返 412 + 引导文案, 由下方错误分支 toast 给用户.
     const payload: Record<string, unknown> = { url }
     if (promptParam) {
       payload.prompt = promptParam

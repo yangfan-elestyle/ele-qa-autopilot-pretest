@@ -6,10 +6,10 @@ import { getDb } from '../lib/db.ts'
 /**
  * /api/integrations/metersphere — 集成中心 MeterSphere Tab 的 AK/SK 存储.
  *
- * 字段: { ak: string, sk: string }. /api/ms/* 在 Worker 内读 D1 取出 AK/SK,
+ * 字段: { ak: string, sk: string }. /api/ms/* 在服务端读 libSQL 取出 AK/SK,
  * 签名调用上游, 浏览器侧不再透传任何凭证 header.
  *
- * 存储: D1 storage 表, owner-scoped (c.var.ownerId), key = 'integration:metersphere'.
+ * 存储: libSQL storage 表, owner-scoped (c.var.ownerId), key = 'integration:metersphere'.
  *
  * GET 返 { configured, ak: masked, sk: masked }; 不开放 raw.
  * PUT body ak/sk 为空字符串 = 复用已存值, 与 harness-llm / figma 同语义,

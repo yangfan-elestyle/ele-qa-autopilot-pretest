@@ -45,9 +45,8 @@ const MIN_DIMENSION = 100
 const MAX_ASPECT_RATIO = 5
 const PNG_SCALE_FACTOR = 1
 const MAX_IMAGES = 50
-// 单次上游 (Figma API / Figma 静态资源 CDN) 调用超时. CF Workers 默认 30s subrequest
-// 上限, 这里再加显式 AbortSignal 防止上游慢响应吃满 Worker invocation 配额; 命中后
-// 客户端收到 504, Worker 立刻释放连接.
+// 单次上游 (Figma API / Figma 静态资源 CDN) 调用超时. 显式 AbortSignal 防止上游
+// 慢响应长时间占住连接; 命中后客户端收到 504, 立刻释放连接.
 const FIGMA_FETCH_TIMEOUT_MS = 25_000
 
 const normalizeNodeId = (value: string) => value.replace(/-/g, ':')
@@ -114,7 +113,7 @@ router.post('/', async (c: Context<FigmaParseEnv>) => {
 
   if (!rawUrl) return c.json({ error: 'Missing url parameter' }, 400)
 
-  // Token 从 D1 集成中心配置读, 不再接受 body.token (浏览器不持有明文).
+  // Token 从 libSQL 集成中心配置读, 不再接受 body.token (浏览器不持有明文).
   const figmaCfg = await readFigmaConfig(c)
   if (!figmaCfg?.token) {
     return c.json({ error: 'Figma 集成未配置, 请到「集成中心 → Figma」填写 Personal Access Token' }, 412)
@@ -137,7 +136,7 @@ router.post('/', async (c: Context<FigmaParseEnv>) => {
       signal: AbortSignal.timeout(FIGMA_FETCH_TIMEOUT_MS),
     })
     if (!fileResponse.ok) {
-      // Figma 上游错误响应体可能含 token hint / 请求 ID / 内部栈 — 仅写 Worker 日志, 不回写客户端,
+      // Figma 上游错误响应体可能含 token hint / 请求 ID / 内部栈 — 仅写服务端日志, 不回写客户端,
       // 与 confluenceParse.ts 同口径; 客户端只看到 status code, 避免泄漏给浏览器 console.
       const errorText = await fileResponse.text()
       console.error(
@@ -208,7 +207,7 @@ router.post('/', async (c: Context<FigmaParseEnv>) => {
 
   if (imagesJson.err) {
     // imagesJson.err 来自 Figma API 业务层, 不像 HTTP body 那样会带内部栈, 但同样可能含 file key 等
-    // 用户上下文 — 收到 Worker 日志便于排查, 客户端仅看到通用错误信息.
+    // 用户上下文 — 收到服务端日志便于排查, 客户端仅看到通用错误信息.
     console.error(`Figma images API error for ${parsed.fileKey}:`, imagesJson.err)
     return c.json({ error: 'Figma images API responded with error' }, 400)
   }

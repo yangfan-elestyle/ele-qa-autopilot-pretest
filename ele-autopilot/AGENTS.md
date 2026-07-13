@@ -1,6 +1,6 @@
 # ele-autopilot
 
-## Runtime (Phase B: 原 CF Worker → Bun Node server)
+## Runtime (Bun Node server)
 
 - `server.ts`: Bun.serve 入口; 启动建 libSQL client + S3(MinIO) store, 跑 migrations, 每请求 `runWithBindings()` 注入后交 RR7 `createRequestHandler`; 静态托管 `build/client`. 无 `workers/`.
 - `lib/bindings.ts`: `AsyncLocalStorage<{DB, SCREENSHOTS, RELEASES}>` 容器 (用全局符号注册表, 让 server.ts 与 RR bundle 副本共享同一 ALS); 仅服务端 loader/action 使用.

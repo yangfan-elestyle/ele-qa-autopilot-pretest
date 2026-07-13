@@ -1,8 +1,8 @@
--- D1 initial schema for ele-autopilot
+-- initial schema for ele-autopilot (libSQL / SQLite dialect)
 -- Migrated from better-sqlite3 (lib/db/connection.ts#initSchema).
 -- Notes:
---   - D1 enables foreign keys by default; no PRAGMA needed.
---   - Default for created_at uses strftime() — supported in D1.
+--   - libSQL 默认关闭 foreign keys; server 启动时设 PRAGMA foreign_keys=ON (见 server.ts).
+--   - Default for created_at uses strftime().
 
 CREATE TABLE IF NOT EXISTS folders (
   id TEXT PRIMARY KEY,

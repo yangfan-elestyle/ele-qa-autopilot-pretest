@@ -2,7 +2,7 @@
 
 AI 测试用例生成工具. [产品说明书](https://elestyle.atlassian.net/wiki/spaces/teammobile/pages/3357310978).
 
-## 架构 (Phase B: 原 CF Worker → Node 容器)
+## 架构 (Node 容器)
 
 ```
 [Node 容器 @hono/node-server] (esbuild bundle → dist/server.mjs)

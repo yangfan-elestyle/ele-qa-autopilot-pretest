@@ -278,7 +278,7 @@ pre {
   text-transform: uppercase;
 }
 
-/* ---- User chip (CF Access 登录后顶栏身份显示) ---- */
+/* ---- User chip (登录后顶栏身份显示) ---- */
 
 .topbar-right {
   display: inline-flex;

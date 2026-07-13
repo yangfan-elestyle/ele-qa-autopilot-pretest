@@ -43,7 +43,7 @@
       </ul>
     </section>
 
-    <!-- 我的模板 (D1 sync, 跨设备) -->
+    <!-- 我的模板 (云端 sync, 跨设备) -->
     <section class="space-y-2">
       <div class="flex items-center justify-between gap-2">
         <div class="text-sm theme-manager-text">

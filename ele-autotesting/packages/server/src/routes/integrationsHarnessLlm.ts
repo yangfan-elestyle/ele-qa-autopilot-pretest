@@ -9,7 +9,7 @@ import { getDb } from '../lib/db.ts'
  * 字段对齐 ele-harness v0.6.0 ProviderCredentials 四元组 + 三个可选覆盖参数:
  *   { provider, model, apiKey, baseUrl, maxTurns?, maxTokens?, temperature? }
  *
- * 存储: D1 storage 表, owner-scoped (c.var.ownerId), key = 'integration:harness-llm'.
+ * 存储: libSQL storage 表, owner-scoped (c.var.ownerId), key = 'integration:harness-llm'.
  * 与通用 /api/sync 走同一张表, 但走专用路由避免浏览器侧缓存敏感的 apiKey.
  *
  * GET 默认返掩码; GET ?raw=1 返明文 (供编辑表单回填).

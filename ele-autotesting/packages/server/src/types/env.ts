@@ -1,10 +1,10 @@
 import type { Db } from '../lib/db.ts'
 
-// ele-autotesting Node/Docker 运行时 env (替代 CF Worker Env + wrangler bindings/vars).
-// D1 → libSQL (DB 注入); DO+Container markitdown → MARKITDOWN_URL sidecar; VPC/service → 内网 HTTP;
-// ASSETS binding → 静态 serve web/dist (见 src/index.ts); CF Access → X-Auth-User-Email header.
+// ele-autotesting Node/Docker 运行时 env.
+// 持久化: libSQL (DB 注入); markitdown → MARKITDOWN_URL sidecar; 下游 → 内网 HTTP;
+// 静态资源 → serve web/dist (见 src/index.ts); 身份 → X-Auth-User-Email header.
 export interface Env {
-  // libSQL adapter (server 入口建 client 后注入). D1 → 此.
+  // libSQL adapter (server 入口建 client 后注入).
   DB: Db
 
   // 下游内网 HTTP base (含 scheme, compose service). 寻址见 lib/upstream.ts.
@@ -13,7 +13,7 @@ export interface Env {
   // agentic-loop (ele-harness 后端) 联合迁移后指 compose service; 未就绪时留空, harness 路由自守卫.
   AGENTIC_LOOP_URL?: string
 
-  // markitdown sidecar HTTP 端点 (compose service). DO+Container → 此.
+  // markitdown sidecar HTTP 端点 (compose service).
   MARKITDOWN_URL?: string
   // 本地 dev 兜底 (OrbStack 兼容问题时用), 优先级低于 MARKITDOWN_URL.
   MARKITDOWN_DEV_URL?: string

@@ -4,7 +4,7 @@ import { ref, watch, type Ref } from 'vue'
  * 通用浏览器本地缓存 (响应式 ref ↔ localStorage 自动 sync).
  *
  * 用途: 用户态偏好 / 凭据 (MeterSphere AK/SK 等) 在刷新后保留, 避免重复输入.
- * 不用于业务数据 (业务数据走 D1 sync 服务).
+ * 不用于业务数据 (业务数据走云端 sync 服务).
  *
  * 仅支持 string / number / boolean / null. 复杂结构上层自行 JSON.stringify.
  *

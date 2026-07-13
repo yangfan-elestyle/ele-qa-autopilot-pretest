@@ -1,4 +1,4 @@
--- D1 schema for remote storage. Mirrors IStorageProvider's KV semantics.
+-- schema for remote storage (libSQL / SQLite). Mirrors IStorageProvider's KV semantics.
 -- owner_id prefix encodes identity source: 'device:<uuid>' (V1), 'google:<sub>' (V2).
 
 CREATE TABLE IF NOT EXISTS storage (

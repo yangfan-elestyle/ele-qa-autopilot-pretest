@@ -280,7 +280,7 @@ export async function updateFolderById(
 
 /**
  * 递归删除 folder 及其所有子 folder 和关联的 tasks/jobs.
- * 返回 changes + 受影响的全部 job_task id, 调用方据此清 R2 截图 (D1 cascade 不会跨 R2).
+ * 返回 changes + 受影响的全部 job_task id, 调用方据此清对象存储截图 (FK cascade 不跨对象存储).
  */
 export async function deleteFolderById(
   id: Id,
