@@ -58,11 +58,9 @@ dist/
 .react-router/
 .rollup.cache
 
-# Cloudflare / Wrangler
-.wrangler/
-**/.wrangler/
-.dev.vars
-.dev.vars.*
+# libSQL / sqlite 本地数据 (embedded file:) 与 compose 卷
+data/
+**/data/
 
 # Secrets / env
 .env

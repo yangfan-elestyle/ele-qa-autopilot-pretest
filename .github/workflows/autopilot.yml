@@ -7,40 +7,24 @@ on:
 
 permissions:
   contents: read
+  packages: write
 
 concurrency:
   group: autopilot-${{ github.ref }}
   cancel-in-progress: false
 
-defaults:
-  run:
-    working-directory: ele-autopilot
-
 jobs:
-  deploy:
-    name: Build & Deploy ele-autopilot
+  build-push:
+    name: Build & Push ele-autopilot image
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-
-    env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    timeout-minutes: 25
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
       - name: Verify tag matches package.json version
+        working-directory: ele-autopilot
         run: |
           pkg_version="$(jq -r .version package.json)"
           tag="${{ github.ref_name }}"
@@ -49,14 +33,25 @@ jobs:
             exit 1
           fi
 
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
+      - name: Lowercase owner (GHCR requires lowercase)
+        run: echo "OWNER=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
 
-      - name: Build
-        run: bun run build
+      - uses: docker/setup-buildx-action@v3
 
-      - name: Apply D1 migrations (remote)
-        run: bunx wrangler d1 migrations apply ele-autopilot --remote
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Deploy to Cloudflare Workers
-        run: bunx wrangler deploy
+      # 迁移: migrations 不再在 CI apply (库在内网容器 volume); server 首启自建表 (lib/db/migrate.ts).
+      - name: Build & push
+        uses: docker/build-push-action@v6
+        with:
+          context: ele-autopilot
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ghcr.io/${{ env.OWNER }}/ele-qa-autopilot:${{ github.ref_name }}
+            ghcr.io/${{ env.OWNER }}/ele-qa-autopilot:latest

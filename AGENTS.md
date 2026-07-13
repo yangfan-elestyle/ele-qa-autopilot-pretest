@@ -27,13 +27,20 @@ LLM 约束. 工程定位见下, 拓扑 / 子项目见 [README.md](./README.md), 
 
 - 不建顶层 `package.json` / `pyproject.toml`; 不引入 Turborepo / Nx / Bazel.
 - 不统一技术栈; Bun / uv / pnpm 各自独立.
-- 顶层只放仓库治理 / `.github/` / `gateway/` / 三业务目录 / 未来 `contracts/`; 不放业务代码.
+- 顶层只放仓库治理 / `.github/` / `deploy/` (内网编排) / `gateway/` / 三业务目录 / 未来 `contracts/`; 不放业务代码.
 - `ele-autopilot` <-> `ele-autopilot-local` HTTP API 双向耦合; 改一端必须同步另一端类型 / schema.
+- gateway 收口身份后注入 `X-Auth-User-Email` header, 三 web 工程共用此契约 (`lib/constants.ts`); 改 header 名必须四处同步.
 - 根 `.gitignore` 兜底; 子目录 `.gitignore` 是本项目事实源.
 - GitHub workflow 只放根 `.github/workflows/`.
+
+## 部署形态 (Phase B: 已抛弃 Cloudflare)
+
+- 内网单机 docker-compose (见 [deploy/](./deploy)), **无公网入口**. 唯一对外 = nginx 反代 gateway (裸 http, 绑内网 IP); 下游一律不暴露端口.
+- gateway / autopilot / autotesting = Node/Bun 容器 (原 CF Workers). D1 → libSQL embedded (`file:`); R2 → MinIO (S3 兼容); markitdown → HTTP sidecar; CF Access → gateway 自签 cookie + `X-Auth-User-Email` 荣誉制.
+- 无 wrangler / `wrangler.jsonc` / `worker-configuration.d.ts` / D1 / R2 / DO / VPC binding.
 
 ## 文件约定
 
 - `CLAUDE.md` = `AGENTS.md` symlink; `ele-autopilot/docs/CLAUDE.md` 用 `@AGENTS.md` import.
-- 所有 wrangler 子项目的 `worker-configuration.d.ts` 是生成产物也是类型源, 已故意提交; 改 `wrangler.jsonc` 后必须跑 `bun run typegen`, 不手改.
+- 各子项目 `.env.example` 是运行时配置事实源; secrets 经 `deploy/.env` (compose) 注入, 不提交.
 - 文档高密度: 能一行不写两行, 能列表不写段落; 子项目 AGENTS / README 不复述根 / deploy.md / setup.md 已写过的规则, 用 link 指回.

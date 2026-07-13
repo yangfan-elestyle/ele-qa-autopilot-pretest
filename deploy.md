@@ -1,15 +1,16 @@
 # 发布流程 (lockstep)
 
-四项目 (gateway + 三业务) 版本号统一, 单一 `vX.Y.Z` tag 同步触发四 workflow.
+四项目 (gateway + 三业务) 版本号统一, 单一 `vX.Y.Z` tag 同步触发四 workflow (build + push 镜像 / 产物). 内网单机 docker-compose 部署见 [deploy/README.md](./deploy/README.md).
 
 ## TL;DR
 
 1. 四 manifest 同 bump + 有改动的 CHANGELOG 加段
-2. 本地验证 (各项目 build / typecheck / dry-run)
+2. 本地验证 (各项目 build / typecheck / smoke)
 3. `git commit -m "release: vX.Y.Z"` → `git tag -a vX.Y.Z -m "vX.Y.Z"` → `git push origin <branch> vX.Y.Z`
-4. 等四 workflow success
+4. 等四 workflow success (镜像推到 GHCR / wheel 发到 GitHub Release)
+5. 宿主 `cd deploy && docker compose pull && up -d` (拉新镜像滚动)
 
-> 一次性前置 (Secrets / Cloudflare 资源) 见 [setup.md](./setup.md), 默认无需主动处理.
+> 一次性前置 (GHCR / MinIO / `.env`) 见 [setup.md](./setup.md), 默认无需主动处理.
 
 ## 1. 写版本
 
@@ -33,15 +34,14 @@
 按改动面跑对应子项目, 失败中断:
 
 ```bash
-# gateway 必须最先 build (下游 typegen 依赖其生成产物)
+# gateway
 cd gateway
 bun install --frozen-lockfile && bun run typecheck && bun run build
-bunx wrangler deploy --dry-run
 
 # ele-autopilot
 cd ele-autopilot
 bun install --frozen-lockfile && bun run lint && bun run typecheck && bun run build
-bunx wrangler deploy --dry-run
+bun run smoke   # libSQL adapter: batch 回滚 + FK 级联
 
 # ele-autopilot-local
 cd ele-autopilot-local
@@ -50,9 +50,10 @@ uv run python -c "from autopilot.app_meta import project_version; print(project_
 
 # ele-autotesting
 cd ele-autotesting
-pnpm install && pnpm run build:cf
-pnpm --filter @prompt-optimizer/server exec wrangler d1 migrations apply DB --local
-pnpm --filter @prompt-optimizer/server smoke
+pnpm install && pnpm run build   # core + ui + web + server bundle
+pnpm run typecheck
+
+# (可选) 整栈冒烟: cd deploy && docker compose build && docker compose up -d
 ```
 
 ## 3. 发布
@@ -68,10 +69,12 @@ git push origin <branch> vX.Y.Z
 
 push `v*` tag → `.github/workflows/{gateway,autopilot,autopilot-local,autotesting}.yml` 四 workflow 全部触发:
 
-- `gateway`: `bun build` (RR7 + `@cloudflare/vite-plugin`, 产物 `build/{client,server}`) → `wrangler deploy`. 唯一公网入口 `https://qa.<account-sub>.workers.dev`.
-- `autopilot`: `bun build` → `wrangler d1 migrations apply ele-autopilot --remote` → `wrangler deploy`. `workers_dev:false`, 仅 gateway 经 service binding 调.
-- `autopilot-local`: `uv build` → `checksums.txt` → `wrangler r2 object put` 推 `ele-autopilot-releases/local/<ver>/{wheel, sdist, checksums.txt}` + `local/latest.txt` (单行 `<ver>` 不含 `v`).
-- `autotesting`: `pnpm build:cf` → `wrangler d1 migrations apply DB --remote` → `wrangler deploy`. `workers_dev:false`.
+- `gateway`: `docker buildx build` → push `ghcr.io/<owner>/ele-qa-gateway:{<tag>,latest}`.
+- `autopilot`: `docker buildx build` → push `ghcr.io/<owner>/ele-qa-autopilot:{<tag>,latest}`. (migrations 不在 CI apply; server 首启自建表, 见 `lib/db/migrate.ts`.)
+- `autopilot-local`: `uv build` → `checksums.txt` → `gh release create` 上传 wheel/sdist/checksums 到 GitHub Release. **内网 MinIO 无公网入口, CI 到不了**; 宿主侧把 Release 产物 `mc cp` 到 MinIO `ele-autopilot-releases/local/<ver>/` + 更新 `local/latest.txt` (见 [deploy/README.md](./deploy/README.md)).
+- `autotesting`: `docker buildx build` → push `ele-qa-autotesting` + `ele-qa-markitdown` 两镜像.
+
+镜像默认 `linux/amd64` (改目标架构见 workflow `platforms:`). 发完 workflow, 宿主 `cd deploy && docker compose pull && up -d` 滚动.
 
 ## 4. amend 修上版 bug
 

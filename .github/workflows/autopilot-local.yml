@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+
 concurrency:
   group: autopilot-local-${{ github.ref }}
   cancel-in-progress: false
@@ -18,12 +21,8 @@ jobs:
     name: Build and publish ele-autopilot-local
     runs-on: ubuntu-latest
 
-    env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - uses: astral-sh/setup-uv@v8.1.0
         with:
@@ -50,36 +49,17 @@ jobs:
           sha256sum "${files[@]}" > checksums.txt
           cat checksums.txt
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - name: Publish artifacts to Cloudflare R2
+      # 迁移: CF R2 put → GitHub Release (CI 到不了内网 MinIO). 宿主侧把 Release 产物
+      # mc cp 到 MinIO ele-autopilot-releases/local/<ver>/ + 更新 local/latest.txt (见 deploy/README.md).
+      - name: Publish artifacts to GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          cd dist
           tag="${{ github.ref_name }}"
-          VER="${tag#v}"
-          BUCKET="ele-autopilot-releases"
-          WRANGLER="npx -y wrangler@latest"
-
-          wheel="ele_autopilot_local-${VER}-py3-none-any.whl"
-          sdist="ele_autopilot_local-${VER}.tar.gz"
-
-          [ -f "${wheel}" ] || { echo "missing wheel ${wheel}" >&2; exit 1; }
-          [ -f "${sdist}" ] || { echo "missing sdist ${sdist}" >&2; exit 1; }
-          [ -f "checksums.txt" ] || { echo "missing checksums.txt" >&2; exit 1; }
-
-          # wrangler v4 起 `r2 object` 默认 local 数据存储, 必须显式 --remote 才写到生产 bucket.
-          ${WRANGLER} r2 object put "${BUCKET}/local/${VER}/${wheel}" --remote \
-            --file "${wheel}" --content-type "application/octet-stream"
-          ${WRANGLER} r2 object put "${BUCKET}/local/${VER}/${sdist}" --remote \
-            --file "${sdist}" --content-type "application/gzip"
-          ${WRANGLER} r2 object put "${BUCKET}/local/${VER}/checksums.txt" --remote \
-            --file "checksums.txt" --content-type "text/plain; charset=utf-8"
-
-          # latest 指针 (单行版本号, 不含 v 前缀; gateway landing 与 install.sh 据此解析)
-          printf '%s' "${VER}" > latest.txt
-          ${WRANGLER} r2 object put "${BUCKET}/local/latest.txt" --remote \
-            --file "latest.txt" --content-type "text/plain; charset=utf-8"
+          gh release create "$tag" \
+            dist/*.whl dist/*.tar.gz dist/checksums.txt \
+            --repo "${{ github.repository }}" \
+            --title "$tag" \
+            --notes "ele-autopilot-local $tag — wheel/sdist/checksums. 内网分发: 宿主 mc cp 到 MinIO releases bucket." \
+            || gh release upload "$tag" dist/*.whl dist/*.tar.gz dist/checksums.txt --repo "${{ github.repository }}" --clobber

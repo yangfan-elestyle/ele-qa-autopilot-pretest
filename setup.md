@@ -1,27 +1,28 @@
 # 一次性配置
 
-首次部署前手动建 Secrets + Cloudflare 资源; workflow 不自动探测/创建.
+内网单机 docker-compose 部署 (Phase B, 已抛弃 Cloudflare). 编排细节见 [deploy/README.md](./deploy/README.md).
 
-## GitHub Secrets
+## GitHub
 
-- `CLOUDFLARE_API_TOKEN`: Workers / D1 / R2 编辑权限 ([Edit Cloudflare Workers 模板](https://dash.cloudflare.com/profile/api-tokens))
-- `CLOUDFLARE_ACCOUNT_ID`: Cloudflare dashboard 主页右栏
+- workflow push 镜像到 GHCR 用内置 `GITHUB_TOKEN` (`permissions: packages: write`), 无需额外 secret.
+- 首次 push 后到仓库 `Packages` 把四个镜像 (`ele-qa-gateway` / `ele-qa-autopilot` / `ele-qa-autotesting` / `ele-qa-markitdown`) 可见性设为宿主可拉 (私有则宿主 `docker login ghcr.io`).
 
-## Cloudflare 资源
+## 宿主 (内网单机)
 
 ```bash
-# ele-autopilot
-bunx wrangler d1 create ele-autopilot                       # database_id 回填 ele-autopilot/wrangler.jsonc
-bunx wrangler r2 bucket create ele-autopilot-screenshots
-bunx wrangler r2 bucket create ele-autopilot-releases       # 共享, ele-autopilot-local 推产物
-
-# ele-autotesting
-cd ele-autotesting/packages/server
-npx wrangler d1 create <db-name>                            # database_id 回填 packages/server/wrangler.jsonc
+cd deploy
+cp .env.example .env          # 改 MINIO_ROOT_PASSWORD; 填 LLM/Confluence 凭据;
+                              # *_IMAGE 指向 ghcr.io/<owner>/...:<tag> (或留 :local 本地构建)
+docker compose pull           # 或 docker compose build
+docker compose up -d
 ```
 
-## Gateway 依赖
+- 仅 nginx publish 端口 (默认 `:80`, 改 `.env` 的 `BIND_ADDR`/`HTTP_PORT`); 下游全内网.
+- MinIO bucket 由 `createbuckets` 一次性服务自动建 (幂等).
+- libSQL 库随容器 volume, server 首启自建表 (无历史数据可直接用).
 
-- 无独立 D1 / R2; 仅 service bindings (`ele-autopilot`, `ele-autotesting`).
-- 两业务 Worker MUST 已至少部署过一次 (name 已在 account 存在).
-- 首次 gateway 部署后两业务 Worker 关 workers.dev 公网入口; 唯一公开 URL `https://qa.<account-sub>.workers.dev`.
+## 数据迁移 (仅从旧 CF 环境搬)
+
+- D1 → `sqlite3 <volume>/autopilot.db < dump.sql` (含 `settings.llm_api_key`); autotesting 同理.
+- R2 → `mc mirror` 到 MinIO 两 bucket.
+- 全新部署无需此步.

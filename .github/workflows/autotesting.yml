@@ -5,23 +5,25 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: read
+  packages: write
+
 concurrency:
   group: autotesting-${{ github.ref }}
   cancel-in-progress: false
 
-defaults:
-  run:
-    working-directory: ele-autotesting
-
 jobs:
-  deploy:
-    name: Build & Deploy ele-autotesting
+  build-push:
+    name: Build & Push ele-autotesting (+ markitdown) images
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
+
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
 
       - name: Verify tag matches package.json version
+        working-directory: ele-autotesting
         run: |
           pkg_version="$(jq -r .version package.json)"
           tag="${{ github.ref_name }}"
@@ -30,37 +32,35 @@ jobs:
             exit 1
           fi
 
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.6.1
+      - name: Lowercase owner (GHCR requires lowercase)
+        run: echo "OWNER=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: pnpm
-          cache-dependency-path: ele-autotesting/pnpm-lock.yaml
-
-      - name: Install
-        run: pnpm install --frozen-lockfile
-
-      - name: Build (core + ui + web)
-        run: pnpm run build:cf
-
-      # wrangler 4 内置 Cloudflare Containers 推送链路, 本身依赖本机 docker daemon
-      # buildx 提供多架构 / amd64 跨平台构建能力 (Cloudflare Containers 要求 linux/amd64)
       - uses: docker/setup-buildx-action@v3
 
-      # D1 schema 由 packages/server/migrations/*.sql 维护, wrangler deploy 不会自动 apply.
-      # 这里在 deploy 之前对 remote DB 跑一次 migrations apply (幂等), 避免首次部署或
-      # 新增 migration 后 /api/sync/* 因为 storage 表缺失直接 500.
-      - name: Apply D1 migrations (remote)
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: pnpm --filter @prompt-optimizer/server exec wrangler d1 migrations apply DB --remote
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Deploy Worker + Container
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: pnpm --filter @prompt-optimizer/server exec wrangler deploy
+      - name: Build & push autotesting
+        uses: docker/build-push-action@v6
+        with:
+          context: ele-autotesting
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ghcr.io/${{ env.OWNER }}/ele-qa-autotesting:${{ github.ref_name }}
+            ghcr.io/${{ env.OWNER }}/ele-qa-autotesting:latest
+
+      # markitdown sidecar (原 CF Container 同 image); 随 autotesting lockstep 发.
+      - name: Build & push markitdown
+        uses: docker/build-push-action@v6
+        with:
+          context: ele-autotesting/containers/markitdown
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ghcr.io/${{ env.OWNER }}/ele-qa-markitdown:${{ github.ref_name }}
+            ghcr.io/${{ env.OWNER }}/ele-qa-markitdown:latest
