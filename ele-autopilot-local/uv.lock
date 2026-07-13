@@ -534,7 +534,7 @@ wheels = [
 
 [[package]]
 name = "ele-autopilot-local"
-version = "1.28.9"
+version = "1.28.10"
 source = { editable = "." }
 dependencies = [
     { name = "browser-use" },

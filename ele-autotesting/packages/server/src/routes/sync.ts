@@ -1,6 +1,7 @@
 import { Hono, Context } from 'hono'
 import type { HonoEnv } from '../types/env.ts'
 import { resolveOwner } from '../middleware/auth.ts'
+import { getDb } from '../lib/db.ts'
 
 /**
  * /api/sync — D1 远程 KV 存储。语义与浏览器侧 IStorageProvider 一一对应:
@@ -49,7 +50,7 @@ function validateValue(value: unknown): string | null {
 router.get('/items', async (c: Context<SyncEnv>) => {
   const ownerId = c.var.ownerId
   try {
-    const { results } = await c.env.DB.prepare(
+    const { results } = await getDb(c).prepare(
       'SELECT key, value FROM storage WHERE owner_id = ?',
     )
       .bind(ownerId)
@@ -73,7 +74,7 @@ router.get('/items/:key', async (c: Context<SyncEnv>) => {
   if (keyErr) return c.json({ error: keyErr }, 400)
 
   try {
-    const row = await c.env.DB.prepare(
+    const row = await getDb(c).prepare(
       'SELECT value FROM storage WHERE owner_id = ? AND key = ?',
     )
       .bind(ownerId, key)
@@ -103,7 +104,7 @@ router.put('/items/:key', async (c: Context<SyncEnv>) => {
   if (valueErr) return c.json({ error: valueErr }, 400)
 
   try {
-    await c.env.DB.prepare(
+    await getDb(c).prepare(
       'INSERT INTO storage (owner_id, key, value, updated_at) VALUES (?, ?, ?, ?) ' +
         'ON CONFLICT(owner_id, key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at',
     )
@@ -123,7 +124,7 @@ router.delete('/items/:key', async (c: Context<SyncEnv>) => {
   if (keyErr) return c.json({ error: keyErr }, 400)
 
   try {
-    await c.env.DB.prepare('DELETE FROM storage WHERE owner_id = ? AND key = ?')
+    await getDb(c).prepare('DELETE FROM storage WHERE owner_id = ? AND key = ?')
       .bind(ownerId, key)
       .run()
     return c.json({ ok: true })
@@ -136,7 +137,7 @@ router.delete('/items/:key', async (c: Context<SyncEnv>) => {
 router.delete('/items', async (c: Context<SyncEnv>) => {
   const ownerId = c.var.ownerId
   try {
-    await c.env.DB.prepare('DELETE FROM storage WHERE owner_id = ?').bind(ownerId).run()
+    await getDb(c).prepare('DELETE FROM storage WHERE owner_id = ?').bind(ownerId).run()
     return c.json({ ok: true })
   } catch (e: any) {
     console.error('sync clear error:', e?.message || e)
@@ -175,14 +176,14 @@ router.post('/batch', async (c: Context<SyncEnv>) => {
       const valueErr = validateValue(op.value)
       if (valueErr) return c.json({ error: `op[${op.key}]: ${valueErr}` }, 400)
       stmts.push(
-        c.env.DB.prepare(
+        getDb(c).prepare(
           'INSERT INTO storage (owner_id, key, value, updated_at) VALUES (?, ?, ?, ?) ' +
             'ON CONFLICT(owner_id, key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at',
         ).bind(ownerId, op.key, op.value as string, now),
       )
     } else if (op.op === 'remove') {
       stmts.push(
-        c.env.DB.prepare('DELETE FROM storage WHERE owner_id = ? AND key = ?').bind(ownerId, op.key),
+        getDb(c).prepare('DELETE FROM storage WHERE owner_id = ? AND key = ?').bind(ownerId, op.key),
       )
     } else {
       return c.json({ error: `op[${op.key}]: unknown op ${op.op}` }, 400)
@@ -190,7 +191,7 @@ router.post('/batch', async (c: Context<SyncEnv>) => {
   }
 
   try {
-    await c.env.DB.batch(stmts)
+    await getDb(c).batch(stmts)
     return c.json({ ok: true, count: ops.length })
   } catch (e: any) {
     console.error('sync batch error:', e?.message || e)

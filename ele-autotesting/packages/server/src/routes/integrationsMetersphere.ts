@@ -1,6 +1,7 @@
 import { Hono, Context } from 'hono'
 import type { HonoEnv } from '../types/env.ts'
 import { resolveOwner } from '../middleware/auth.ts'
+import { getDb } from '../lib/db.ts'
 
 /**
  * /api/integrations/metersphere — 集成中心 MeterSphere Tab 的 AK/SK 存储.
@@ -40,7 +41,7 @@ function maskSecret(value: string): string {
 export async function readMeterSphereConfig(
   c: Context<{ Bindings: HonoEnv['Bindings']; Variables: HonoEnv['Variables'] & { ownerId: string } }>,
 ): Promise<MeterSphereIntegrationConfig | null> {
-  const row = await c.env.DB.prepare(
+  const row = await getDb(c).prepare(
     'SELECT value FROM storage WHERE owner_id = ? AND key = ?',
   )
     .bind(c.var.ownerId, METERSPHERE_STORAGE_KEY)
@@ -56,7 +57,7 @@ export async function readMeterSphereConfig(
 }
 
 async function writeConfig(c: Context<MsEnv>, cfg: MeterSphereIntegrationConfig): Promise<void> {
-  await c.env.DB.prepare(
+  await getDb(c).prepare(
     'INSERT INTO storage (owner_id, key, value, updated_at) VALUES (?, ?, ?, ?) ' +
       'ON CONFLICT(owner_id, key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at',
   )
@@ -65,7 +66,7 @@ async function writeConfig(c: Context<MsEnv>, cfg: MeterSphereIntegrationConfig)
 }
 
 async function deleteConfig(c: Context<MsEnv>): Promise<void> {
-  await c.env.DB.prepare('DELETE FROM storage WHERE owner_id = ? AND key = ?')
+  await getDb(c).prepare('DELETE FROM storage WHERE owner_id = ? AND key = ?')
     .bind(c.var.ownerId, METERSPHERE_STORAGE_KEY)
     .run()
 }

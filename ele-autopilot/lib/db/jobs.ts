@@ -13,7 +13,7 @@ import type {
   TaskActionResult,
 } from './types';
 import { buildOrderBy, generateId, isRecord, isValidId, queryAll, queryGet, queryRun } from './utils';
-import { getDb } from './connection';
+import { getDb, type DbPreparedStatement } from './connection';
 import { getTaskById } from './tasks';
 
 async function ensureTaskExists(taskId: Id) {
@@ -253,7 +253,7 @@ export async function createJob(input: { task_id: Id; config?: JobConfig }): Pro
   // started_at 留空: pending 阶段还未真正启动, 由 syncJobStatusFromTasks 在状态
   // 首次推进到 running 时回填, 避免前端把"创建 -> 启动"的等待时长算进任务耗时.
   const db = getDb();
-  const statements: D1PreparedStatement[] = [
+  const statements: DbPreparedStatement[] = [
     db
       .prepare(
         `INSERT INTO jobs (id, task_id, status, config, created_at, started_at) VALUES (?, ?, ?, ?, ?, ?)`,

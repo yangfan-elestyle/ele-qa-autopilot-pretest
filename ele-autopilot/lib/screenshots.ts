@@ -1,4 +1,4 @@
-import { getBindings } from './bindings';
+import { getScreenshotStore, type ObjectList } from './object-store';
 import type { TaskActionResult } from './db';
 
 const URL_PREFIX = '/screenshots';
@@ -38,12 +38,12 @@ async function writeScreenshotToR2(
   stepIndex: number,
   base64: string,
 ): Promise<string> {
-  const { SCREENSHOTS } = getBindings();
+  const store = getScreenshotStore();
   const key = `${jobTaskId}/${stepIndex}.png`;
-  // base64ToBytes 内部 atob() 遇非法字符抛 InvalidCharacterError; SCREENSHOTS.put
-  // 也可能因 R2 暂态故障抛错. 让异常向上传播给 externalizeScreenshots 的逐张
+  // base64ToBytes 内部 atob() 遇非法字符抛 InvalidCharacterError; store.put
+  // 也可能因存储暂态故障抛错. 让异常向上传播给 externalizeScreenshots 的逐张
   // try-catch 捕获 — 单张失败就置 null 不阻断其他截图与 task 状态写入.
-  await SCREENSHOTS.put(key, base64ToBytes(stripDataUriPrefix(base64)), {
+  await store.put(key, base64ToBytes(stripDataUriPrefix(base64)), {
     httpMetadata: { contentType: 'image/png' },
   });
   return `${URL_PREFIX}/${key}`;
@@ -58,7 +58,7 @@ async function writeScreenshotToR2(
  */
 export async function deleteScreenshotsByJobTaskIds(jobTaskIds: string[]): Promise<void> {
   if (jobTaskIds.length === 0) return;
-  const { SCREENSHOTS } = getBindings();
+  const store = getScreenshotStore();
 
   for (const id of jobTaskIds) {
     if (!id) continue;
@@ -66,10 +66,10 @@ export async function deleteScreenshotsByJobTaskIds(jobTaskIds: string[]): Promi
     try {
       let cursor: string | undefined = undefined;
       do {
-        const listed: R2Objects = await SCREENSHOTS.list({ prefix, cursor, limit: 1000 });
+        const listed: ObjectList = await store.list({ prefix, cursor, limit: 1000 });
         const keys = listed.objects.map((o) => o.key);
         if (keys.length > 0) {
-          await SCREENSHOTS.delete(keys);
+          await store.delete(keys);
         }
         cursor = listed.truncated ? listed.cursor : undefined;
       } while (cursor);

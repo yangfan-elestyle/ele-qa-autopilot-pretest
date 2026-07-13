@@ -1,6 +1,7 @@
 import { Hono, Context } from 'hono'
 import type { HonoEnv } from '../types/env.ts'
 import { readHarnessLlmConfig } from './integrationsHarnessLlm.ts'
+import { upstreamFetch } from '../lib/upstream.ts'
 
 /**
  * /api/harness/oneshot — 代理到 ele-harness agentic-loop `/v1/oneshot`.
@@ -105,7 +106,7 @@ async function readSseEvents(
 }
 
 router.post('/oneshot', async (c: Context<HarnessHonoEnv>) => {
-  if (!c.env.AGENTIC_LOOP) {
+  if (!c.env.AGENTIC_LOOP && !c.env.AGENTIC_LOOP_URL?.trim()) {
     return c.json({ error: 'AGENTIC_LOOP VPC binding not configured' }, 500)
   }
 
@@ -159,7 +160,7 @@ router.post('/oneshot', async (c: Context<HarnessHonoEnv>) => {
   // 约 5min 被判 idle, Worker 侧 fetch 抛 "Network connection lost".
   let upstream: Response
   try {
-    upstream = await c.env.AGENTIC_LOOP.fetch('http://backend/v1/oneshot', {
+    upstream = await upstreamFetch(c.env, 'AGENTIC_LOOP', '/v1/oneshot', {
       method: 'POST',
       headers: { 'content-type': 'application/json', accept: 'text/event-stream' },
       body: JSON.stringify(upstreamBody),

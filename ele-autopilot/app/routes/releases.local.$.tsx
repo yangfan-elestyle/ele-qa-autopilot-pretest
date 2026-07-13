@@ -1,6 +1,6 @@
 import type { LoaderFunctionArgs } from 'react-router';
 
-import { getBindings } from '@/lib/bindings';
+import { getReleaseStore } from '@/lib/object-store';
 import { r2KeyFromRelPath } from '@/lib/screenshots';
 
 function contentTypeFor(name: string): string {
@@ -25,8 +25,8 @@ export async function loader({ params }: LoaderFunctionArgs) {
   if (!safe) return new Response('Not found', { status: 404 });
 
   const key = `local/${safe}`;
-  const { RELEASES } = getBindings();
-  const obj = await RELEASES.get(key);
+  const store = getReleaseStore();
+  const obj = await store.get(key);
   if (!obj) return new Response('Not found', { status: 404 });
 
   const headers = new Headers();

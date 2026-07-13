@@ -1,5 +1,6 @@
 import { Hono, Context } from 'hono'
 import type { HonoEnv } from '../types/env.ts'
+import { upstreamFetch } from '../lib/upstream.ts'
 
 /**
  * /api/autopilot/ingest — 透传到 ele-autopilot `/api/v1/ingest/tasks`.
@@ -18,7 +19,7 @@ import type { HonoEnv } from '../types/env.ts'
 const router = new Hono<HonoEnv>()
 
 router.post('/ingest', async (c: Context<HonoEnv>) => {
-  if (!c.env.AUTOPILOT) {
+  if (!c.env.AUTOPILOT && !c.env.AUTOPILOT_URL?.trim()) {
     return c.json({ error: 'AUTOPILOT service binding not configured' }, 500)
   }
 
@@ -35,7 +36,7 @@ router.post('/ingest', async (c: Context<HonoEnv>) => {
 
   let upstream: Response
   try {
-    upstream = await c.env.AUTOPILOT.fetch('http://autopilot/api/v1/ingest/tasks', {
+    upstream = await upstreamFetch(c.env, 'AUTOPILOT', '/api/v1/ingest/tasks', {
       method: 'POST',
       headers: { 'content-type': 'application/json', accept: 'application/json' },
       body: JSON.stringify(payload),

@@ -8,8 +8,7 @@ export interface Env {
   /**
    * Cloudflare Workers VPC service binding 反向到 MeterSphere (`qa.elepay.link`).
    * 资源 ID / 拓扑 / 复用 harness tunnel `ele-server` 的细节见 PLAN-vpc.md.
-   * 调用形态: `env.METERSPHERE.fetch('https://backend/{ms-path}', { method, headers, body })`.
-   * Host 部分是 binding placeholder, 不进 origin; VPC service 改写到 qa.elepay.link:443.
+   * 不直接调; 经 lib/upstream.ts 的 upstreamFetch(env, 'METERSPHERE', path) 寻址 (见 A1 seam).
    */
   METERSPHERE: Fetcher
 
@@ -23,12 +22,22 @@ export interface Env {
   AGENTIC_LOOP: Fetcher
 
   /**
-   * Service binding 直连 ele-autopilot Worker. 调用形态 `env.AUTOPILOT.fetch('http://autopilot/api/v1/ingest/tasks', ...)`.
+   * Service binding 直连 ele-autopilot Worker; 经 lib/upstream.ts 的
+   * upstreamFetch(env, 'AUTOPILOT', path) 调 (见 A1 seam).
    * 用 binding 而非公网 fetch 是为了避免 autotesting Worker fetch 自己同域
    * `qa.<sub>.workers.dev` 触发 Cloudflare 1101 (self-subrequest cycle).
    * 契约见 ele-autopilot/docs/ingest-api.md.
    */
   AUTOPILOT: Fetcher
+
+  /**
+   * 迁移前置 (A1): 内网 Docker 下游 base URL (含 scheme). 非空 → HTTP 直连,
+   * 空 / 未设 → 上面对应的 service / VPC binding. 寻址逻辑见 lib/upstream.ts.
+   * 迁移日 METERSPHERE_URL 指 https://bi.elepay.link, AUTOPILOT_URL / AGENTIC_LOOP_URL 指 compose service.
+   */
+  AUTOPILOT_URL?: string
+  METERSPHERE_URL?: string
+  AGENTIC_LOOP_URL?: string
 
   QA_ALTASSIAN_API_KEY?: string
   QA_ALTASSIAN_EMAIL?: string
@@ -46,6 +55,13 @@ export interface Env {
    * 生产部署绝不应设置。
    */
   MARKITDOWN_DEV_URL?: string
+
+  /**
+   * 迁移前置 (A5): 内网 Docker compose 中 markitdown 同 image 的 HTTP 端点 (含 scheme)。
+   * 非空 → `/mcps/markitdown/*` 反代到该 URL, 优先于 MARKITDOWN_DEV_URL 与 Container。
+   * CF 部署不设 (走 env.MARKITDOWN Container); 迁移日 compose 设为 markitdown service。
+   */
+  MARKITDOWN_URL?: string
 
   /**
    * Cloudflare Access (Zero Trust) Team Domain, 用于 cf-access-jwt-assertion 远程 JWKS

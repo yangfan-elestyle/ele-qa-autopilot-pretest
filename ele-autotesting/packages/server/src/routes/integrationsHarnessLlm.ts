@@ -1,6 +1,7 @@
 import { Hono, Context } from 'hono'
 import type { HonoEnv } from '../types/env.ts'
 import { resolveOwner } from '../middleware/auth.ts'
+import { getDb } from '../lib/db.ts'
 
 /**
  * /api/integrations/harness-llm — 集成中心 ele-harness Tab 的 LLM 凭证存储.
@@ -45,7 +46,7 @@ function maskApiKey(key: string): string {
 }
 
 async function readConfig(c: Context<LlmEnv>): Promise<HarnessLlmConfig | null> {
-  const row = await c.env.DB.prepare(
+  const row = await getDb(c).prepare(
     'SELECT value FROM storage WHERE owner_id = ? AND key = ?',
   )
     .bind(c.var.ownerId, STORAGE_KEY)
@@ -59,7 +60,7 @@ async function readConfig(c: Context<LlmEnv>): Promise<HarnessLlmConfig | null> 
 }
 
 async function writeConfig(c: Context<LlmEnv>, cfg: HarnessLlmConfig): Promise<void> {
-  await c.env.DB.prepare(
+  await getDb(c).prepare(
     'INSERT INTO storage (owner_id, key, value, updated_at) VALUES (?, ?, ?, ?) ' +
       'ON CONFLICT(owner_id, key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at',
   )
@@ -68,7 +69,7 @@ async function writeConfig(c: Context<LlmEnv>, cfg: HarnessLlmConfig): Promise<v
 }
 
 async function deleteConfig(c: Context<LlmEnv>): Promise<void> {
-  await c.env.DB.prepare('DELETE FROM storage WHERE owner_id = ? AND key = ?')
+  await getDb(c).prepare('DELETE FROM storage WHERE owner_id = ? AND key = ?')
     .bind(c.var.ownerId, STORAGE_KEY)
     .run()
 }

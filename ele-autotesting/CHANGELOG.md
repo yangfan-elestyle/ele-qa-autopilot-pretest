@@ -2,6 +2,12 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.28.10] - 2026-07-13
+
+### Added
+
+- Docker 迁移前置抽象层 (下游寻址 / DB / 鉴权 / markitdown seam): 新增 `AUTOPILOT_URL` / `METERSPHERE_URL` / `AGENTIC_LOOP_URL` / `MARKITDOWN_URL` 可选配置, 未设 (默认) 时行为不变.
+
 ## [1.28.9] - 2026-06-01
 
 ### Fixed

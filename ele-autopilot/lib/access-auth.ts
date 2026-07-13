@@ -43,16 +43,22 @@ type AccessEnv = { TEAM_DOMAIN?: string; POLICY_AUD?: string };
 export type AccessUser = { email: string };
 
 /**
- * 强制校验 CF Access JWT, 返回已登录用户. 校验失败抛 Response.
+ * 迁移前置 (A4): 身份来源 seam.
  *
- * - 缺 TEAM_DOMAIN/POLICY_AUD 配置: 500 (不放行, 防止配置漂移退化成无鉴权)
- * - 缺 token: 401
- * - token 无效: 403
+ * CF 实现 = CF Access JWT (jose 校验). 迁移日换成读 gateway 注入的 `X-Auth-User-Email`
+ * header (gateway 统一收口后, 下游荣誉制信任该 header). verify 语义:
+ *   - 无凭据 → null (由 requireAccessUser 决定是否 401)
+ *   - 配置缺失 / 凭据非法 → throw Response(500 / 403)
+ * 迁移日只换 getAuthProvider 的返回实现, requireAccessUser 及路由不改.
  */
-export async function requireAccessUser(
+export interface AuthProvider {
+  verify(request: Request): Promise<AccessUser | null>;
+}
+
+async function verifyCfAccess(
   request: Request,
   env: AccessEnv,
-): Promise<AccessUser> {
+): Promise<AccessUser | null> {
   if (!env.TEAM_DOMAIN || !env.POLICY_AUD) {
     throw new Response('Access not configured', { status: 500 });
   }
@@ -61,7 +67,7 @@ export async function requireAccessUser(
     request.headers.get('cf-access-jwt-assertion') ??
     extractCookie(request, 'CF_Authorization');
   if (!token) {
-    throw new Response('Unauthorized: missing CF Access token', { status: 401 });
+    return null;
   }
 
   try {
@@ -79,6 +85,28 @@ export async function requireAccessUser(
     if (err instanceof Response) throw err;
     throw new Response('Forbidden: invalid CF Access token', { status: 403 });
   }
+}
+
+export function getAuthProvider(env: AccessEnv): AuthProvider {
+  return { verify: (request) => verifyCfAccess(request, env) };
+}
+
+/**
+ * 强制校验身份, 返回已登录用户. 校验失败抛 Response.
+ *
+ * - 缺 TEAM_DOMAIN/POLICY_AUD 配置: 500 (不放行, 防止配置漂移退化成无鉴权)
+ * - 缺 token: 401
+ * - token 无效: 403
+ */
+export async function requireAccessUser(
+  request: Request,
+  env: AccessEnv,
+): Promise<AccessUser> {
+  const user = await getAuthProvider(env).verify(request);
+  if (!user) {
+    throw new Response('Unauthorized: missing CF Access token', { status: 401 });
+  }
+  return user;
 }
 
 /**

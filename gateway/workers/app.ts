@@ -22,13 +22,27 @@ const requestHandler = createRequestHandler(
   import.meta.env.MODE,
 );
 
-// 把 service binding 出错标到 status text / x-gateway-upstream / body, 方便定位是哪个 upstream 挂了.
+// 迁移前置 (A1): 下游寻址 seam. `<NAME>_URL` 非空 → 内网 Docker HTTP 直连;
+// 空串 (CF 默认) → 原 service binding. 迁移日只改 wrangler var, 转发逻辑不动.
+function upstreamBase(name: "AUTOPILOT" | "AUTOTEST", env: Env): string | null {
+  const raw = name === "AUTOPILOT" ? env.AUTOPILOT_URL : env.AUTOTEST_URL;
+  const trimmed = raw?.trim();
+  return trimmed ? trimmed.replace(/\/+$/, "") : null;
+}
+
+// 把 upstream 出错标到 status text / x-gateway-upstream / body, 方便定位是哪个 upstream 挂了.
 async function forwardTo(
   name: "AUTOPILOT" | "AUTOTEST",
   binding: Fetcher,
   req: Request,
+  env: Env,
 ): Promise<Response> {
   try {
+    const base = upstreamBase(name, env);
+    if (base) {
+      const u = new URL(req.url);
+      return await fetch(new Request(base + u.pathname + u.search, req));
+    }
     return await binding.fetch(req);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -113,6 +127,16 @@ async function verifyAccessJwt(
   }
 }
 
+// 迁移前置 (A4): 身份来源 seam. CF 实现 = CF Access JWT (jose 校验); 迁移日换成读 gateway
+// 自签 cookie / X-Auth-User-Email header (gateway 变身份签发方). verify 语义不变:
+// 无凭据 → null (dev 放行), 凭据非法 → throw Response(403).
+interface AuthProvider {
+  verify(request: Request): Promise<{ email: string } | null>;
+}
+function getAuthProvider(env: Env): AuthProvider {
+  return { verify: (request) => verifyAccessJwt(request, env) };
+}
+
 export default {
   async fetch(request, env, ctx): Promise<Response> {
     const url = new URL(request.url);
@@ -131,12 +155,12 @@ export default {
     }
 
     if (isBypassPath(p)) {
-      return forwardTo("AUTOPILOT", env.AUTOPILOT, request);
+      return forwardTo("AUTOPILOT", env.AUTOPILOT, request, env);
     }
 
     let user: { email: string } | null;
     try {
-      user = await verifyAccessJwt(request, env);
+      user = await getAuthProvider(env).verify(request);
     } catch (res) {
       if (res instanceof Response) return res;
       throw res;
@@ -146,13 +170,13 @@ export default {
       const stripped = p.slice("/autotest".length) || "/";
       const forwarded = new URL(url);
       forwarded.pathname = stripped;
-      return forwardTo("AUTOTEST", env.AUTOTEST, new Request(forwarded, request));
+      return forwardTo("AUTOTEST", env.AUTOTEST, new Request(forwarded, request), env);
     }
 
     if (p === "/") {
       return requestHandler(request, { cloudflare: { env, ctx }, user });
     }
 
-    return forwardTo("AUTOPILOT", env.AUTOPILOT, request);
+    return forwardTo("AUTOPILOT", env.AUTOPILOT, request, env);
   },
 } satisfies ExportedHandler<Env>;

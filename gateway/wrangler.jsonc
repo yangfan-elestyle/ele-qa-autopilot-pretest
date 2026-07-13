@@ -9,7 +9,11 @@
   },
   "vars": {
     "TEAM_DOMAIN": "https://yigegongjiang.cloudflareaccess.com",
-    "POLICY_AUD": "7da3d8a8012e505a268a913c45a5b840a5b6d3458878fbad7481c3db61ec48d9"
+    "POLICY_AUD": "7da3d8a8012e505a268a913c45a5b840a5b6d3458878fbad7481c3db61ec48d9",
+    // 迁移前置 (A1): 内网 Docker 下游 HTTP base URL. 空串 = 走 CF service binding;
+    // 迁移日填 compose service name (如 http://autopilot:8080) 即切 HTTP 直连, 代码不改.
+    "AUTOPILOT_URL": "",
+    "AUTOTEST_URL": ""
   },
   "services": [
     { "binding": "AUTOPILOT", "service": "ele-autopilot" },

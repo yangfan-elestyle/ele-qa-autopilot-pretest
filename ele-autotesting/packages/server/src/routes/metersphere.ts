@@ -2,6 +2,7 @@ import { Hono, Context } from 'hono'
 import type { HonoEnv } from '../types/env.ts'
 import { buildMsSignedHeaders } from '../lib/metersphere/sign.ts'
 import { readMeterSphereConfig } from './integrationsMetersphere.ts'
+import { upstreamFetch } from '../lib/upstream.ts'
 
 /**
  * /api/ms — MeterSphere 反向代理.
@@ -30,10 +31,8 @@ type MsRouteEnv = {
 
 const router = new Hono<MsRouteEnv>()
 
-// VPC service binding 只负责把请求路由到对应的 cloudflared tunnel, **不会改写 URL hostname**.
-// fetch URL 的 hostname 同时也是 TLS SNI 与 Host header, 必须等于真实 MeterSphere 域名,
-// 否则 ele-fly 上 cloudflared / 反向到的 nginx 抛 TLSV1_ALERT_UNRECOGNIZED_NAME.
-const BACKEND_BASE = 'https://qa.elepay.link'
+// MeterSphere 寻址 (CF binding 的真实域名 host / 迁移日的 METERSPHERE_URL) 收口到 lib/upstream.ts;
+// 这里只组 path + query, 由 upstreamFetch 决定 base.
 
 interface MsCallInit {
   method: string
@@ -50,14 +49,14 @@ async function callMeterSphere(
 ): Promise<Response> {
   const { accessKey, signature } = await buildMsSignedHeaders(init.ak, init.sk)
 
-  let url = `${BACKEND_BASE}${init.path}`
+  let path = init.path
   if (init.query) {
     const qs = new URLSearchParams()
     for (const [k, v] of Object.entries(init.query)) {
       if (v !== undefined && v !== null && v !== '') qs.set(k, String(v))
     }
     const q = qs.toString()
-    if (q) url += `?${q}`
+    if (q) path += `?${q}`
   }
 
   const headers: Record<string, string> = {
@@ -71,7 +70,7 @@ async function callMeterSphere(
     body = JSON.stringify(init.body)
   }
 
-  const upstream = await c.env.METERSPHERE.fetch(url, { method: init.method, headers, body })
+  const upstream = await upstreamFetch(c.env, 'METERSPHERE', path, { method: init.method, headers, body })
   // MeterSphere v3 正常返 HTTP 200 + body { code: 100200 (MsHttpResultCode.SUCCESS), data, message };
   // 错误时 code 为 1004xx / 1005xx, 后三位 == HTTP status. 本 Worker 不校验 code,
   // 直接透传 status + body 给前端. 透传时去掉 set-cookie 等敏感 header, 留 content-type 即可.
@@ -100,7 +99,7 @@ async function getAkSk(c: Context<MsRouteEnv>): Promise<{ ak: string; sk: string
 router.get('/_smoke', async (c: Context<MsRouteEnv>) => {
   // 不签名, 仅探链路. MeterSphere 根目录通常返登录页 200 或 401, 任一非 502 即证明 VPC 通.
   try {
-    const upstream = await c.env.METERSPHERE.fetch(`${BACKEND_BASE}/`, { method: 'GET' })
+    const upstream = await upstreamFetch(c.env, 'METERSPHERE', '/', { method: 'GET' })
     const ct = upstream.headers.get('content-type') ?? ''
     return c.json({
       status: upstream.status,
@@ -169,7 +168,7 @@ async function discoverOrganizationId(
   sk: string,
 ): Promise<string | null> {
   const { accessKey, signature } = await buildMsSignedHeaders(ak, sk)
-  const resp = await c.env.METERSPHERE.fetch(`${BACKEND_BASE}/system/user/get/organization`, {
+  const resp = await upstreamFetch(c.env, 'METERSPHERE', '/system/user/get/organization', {
     method: 'GET',
     headers: { accept: 'application/json', accessKey, signature },
   })
@@ -330,7 +329,7 @@ router.post('/case/add', async (c: Context<MsRouteEnv>) => {
       new Blob([JSON.stringify(body)], { type: 'application/json' }),
       'request.json',
     )
-    const upstream = await c.env.METERSPHERE.fetch(`${BACKEND_BASE}/functional/case/add`, {
+    const upstream = await upstreamFetch(c.env, 'METERSPHERE', '/functional/case/add', {
       method: 'POST',
       headers: { accept: 'application/json', accessKey, signature },
       body: fd,

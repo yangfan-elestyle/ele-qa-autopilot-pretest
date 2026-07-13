@@ -51,32 +51,63 @@ function extractCookie(c: Context<HonoEnv>, name: string): string | null {
   return null
 }
 
-export async function resolveOwner(c: Context<HonoEnv>, next: Next) {
-  const token = c.req.header('cf-access-jwt-assertion') ?? extractCookie(c, 'CF_Authorization')
+/**
+ * 迁移前置 (A4): 身份来源 seam.
+ *
+ * CF 实现 = CF Access JWT (jose 校验). 迁移日换成读 gateway 注入的 `X-Auth-User-Email`
+ * header (统一收口后下游荣誉制信任). verify 返回三态, resolveOwner 保持 dev 兜底 +
+ * ownerId 前缀 + 401 策略不变. 迁移日只换 getAuthProvider 返回实现.
+ */
+export type VerifyOutcome =
+  | { status: 'ok'; email: string }
+  | { status: 'none' } // 无凭据 (交由 resolveOwner 走 dev 兜底 / 401)
+  | { status: 'error'; message: string; code: 403 | 500 }
 
-  if (token) {
-    if (!c.env.TEAM_DOMAIN || !c.env.POLICY_AUD) {
-      console.error('auth: TEAM_DOMAIN / POLICY_AUD 未配置, 无法校验 CF Access JWT')
-      return c.json({ error: 'cf access misconfigured' }, 500)
+export interface AuthProvider {
+  verify(c: Context<HonoEnv>): Promise<VerifyOutcome>
+}
+
+async function verifyCfAccess(c: Context<HonoEnv>): Promise<VerifyOutcome> {
+  const token = c.req.header('cf-access-jwt-assertion') ?? extractCookie(c, 'CF_Authorization')
+  if (!token) return { status: 'none' }
+
+  if (!c.env.TEAM_DOMAIN || !c.env.POLICY_AUD) {
+    console.error('auth: TEAM_DOMAIN / POLICY_AUD 未配置, 无法校验 CF Access JWT')
+    return { status: 'error', message: 'cf access misconfigured', code: 500 }
+  }
+  try {
+    const { payload }: { payload: JWTPayload } = await jwtVerify(
+      token,
+      getJwks(c.env.TEAM_DOMAIN),
+      { issuer: c.env.TEAM_DOMAIN, audience: c.env.POLICY_AUD },
+    )
+    const email = typeof payload.email === 'string' ? payload.email.trim().toLowerCase() : ''
+    if (!email) {
+      return { status: 'error', message: 'cf access token missing email claim', code: 403 }
     }
-    try {
-      const { payload }: { payload: JWTPayload } = await jwtVerify(
-        token,
-        getJwks(c.env.TEAM_DOMAIN),
-        { issuer: c.env.TEAM_DOMAIN, audience: c.env.POLICY_AUD },
-      )
-      const email = typeof payload.email === 'string' ? payload.email.trim().toLowerCase() : ''
-      if (!email) {
-        return c.json({ error: 'cf access token missing email claim' }, 403)
-      }
-      c.set('ownerId', `google:${email}`)
-      return next()
-    } catch (e: any) {
-      console.error('auth: cf access jwt verify failed:', e?.message || e)
-      return c.json({ error: 'invalid cf access token' }, 403)
-    }
+    return { status: 'ok', email }
+  } catch (e: any) {
+    console.error('auth: cf access jwt verify failed:', e?.message || e)
+    return { status: 'error', message: 'invalid cf access token', code: 403 }
+  }
+}
+
+export function getAuthProvider(): AuthProvider {
+  return { verify: verifyCfAccess }
+}
+
+export async function resolveOwner(c: Context<HonoEnv>, next: Next) {
+  const outcome = await getAuthProvider().verify(c)
+
+  if (outcome.status === 'ok') {
+    c.set('ownerId', `google:${outcome.email}`)
+    return next()
+  }
+  if (outcome.status === 'error') {
+    return c.json({ error: outcome.message }, outcome.code)
   }
 
+  // outcome.status === 'none': 无凭据. 本地 dev 兜底, 否则 401.
   const devEmail = c.env.DEV_FALLBACK_EMAIL?.trim().toLowerCase()
   if (devEmail) {
     c.set('ownerId', `google:${devEmail}`)

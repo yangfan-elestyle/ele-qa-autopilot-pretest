@@ -1,6 +1,7 @@
 import { Hono, Context } from 'hono'
 import type { HonoEnv } from '../types/env.ts'
 import { resolveOwner } from '../middleware/auth.ts'
+import { getDb } from '../lib/db.ts'
 
 /**
  * /api/modules — 集成中心 模块 Tab 的 path 列表存储.
@@ -42,7 +43,7 @@ function genId(): string {
 
 router.get('/', async (c: Context<ModulesEnv>) => {
   try {
-    const rs = await c.env.DB.prepare(
+    const rs = await getDb(c).prepare(
       'SELECT id, path, name, created_at, updated_at FROM modules WHERE owner_id = ? ORDER BY updated_at DESC',
     )
       .bind(c.var.ownerId)
@@ -70,7 +71,7 @@ router.post('/', async (c: Context<ModulesEnv>) => {
   const id = genId()
   const now = Date.now()
   try {
-    await c.env.DB.prepare(
+    await getDb(c).prepare(
       'INSERT INTO modules (owner_id, id, path, name, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
     )
       .bind(c.var.ownerId, id, path, name, now, now)
@@ -80,7 +81,7 @@ router.post('/', async (c: Context<ModulesEnv>) => {
     const msg = String(e?.message || e)
     // D1 UNIQUE 冲突: SQLITE_CONSTRAINT_UNIQUE / "UNIQUE constraint failed"
     if (/UNIQUE/i.test(msg)) {
-      const existing = await c.env.DB.prepare(
+      const existing = await getDb(c).prepare(
         'SELECT id, path, name, created_at, updated_at FROM modules WHERE owner_id = ? AND path = ?',
       )
         .bind(c.var.ownerId, path)
@@ -96,7 +97,7 @@ router.delete('/:id', async (c: Context<ModulesEnv>) => {
   const id = c.req.param('id')
   if (!id) return c.json({ error: 'id required' }, 400)
   try {
-    const r = await c.env.DB.prepare('DELETE FROM modules WHERE owner_id = ? AND id = ?')
+    const r = await getDb(c).prepare('DELETE FROM modules WHERE owner_id = ? AND id = ?')
       .bind(c.var.ownerId, id)
       .run()
     if (!r.meta?.changes) return c.json({ error: 'not found' }, 404)

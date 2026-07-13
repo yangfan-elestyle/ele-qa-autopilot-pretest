@@ -2,6 +2,12 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.28.10] - 2026-07-13
+
+### Added
+
+- Docker 迁移前置抽象层 (DB / 对象存储 / 鉴权 seam), 对外行为与 API 不变.
+
 ## [1.28.8] - 2026-05-29
 
 ### Removed

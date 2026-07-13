@@ -2,6 +2,12 @@
 
 写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
 
+## [1.28.10] - 2026-07-13
+
+### Added
+
+- Docker 迁移前置抽象层: 下游寻址新增 `AUTOPILOT_URL` / `AUTOTEST_URL` 配置, 留空 (默认) 时行为不变, 仍走 service binding.
+
 ## [1.22.1] - 2026-05-26
 
 ### Security
