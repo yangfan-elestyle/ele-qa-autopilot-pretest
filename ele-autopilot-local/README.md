@@ -1,10 +1,10 @@
 # ele-autopilot-local
 
-macOS 本地浏览器自动化 HTTP 服务. `browser-use` + FastAPI + Gemini, uv. 打 tag 后 Actions 构建 wheel 推到 Cloudflare R2, 用户从 gateway landing 一键安装.
+macOS 本地浏览器自动化 HTTP 服务. `browser-use` + FastAPI + Gemini, uv. 打 tag 后 Actions 构建 wheel 发到 GitHub Release; 宿主侧同步到内网 MinIO (`ele-autopilot-releases`), 用户从 gateway landing 一键安装.
 
 ## 安装
 
-打开 gateway landing (`https://qa.<account-sub>.workers.dev/`) → "本地 agent 安装" 区块, 复制三条命令依次执行. 等价于:
+打开 gateway landing (内网入口, 如 `http://<内网 IP>/`) → "本地 agent 安装" 区块, 复制三条命令依次执行. 等价于:
 
 ```bash
 curl -fsSL <gateway host>/install.sh | bash

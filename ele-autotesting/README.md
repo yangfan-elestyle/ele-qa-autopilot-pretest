@@ -2,15 +2,15 @@
 
 AI 测试用例生成工具. [产品说明书](https://elestyle.atlassian.net/wiki/spaces/teammobile/pages/3357310978).
 
-## 架构
+## 架构 (Phase B: 原 CF Worker → Node 容器)
 
 ```
-[Cloudflare Worker] (单一部署单元)
+[Node 容器 @hono/node-server] (esbuild bundle → dist/server.mjs)
  ├─ Hono API: /healthz /config.js /confluence-parse /http-proxy /stream-proxy
- │            /image-research/analyze /markdown-research /figma-parse /api/sync/*
- ├─ Static Assets (binding) → packages/web/dist (SPA, 未命中走 SPA fallback)
- ├─ D1 (binding=DB) → 远程 KV (models/templates/history/prefs), schema 见 packages/server/migrations
- └─ /mcps/markitdown/* → MarkitdownContainer (Durable Object, on-demand)
+ │            /image-research/analyze /markdown-research /figma-parse /api/*
+ ├─ 静态 serve → packages/web/dist (SPA, 未命中走 SPA index 兜底; 见 lib/static.ts)
+ ├─ libSQL embedded (DATABASE_URL=file:/data/…) → 远程 KV (models/templates/history/prefs)
+ └─ /mcps/markitdown/* → markitdown HTTP sidecar (MARKITDOWN_URL)
 ```
 
 子包:
@@ -18,41 +18,39 @@ AI 测试用例生成工具. [产品说明书](https://elestyle.atlassian.net/wi
 - `packages/core`: 核心算法与通用工具
 - `packages/ui`: 通用 UI 组件、业务逻辑、`McpService` (浏览器端 Streamable HTTP MCP 客户端)
 - `packages/web`: 前端应用 (Vite + Vue3)
-- `packages/server`: Cloudflare Worker 入口 (Hono) + `MarkitdownContainer` Durable Object
-- `containers/markitdown`: markitdown-mcp 容器镜像 (Dockerfile)
+- `packages/server`: Node server 入口 (Hono, `src/index.ts`), libSQL, esbuild bundle
+- `containers/markitdown`: markitdown-mcp 容器镜像 (compose sidecar)
 
 ## 本地开发
 
 ```bash
-cp env.local.example .env       # 按需填 QA_* secrets
+cp .env.example .env             # 按需填 QA_* / DEV_FALLBACK_EMAIL
 pnpm install
-pnpm --filter @prompt-optimizer/server exec wrangler d1 migrations apply DB --local   # 首次建表
-pnpm run dev
+pnpm run build:core && pnpm run build:ui && pnpm run build:server
+
+# 起后端 (首启自建表; DEV_FALLBACK_EMAIL 兜底 owner; PORT 对齐 web 代理目标 8787)
+DATABASE_URL=file:./data/autotesting.db DEV_FALLBACK_EMAIL=you@elestyle.jp PORT=8787 \
+  node packages/server/dist/server.mjs
+# 另一终端起前端 (Vite :18181, /api 等经 vite proxy 转发到 127.0.0.1:8787)
+pnpm -F @prompt-optimizer/web dev
 ```
 
-`pnpm run dev` 顺序 `clean:dist → build:core → build:ui`, 然后并行启动:
-
-- `@prompt-optimizer/ui`: watch 构建 (增量打包到 `packages/ui/dist`)
-- `@prompt-optimizer/web`: Vite dev server (`:18181`), 同源 API 由 vite proxy 转发到 `127.0.0.1:8787`
-- `@prompt-optimizer/server`: `wrangler dev` (`:8787`, 自动拉起 markitdown Container; 启动前兜底创建空 `packages/web/dist` 避免 wrangler 报错)
-
-浏览器访问 <http://127.0.0.1:18181>. 只跑 Worker: `pnpm --filter @prompt-optimizer/server dev`.
+浏览器访问 <http://127.0.0.1:18181>. 整栈容器化起法见 [deploy/README.md](../deploy/README.md).
 
 ## 环境变量
 
+运行时 env 见 [`.env.example`](./.env.example); 生产由 `deploy/.env` (compose) 注入.
+
 <!-- prettier-ignore -->
-| 变量 | 用途 | 注入方式 |
-| --- | --- | --- |
-| `QA_ALTASSIAN_API_KEY` | Confluence Basic Token | `wrangler secret put` |
-| `QA_ALTASSIAN_EMAIL` | Confluence 邮箱 | `wrangler secret put` |
-| `QA_IMAGE_RESEARCH_OPENAI_API_KEY` | OpenAI Vision Key | `wrangler secret put` |
-| `QA_IMAGE_RESEARCH_OPENAI_VISION_MODEL` | OpenAI Vision Model | `wrangler.jsonc#vars` |
-| `QA_IMAGE_RESEARCH_GEMINI_API_KEY` | Gemini Vision Key | `wrangler secret put` |
-| `QA_IMAGE_RESEARCH_GEMINI_VISION_MODEL` | Gemini Vision Model | `wrangler.jsonc#vars` |
-
-本地 `wrangler dev` 通过 `--env-file ../../.env` 加载 `ele-autotesting/.env` (相对 `packages/server`, `../../` 即 ele-autotesting 根; 脚本在 `packages/server/package.json`). 生产 secrets 用 `wrangler secret put <NAME>`.
-
-可选 `MARKITDOWN_DEV_URL`: 详见 `packages/server/src/types/env.ts`.
+| 变量 | 用途 |
+| --- | --- |
+| `DATABASE_URL` | libSQL 库路径 (`file:/data/autotesting.db`) |
+| `AUTOPILOT_URL` / `METERSPHERE_URL` / `AGENTIC_LOOP_URL` | 下游内网 HTTP |
+| `MARKITDOWN_URL` / `MARKITDOWN_DEV_URL` | markitdown sidecar 端点 |
+| `QA_ALTASSIAN_API_KEY` / `QA_ALTASSIAN_EMAIL` | Confluence Basic Token / 邮箱 |
+| `QA_IMAGE_RESEARCH_OPENAI_API_KEY` / `..._OPENAI_VISION_MODEL` | OpenAI Vision |
+| `QA_IMAGE_RESEARCH_GEMINI_API_KEY` / `..._GEMINI_VISION_MODEL` | Gemini Vision |
+| `DEV_FALLBACK_EMAIL` | 本地直连兜底 owner (生产不设) |
 
 ## 后端路由
 
@@ -63,16 +61,15 @@ pnpm run dev
 - `ALL /stream-proxy?targetUrl=...`: SSE/流式代理
 - `POST /image-research/analyze`: 图像理解
 - `POST /markdown-research`: Markdown 中图片批量识别
-- `POST /figma-parse`: Figma 节点 SVG 渲染 + Vision OCR
-- `* /mcps/markitdown/*`: 反代到 markitdown Container (dev 下若 `MARKITDOWN_DEV_URL`, 反代到该 URL)
-- `/api/sync/*`: D1 远程 KV; owner 由 `resolveOwner` 解析 `cf-access-jwt-assertion` JWT 取 email 决定. 路由清单见 `packages/server/src/routes/sync.ts` JSDoc
+- `POST /figma-parse`: Figma 节点 SVG 渲染 (`@resvg/resvg-js` + 系统字体) + Vision OCR
+- `* /mcps/markitdown/*`: 反代到 markitdown sidecar (`MARKITDOWN_URL` / `MARKITDOWN_DEV_URL`)
+- `/api/sync/*`: libSQL 远程 KV; owner 由 `resolveOwner` 读 gateway 注入的 `X-Auth-User-Email` header 决定. 路由清单见 `packages/server/src/routes/sync.ts` JSDoc
 
-## 烟雾测试 / 监控
+## 烟雾测试
 
 ```bash
-pnpm --filter @prompt-optimizer/server smoke                          # 本地
-ENDPOINT=https://ele-autotesting.example.workers.dev pnpm --filter @prompt-optimizer/server smoke   # 线上
-pnpm --filter @prompt-optimizer/server tail                           # 实时日志
+DEV_FALLBACK_EMAIL=you@elestyle.jp PORT=8787 node packages/server/dist/server.mjs &  # 起后端
+pnpm --filter @prompt-optimizer/server smoke                                          # 默认 ENDPOINT=127.0.0.1:8787
 ```
 
-`packages/server/scripts/smoke.mjs` 覆盖 11 条用例: 静态 SPA、SPA fallback、`/healthz`、`/config.js`、API 入参校验、markitdown `tools/list` 与 `tools/call(data: URI)`.
+`packages/server/scripts/smoke.mjs` 覆盖静态 SPA、SPA fallback、`/healthz`、`/config.js`、API 入参校验、markitdown `tools/list` 与 `tools/call(data: URI)`.

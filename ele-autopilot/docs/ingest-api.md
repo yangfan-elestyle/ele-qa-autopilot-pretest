@@ -1,6 +1,6 @@
 # Ingest API (v1)
 
-外部系统直接录入 task / chain 到 autopilot, 等同 web 表单录入. 公网可达, 本期无鉴权, **无幂等**.
+外部系统直接录入 task / chain 到 autopilot, 等同 web 表单录入. 内网可达 (gateway bypass, 无鉴权), **无幂等**.
 
 ## Endpoint
 
@@ -137,7 +137,7 @@ curl -X POST "$BASE/api/v1/ingest/tasks" -H 'Content-Type: application/json' -d 
 }'
 ```
 
-`$BASE` 取值: 本地 dev `http://localhost:3000`, 公网 gateway `https://qa.<account-sub>.workers.dev`.
+`$BASE` 取值: 本地 dev `http://localhost:3000`, 内网 gateway 入口 (如 `http://<内网 IP>`; ingest 走 gateway bypass).
 
 ## UI 表现
 

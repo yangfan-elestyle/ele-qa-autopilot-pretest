@@ -1,32 +1,34 @@
 # ele-autopilot
 
-QA 任务管理后台. React Router v7 (Framework mode) + React 19 + Ant Design + Tailwind, Bun. 运行时 Cloudflare Workers + D1 (业务数据) + R2 (截图).
+QA 任务管理后台. React Router v7 (Framework mode) + React 19 + Ant Design + Tailwind, Bun. Phase B 运行时: Node/Bun 容器 + libSQL embedded (业务数据) + MinIO (截图/发布产物). 部署见 [deploy/](../deploy).
 
 ## 开发
 
 ```bash
 bun install
-bunx wrangler d1 migrations apply ele-autopilot --local   # 首次: 初始化 miniflare D1 schema
-bun dev                                                    # http://localhost:3000
+bun dev            # http://localhost:3000 (react-router dev, UI 开发)
+bun run smoke      # libSQL adapter 回归: batch 原子性 + FK 级联
 ```
 
-发布前验证 (lint / typecheck / build / wrangler deploy --dry-run) 见 [deploy.md §本地验证](../deploy.md#2-本地验证).
+发布前验证 (lint / typecheck / build / smoke) 见 [deploy.md §本地验证](../deploy.md#2-本地验证). 完整服务 (server.ts + libSQL + MinIO) 起法见 `.env.example` 与 [deploy/README.md](../deploy/README.md).
 
 React DevTools 独立窗口: 必须先 `bunx react-devtools` 再 `bun dev`, 反序无效.
 
-## 运维 (D1 / R2)
+## 运维 (libSQL / MinIO)
+
+libSQL 库在容器 volume (`/data/autopilot.db`); 对象存储走 MinIO. 数据面在 compose 内网, 从宿主操作:
 
 ```bash
-# 查 D1
-bunx wrangler d1 execute ele-autopilot --remote --command "SELECT COUNT(*) FROM tasks"
+# 查 libSQL (进容器)
+docker compose exec autopilot bun -e "import{createClient}from'@libsql/client';const c=createClient({url:process.env.DATABASE_URL});console.log((await c.execute('SELECT COUNT(*) c FROM tasks')).rows)"
+# 或直接 sqlite3 卷文件
+sqlite3 /var/lib/docker/volumes/deploy_autopilot_data/_data/autopilot.db "SELECT COUNT(*) FROM tasks"
 
-# 查 R2 对象
-bunx wrangler r2 object get ele-autopilot-screenshots/<key> --file ./out.png
-bunx wrangler r2 bucket list
+# 查/传对象 (mc = MinIO client)
+mc ls local/ele-autopilot-screenshots/
+mc cp ./file local/ele-autopilot-releases/local/<ver>/
 
-# 备份 / 还原 D1
-bunx wrangler d1 export ele-autopilot --remote --output backup.sql
-bunx wrangler d1 execute ele-autopilot --remote --file restore.sql
+# 备份: 卷快照 (autopilot.db) + mc mirror bucket. 详见 deploy/README.md.
 ```
 
-> D1 上限 10 GB (Workers Paid); R2 无单 bucket 上限 (按 storage + class A/B 操作计费).
+> `settings.llm_api_key` 存 libSQL, DB 迁移/备份时必须带走.

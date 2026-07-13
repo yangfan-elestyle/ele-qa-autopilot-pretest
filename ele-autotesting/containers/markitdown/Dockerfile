@@ -1,4 +1,4 @@
-# wrangler 调用 buildx 时自动注入 --platform=linux/amd64 (CF Containers 要求).
+# compose sidecar (markitdown-mcp). 跨架构构建用 docker buildx --platform=<目标>.
 FROM python:3.13-slim-bookworm
 
 ENV DEBIAN_FRONTEND=noninteractive \

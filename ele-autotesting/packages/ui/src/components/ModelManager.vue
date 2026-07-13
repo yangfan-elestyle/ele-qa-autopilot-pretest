@@ -47,7 +47,7 @@
           <path d="M17.5 19a4.5 4.5 0 1 0-1.6-8.7A6 6 0 0 0 4 12a4.5 4.5 0 0 0 .5 9z" />
         </svg>
         <span>
-          所有集成凭证 (LLM Key / Figma Token / MeterSphere AK·SK 等) 以登录账号维度统一保存在 Cloudflare D1, 不写入本地浏览器, 跨设备一致.
+          所有集成凭证 (LLM Key / Figma Token / MeterSphere AK·SK 等) 以登录账号维度统一保存在服务端, 不写入本地浏览器, 跨设备一致.
         </span>
       </div>
 

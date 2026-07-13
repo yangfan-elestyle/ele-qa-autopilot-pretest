@@ -5,15 +5,11 @@ import { upstreamFetch } from '../lib/upstream.ts'
 /**
  * /api/autopilot/ingest — 透传到 ele-autopilot `/api/v1/ingest/tasks`.
  *
- * 契约: ele-autopilot/docs/ingest-api.md (公网 Bypass, 无鉴权, 无幂等).
+ * 契约: ele-autopilot/docs/ingest-api.md (gateway bypass, 无鉴权, 无幂等).
  * 入参: { source, folder_path[], tasks?[], chain? }
  * 出参: 透传上游 status + body. 成功 201 / 失败 4xx-5xx.
  *
- * 走 service binding 而非公网 fetch:
- *   - autotesting Worker 自身经 gateway 暴露在 `qa.<sub>.workers.dev` 后,
- *     Worker fetch 同域会触发 Cloudflare 1101 (self-subrequest cycle).
- *   - service binding 直接 worker-to-worker, 不走边缘, 不会循环.
- *   - ele-autopilot `workers_dev: false`, 公网只能经 gateway, binding 跳过 gateway hop.
+ * 经 compose 内网 HTTP 直连 autopilot (`AUTOPILOT_URL`), 不经 gateway hop.
  */
 
 const router = new Hono<HonoEnv>()

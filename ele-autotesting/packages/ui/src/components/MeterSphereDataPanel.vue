@@ -231,7 +231,7 @@ interface MsCaseDetail {
 }
 interface MsStepItem { id?: string; num?: number; desc?: string; result?: string }
 
-// AK/SK 已迁到集成中心 -> Cloudflare D1 (owner-scoped); 本面板只读 configured 状态,
+// AK/SK 已迁到集成中心 -> 服务端 libSQL (owner-scoped); 本面板只读 configured 状态,
 // 不再持有明文. projectId / moduleId 仍走 useBrowserCache: 用户上次选过的项目/模块刷新后
 // 自动恢复, 配合 onMounted 自动级联一路拉到该模块的 cases, 减少重复点击.
 const msConfigured = ref(false)

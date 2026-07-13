@@ -6,11 +6,10 @@ import { upstreamFetch } from '../lib/upstream.ts'
 /**
  * /api/harness/oneshot — 代理到 ele-harness agentic-loop `/v1/oneshot`.
  *
- * 链路: 浏览器 -> gateway -> autotesting Worker -> env.AGENTIC_LOOP (VPC) ->
- *       cloudflared tunnel `ele-server` -> ele-fly docker agentic-loop:3000
+ * 链路: 浏览器 -> gateway -> autotesting -> AGENTIC_LOOP_URL (内网 HTTP) ->
+ *       ele-harness agentic-loop 后端 (联合迁移后 compose service / 内网地址)
  *
- * VPC binding 不需要任何鉴权 (绕过了 harness Worker + CF Access). 仅作链路打通,
- * 后续要套权限层时再切公网 `harness.<account>.workers.dev` + service token.
+ * 内网直连不套鉴权, 仅作链路打通; 后续要套权限层再在上游加 service token.
  *
  * BYOK (ele-harness v0.6.0): 每个 oneshot 必须带 credentials = { provider, model,
  * apiKey, baseUrl } 四字段, 可选 maxTurns / maxTokens / temperature. 凭证不由调用方传入,

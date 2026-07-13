@@ -222,7 +222,7 @@ function toAutotestCase(p: ParsedTestCase, idx: number): AutotestCase {
 const { parsedCases, hasGenerated } = useGeneratedCases()
 const cases = computed<AutotestCase[]>(() => parsedCases.value.map(toAutotestCase))
 
-// AK/SK 已迁到集成中心 -> Cloudflare D1 (owner-scoped); 本面板仅读 configured 状态.
+// AK/SK 已迁到集成中心 -> 服务端 libSQL (owner-scoped); 本面板仅读 configured 状态.
 const msConfigured = ref(false)
 
 const keyword = ref('')

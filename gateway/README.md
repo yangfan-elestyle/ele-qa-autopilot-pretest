@@ -1,51 +1,48 @@
 # gateway
 
-Cloudflare Worker `qa`: 公网唯一入口. React Router v7 (framework mode, SSR) + `@cloudflare/vite-plugin` + React 19, Bun, 无 D1 / R2 / DO / secret.
+内网唯一入口 (Phase B: 原 CF Worker → Bun Node server). React Router v7 (framework mode, SSR) + React 19, Bun. 无 DB / 对象存储 / secret; 只渲染 landing + 路由分发 + 身份收口. 部署形态见根 [AGENTS.md](../AGENTS.md#部署形态-phase-b-已抛弃-cloudflare) / [deploy/](../deploy).
 
-## Access (Google Workspace SSO)
+## 身份收口 (荣誉制, 仅 `@elestyle.jp`)
 
-套 Cloudflare Zero Trust Self-hosted Application + Google Workspace IdP, 仅 `@elestyle.jp` 员工可访问.
+无 CF Access / OIDC. gateway 自签明文 cookie 收口 (`lib/auth.ts`):
 
-- **Team Domain**: `https://yigegongjiang.cloudflareaccess.com` (wrangler `vars.TEAM_DOMAIN`).
-- **Application Audience (AUD)**: 在 wrangler `vars.POLICY_AUD`; CF 后台 `QA Gateway` → Overview 抄.
-- **Allow App `QA Gateway`**: domain `qa.<sub>.workers.dev` 整域兜底, IdP 仅 Google, policy=Allow + `Emails ending in @elestyle.jp`.
-- **Bypass App `QA Gateway Bypass`** (CF 单 App 最多 5 条 domain): `/api/*` `/install.sh` `/releases/*` `/assets/*` `/healthz`, policy=Bypass + Everyone.
-  - 砍掉 `/screenshots/*` / PWA icons — 登录后浏览器带 cookie 仍能加载, 仅影响匿名 SEO / 分享卡片 / iOS 加桌面.
-- worker `workers/app.ts` 用 `jose` 远程 JWKS (`<team>/cdn-cgi/access/certs`) 做深度防御; JWT 校验放行规则见代码 `verifyAccessJwt`.
-- landing 顶栏读 `context.user.email` 渲染身份 + 登出链 `/cdn-cgi/access/logout`; 未登录态不渲染用户区.
+- **浏览器**: `/login` 输公司邮箱 → 写 cookie `ele_auth_email` (`Max-Age` 400 天, `SameSite=Lax; HttpOnly`); `/logout` 清除.
+- **脚本 / CLI**: 直接带 `X-Auth-User-Email: <email>` header (荣誉制, 内网边界是唯一防线).
+- **校验优先级**: 有效 `@elestyle.jp` cookie > 入站 header > 302 `/login` (Accept html) / 401. 转发下游时删入站 header 再注入解析出的 email (防伪造透传).
+- landing 顶栏读 `context.user.email` 渲染身份 + 登出链 `/logout`; 未登录不渲染用户区.
 
-## 路径分发 (worker 处理顺序)
+## 路径分发 (server 处理顺序)
 
 <!-- prettier-ignore -->
 | Path | Target | Notes |
 |---|---|---|
-| `/healthz` | gateway | 返回 `ok`, 不进 RR |
-| `/autotest`, `/autotest/*` | `env.AUTOTEST.fetch` | strip `/autotest` 后转发到 `ele-autotesting` |
-| `/index.html` | gateway | 301 重定向到 `/` (规范化, 避免 RR 路由表无 `/index.html` 渲染 404) |
+| `/healthz` | gateway | 返回 `ok` |
+| `/login` `/logout` | gateway | 登录页 (inline HTML) / 登出, 免鉴权 |
+| 静态命中 `build/client/*` | gateway | landing hydration bundle (`/assets/*`); 未命中 fall through |
+| `/autotest`, `/autotest/*` | `AUTOTEST_URL` | strip `/autotest` 后 HTTP 转发到 `ele-autotesting`, 注入 email |
+| `/index.html` | gateway | 301 → `/` |
 | `/` | RR SSR (`app/routes/home.tsx`) | landing 页 (品牌 + 双卡片 + 安装区) |
-| 其他 | `env.AUTOPILOT.fetch` | 原样透传到 `ele-autopilot` (含 `/autopilot*` / `/api/*` / `/screenshots/*` / `/releases/*` / `/install.sh` / `/favicon.ico`) |
+| bypass (`/install.sh` `/releases/*` `/api/v1/ingest/*` `/api/jobs/*/callback/*`) | `AUTOPILOT_URL` | 机器消费, 免鉴权透传 |
+| 其他 | `AUTOPILOT_URL` | 鉴权后 HTTP 转发到 `ele-autopilot`, 注入 email |
 
-RR 客户端 hydration bundle (`/assets/*`) 由 wrangler `assets` binding 优先命中, 命中即返回; 未命中再 fall through 到 worker. landing loader 经 `env.AUTOPILOT.fetch("/releases/local/latest.txt")` 服务端拿版本号 + 用 `new URL(request.url).origin` 拿真实 gateway origin, 失败兜底客户端 fetch.
+landing loader 经 `fetch(AUTOPILOT_URL + "/releases/local/latest.txt")` 服务端拿版本号 + `new URL(request.url).origin` 拿真实入口 origin, 失败兜底客户端 fetch. favicon / PWA icon 由 autopilot `public/` 经 gateway 透传.
 
 ## 关键文件
 
-- `workers/app.ts`: Worker fetch 入口 (路径分发 + RR `createRequestHandler` fallback).
-- `app/root.tsx`: HTML shell + ErrorBoundary (404 + dev stack).
-- `app/routes.ts`: 路由表; 当前仅 `index("routes/home.tsx")`.
-- `app/routes/home.tsx`: landing 页 + SSR loader (拿版本号 + gateway origin) + 客户端复制按钮; install 命令在 SSR 阶段已固化真实 URL, 不依赖 hydration.
+- `server.ts`: Bun.serve 入口 (路径分发 + 身份收口 + 转发 + 静态托管; 运行时动态 import `build/server/index.js`).
+- `lib/auth.ts` / `lib/env.ts` / `lib/constants.ts`: 身份 / env / `X-Auth-User-Email` header 名.
+- `app/routes/home.tsx`: landing 页 + SSR loader; install 命令 SSR 阶段固化真实 URL.
 - `app/entry.server.tsx`: SSR 入口 (`renderToReadableStream`, isbot 适配).
-- `app/app.css`: 设计 token (浅 / 深 `prefers-color-scheme`) + 全局样式; 不引 Tailwind.
-- `react-router.config.ts`: `ssr: true`, `future.v8_viteEnvironmentApi: true`.
-- `vite.config.ts`: `cloudflare({ viteEnvironment: { name: "ssr" } })` + `reactRouter()`.
-- `wrangler.jsonc`: `name=qa`, `main=./workers/app.ts`, `workers_dev=true`, service bindings `AUTOPILOT` / `AUTOTEST`.
-- `worker-configuration.d.ts`: `wrangler types` 生成.
+- `Dockerfile`: `oven/bun:1`, `bun run build` → `bun server.ts`.
 
 ## 命令
 
 ```bash
 bun install
-bun run dev       # react-router dev (Vite HMR, Workers runtime)
-bun run typegen   # wrangler types + react-router typegen
+bun run dev        # react-router dev (仅 landing 页 HMR; 完整代理行为看构建后 server.ts)
+bun run build      # 产物 build/{server,client}
+bun run typecheck
+bun run start      # bun server.ts (需 AUTOPILOT_URL / AUTOTEST_URL, 见 .env.example)
 ```
 
-发布前验证 (typecheck / build / wrangler deploy --dry-run) 见 [deploy.md §本地验证](../deploy.md#2-本地验证); 生产部署走 Actions.
+发布前验证 / 部署见 [deploy.md](../deploy.md) 与 [deploy/README.md](../deploy/README.md).
