@@ -19,8 +19,8 @@ import { upstreamFetch } from '../lib/upstream.ts'
 const router = new Hono<HonoEnv>()
 
 router.post('/ingest', async (c: Context<HonoEnv>) => {
-  if (!c.env.AUTOPILOT && !c.env.AUTOPILOT_URL?.trim()) {
-    return c.json({ error: 'AUTOPILOT service binding not configured' }, 500)
+  if (!c.env.AUTOPILOT_URL?.trim()) {
+    return c.json({ error: 'AUTOPILOT_URL not configured' }, 500)
   }
 
   let body: any

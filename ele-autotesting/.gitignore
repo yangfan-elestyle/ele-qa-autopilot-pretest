@@ -175,9 +175,8 @@ storybook-static
 prompt-optimizer-datas
 prompt-optimizer-data
 
-# Wrangler
-.wrangler
-**/.wrangler
-.dev.vars
-**/.dev.vars
-worker-configuration.d.ts
+# libSQL / sqlite local data
+*.db
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal

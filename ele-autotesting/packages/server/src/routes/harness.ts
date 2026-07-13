@@ -106,8 +106,8 @@ async function readSseEvents(
 }
 
 router.post('/oneshot', async (c: Context<HarnessHonoEnv>) => {
-  if (!c.env.AGENTIC_LOOP && !c.env.AGENTIC_LOOP_URL?.trim()) {
-    return c.json({ error: 'AGENTIC_LOOP VPC binding not configured' }, 500)
+  if (!c.env.AGENTIC_LOOP_URL?.trim()) {
+    return c.json({ error: 'AGENTIC_LOOP_URL not configured' }, 500)
   }
 
   let body: any

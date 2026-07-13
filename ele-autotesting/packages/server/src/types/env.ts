@@ -1,86 +1,35 @@
-import type { Container } from '@cloudflare/containers'
+import type { Db } from '../lib/db.ts'
 
+// ele-autotesting Node/Docker 运行时 env (替代 CF Worker Env + wrangler bindings/vars).
+// D1 → libSQL (DB 注入); DO+Container markitdown → MARKITDOWN_URL sidecar; VPC/service → 内网 HTTP;
+// ASSETS binding → 静态 serve web/dist (见 src/index.ts); CF Access → X-Auth-User-Email header.
 export interface Env {
-  ASSETS: Fetcher
-  MARKITDOWN: DurableObjectNamespace<Container>
-  DB: D1Database
+  // libSQL adapter (server 入口建 client 后注入). D1 → 此.
+  DB: Db
 
-  /**
-   * Cloudflare Workers VPC service binding 反向到 MeterSphere (`qa.elepay.link`).
-   * 资源 ID / 拓扑 / 复用 harness tunnel `ele-server` 的细节见 PLAN-vpc.md.
-   * 不直接调; 经 lib/upstream.ts 的 upstreamFetch(env, 'METERSPHERE', path) 寻址 (见 A1 seam).
-   */
-  METERSPHERE: Fetcher
-
-  /**
-   * Cloudflare Workers VPC service binding 反向到 ele-fly 上的 agentic-loop:3000
-   * (即 ele-harness 的后端 HTTP API). 复用 harness 的 service `agentic-loop-backend`,
-   * service_id 在 wrangler.jsonc 写明; 这条 binding 让 autotesting Worker 直连 agentic-loop
-   * 容器, 绕过 harness Worker + CF Access. 本期为打通链路 (传话人) 用; 后续真要套权限层时
-   * 切回公网 `harness.<account>.workers.dev` + CF Access service token 即可.
-   */
-  AGENTIC_LOOP: Fetcher
-
-  /**
-   * Service binding 直连 ele-autopilot Worker; 经 lib/upstream.ts 的
-   * upstreamFetch(env, 'AUTOPILOT', path) 调 (见 A1 seam).
-   * 用 binding 而非公网 fetch 是为了避免 autotesting Worker fetch 自己同域
-   * `qa.<sub>.workers.dev` 触发 Cloudflare 1101 (self-subrequest cycle).
-   * 契约见 ele-autopilot/docs/ingest-api.md.
-   */
-  AUTOPILOT: Fetcher
-
-  /**
-   * 迁移前置 (A1): 内网 Docker 下游 base URL (含 scheme). 非空 → HTTP 直连,
-   * 空 / 未设 → 上面对应的 service / VPC binding. 寻址逻辑见 lib/upstream.ts.
-   * 迁移日 METERSPHERE_URL 指 https://bi.elepay.link, AUTOPILOT_URL / AGENTIC_LOOP_URL 指 compose service.
-   */
-  AUTOPILOT_URL?: string
-  METERSPHERE_URL?: string
+  // 下游内网 HTTP base (含 scheme, compose service). 寻址见 lib/upstream.ts.
+  AUTOPILOT_URL: string
+  METERSPHERE_URL: string
+  // agentic-loop (ele-harness 后端) 联合迁移后指 compose service; 未就绪时留空, harness 路由自守卫.
   AGENTIC_LOOP_URL?: string
+
+  // markitdown sidecar HTTP 端点 (compose service). DO+Container → 此.
+  MARKITDOWN_URL?: string
+  // 本地 dev 兜底 (OrbStack 兼容问题时用), 优先级低于 MARKITDOWN_URL.
+  MARKITDOWN_DEV_URL?: string
 
   QA_ALTASSIAN_API_KEY?: string
   QA_ALTASSIAN_EMAIL?: string
-
   QA_IMAGE_RESEARCH_OPENAI_API_KEY?: string
   QA_IMAGE_RESEARCH_OPENAI_VISION_MODEL?: string
-
   QA_IMAGE_RESEARCH_GEMINI_API_KEY?: string
   QA_IMAGE_RESEARCH_GEMINI_VISION_MODEL?: string
 
-  /**
-   * 本地开发兜底：若 OrbStack / Docker 与 wrangler container sidecar 出现
-   * setsockoptint 兼容性问题，可在 .dev.vars 设置此变量，
-   * `/mcps/markitdown/*` 将反代到该 URL（如 markitdown-cloudflare 实例）。
-   * 生产部署绝不应设置。
-   */
-  MARKITDOWN_DEV_URL?: string
-
-  /**
-   * 迁移前置 (A5): 内网 Docker compose 中 markitdown 同 image 的 HTTP 端点 (含 scheme)。
-   * 非空 → `/mcps/markitdown/*` 反代到该 URL, 优先于 MARKITDOWN_DEV_URL 与 Container。
-   * CF 部署不设 (走 env.MARKITDOWN Container); 迁移日 compose 设为 markitdown service。
-   */
-  MARKITDOWN_URL?: string
-
-  /**
-   * Cloudflare Access (Zero Trust) Team Domain, 用于 cf-access-jwt-assertion 远程 JWKS
-   * 校验 (issuer). 与 gateway `vars.TEAM_DOMAIN` 锁同值; 见 packages/server/src/middleware/auth.ts.
-   */
-  TEAM_DOMAIN: string
-
-  /**
-   * Cloudflare Access Application AUD (audience claim). 与 gateway `vars.POLICY_AUD` 锁同值.
-   * 改动需同步 CF 后台 `QA Gateway` Application Overview.
-   */
-  POLICY_AUD: string
-
-  /**
-   * 本地 dev 兜底邮箱: 当请求缺 `cf-access-jwt-assertion` (wrangler dev 本地不经 CF Access)
-   * 时, resolveOwner 用 `google:<DEV_FALLBACK_EMAIL>` 作 ownerId. 经 `ele-autotesting/.env` +
-   * `wrangler dev --env-file ../../.env` 注入. 生产 wrangler.jsonc / secret 绝不可设.
-   */
+  // 本地 dev 兜底 owner: 缺身份 header 时 resolveOwner 用 `google:<DEV_FALLBACK_EMAIL>`.
+  // 生产不设 (缺身份必 401).
   DEV_FALLBACK_EMAIL?: string
+
+  PORT?: number
 }
 
 export type HonoEnv = {
