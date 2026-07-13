@@ -1,0 +1,162 @@
+# ele-qa-autopilot 内网单机编排 (Phase B, 替代 Cloudflare).
+# 安全前提: 仅 nginx publish 端口; gateway/autopilot/autotesting/markitdown/minio 一律不对外,
+# 只经 compose 内部网络互通 —— 否则任何人直连下游自带 X-Auth-User-Email 即冒充, 统一收口即破.
+#
+# 本地构建: `docker compose build`; 生产: 用 GHCR 镜像 `docker compose pull && up -d`
+# (把 *_IMAGE 指向 ghcr.io/<owner>/...:<tag>).
+
+services:
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    # 唯一对外入口. 绑内网 IP, 裸 http. 改端口/绑定地址见 .env (BIND_ADDR / HTTP_PORT).
+    ports:
+      - "${BIND_ADDR:-0.0.0.0}:${HTTP_PORT:-80}:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      gateway:
+        condition: service_healthy
+    networks: [ele]
+
+  gateway:
+    image: ${GATEWAY_IMAGE:-ele-qa-gateway:local}
+    build:
+      context: ../gateway
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: "8080"
+      AUTOPILOT_URL: http://autopilot:8080
+      AUTOTEST_URL: http://autotesting:8080
+      ALLOWED_EMAIL_DOMAIN: ${ALLOWED_EMAIL_DOMAIN:-@elestyle.jp}
+      COOKIE_MAX_AGE: ${COOKIE_MAX_AGE:-34560000}
+    depends_on:
+      autopilot:
+        condition: service_healthy
+      autotesting:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "bun", "-e", "fetch('http://127.0.0.1:8080/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks: [ele]
+
+  autopilot:
+    image: ${AUTOPILOT_IMAGE:-ele-qa-autopilot:local}
+    build:
+      context: ../ele-autopilot
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: "8080"
+      DATABASE_URL: file:/data/autopilot.db
+      S3_ENDPOINT: http://minio:9000
+      S3_REGION: ${S3_REGION:-us-east-1}
+      S3_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minioadmin}
+      S3_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      S3_FORCE_PATH_STYLE: "true"
+      SCREENSHOTS_BUCKET: ${SCREENSHOTS_BUCKET:-ele-autopilot-screenshots}
+      RELEASES_BUCKET: ${RELEASES_BUCKET:-ele-autopilot-releases}
+      ALLOWED_EMAIL_DOMAIN: ${ALLOWED_EMAIL_DOMAIN:-@elestyle.jp}
+    volumes:
+      - autopilot_data:/data
+    depends_on:
+      createbuckets:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "bun", "-e", "fetch('http://127.0.0.1:8080/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks: [ele]
+
+  autotesting:
+    image: ${AUTOTEST_IMAGE:-ele-qa-autotesting:local}
+    build:
+      context: ../ele-autotesting
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: "8080"
+      DATABASE_URL: file:/data/autotesting.db
+      AUTOPILOT_URL: http://autopilot:8080
+      METERSPHERE_URL: ${METERSPHERE_URL:-https://bi.elepay.link}
+      MARKITDOWN_URL: http://markitdown:8080
+      # agentic-loop 联合迁移后设 (compose external network / service); 未就绪留空.
+      AGENTIC_LOOP_URL: ${AGENTIC_LOOP_URL:-}
+      QA_ALTASSIAN_API_KEY: ${QA_ALTASSIAN_API_KEY:-}
+      QA_ALTASSIAN_EMAIL: ${QA_ALTASSIAN_EMAIL:-}
+      QA_IMAGE_RESEARCH_OPENAI_API_KEY: ${QA_IMAGE_RESEARCH_OPENAI_API_KEY:-}
+      QA_IMAGE_RESEARCH_OPENAI_VISION_MODEL: ${QA_IMAGE_RESEARCH_OPENAI_VISION_MODEL:-gpt-4o}
+      QA_IMAGE_RESEARCH_GEMINI_API_KEY: ${QA_IMAGE_RESEARCH_GEMINI_API_KEY:-}
+      QA_IMAGE_RESEARCH_GEMINI_VISION_MODEL: ${QA_IMAGE_RESEARCH_GEMINI_VISION_MODEL:-gemini-3-flash-preview}
+    volumes:
+      - autotesting_data:/data
+    depends_on:
+      markitdown:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8080/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks: [ele]
+
+  markitdown:
+    image: ${MARKITDOWN_IMAGE:-ele-qa-markitdown:local}
+    build:
+      context: ../ele-autotesting/containers/markitdown
+    restart: unless-stopped
+    networks: [ele]
+
+  minio:
+    image: minio/minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks: [ele]
+
+  # 一次性建 bucket (幂等), 完成即退出.
+  createbuckets:
+    image: minio/mc
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      SCREENSHOTS_BUCKET: ${SCREENSHOTS_BUCKET:-ele-autopilot-screenshots}
+      RELEASES_BUCKET: ${RELEASES_BUCKET:-ele-autopilot-releases}
+    entrypoint:
+      - /bin/sh
+      - -c
+      - >
+        until mc alias set local http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD"; do sleep 1; done;
+        mc mb -p "local/$$SCREENSHOTS_BUCKET";
+        mc mb -p "local/$$RELEASES_BUCKET";
+        exit 0;
+    networks: [ele]
+
+networks:
+  ele:
+    driver: bridge
+
+volumes:
+  autopilot_data:
+  autotesting_data:
+  minio_data:

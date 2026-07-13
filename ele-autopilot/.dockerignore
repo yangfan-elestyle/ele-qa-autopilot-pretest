@@ -1,0 +1,13 @@
+node_modules
+build
+.react-router
+.git
+.env
+.env.*
+data
+*.db
+*.sqlite*
+*.tsbuildinfo
+.DS_Store
+Dockerfile
+.dockerignore
