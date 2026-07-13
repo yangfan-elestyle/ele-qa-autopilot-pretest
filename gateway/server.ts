@@ -84,6 +84,13 @@ async function forward(
   headers.delete(AUTH_HEADER);
   headers.delete("host");
   if (email) headers.set(AUTH_HEADER, email);
+  // 下游经内网 host (autopilot:8080) 收到请求, 其 request.url.host 会变内网名; 用 X-Forwarded-*
+  // 传真实对外 host/proto, 让下游 (如 install-script 派生 base URL) 拿到正确入口地址.
+  headers.set("x-forwarded-host", request.headers.get("x-forwarded-host") ?? url.host);
+  headers.set(
+    "x-forwarded-proto",
+    request.headers.get("x-forwarded-proto") ?? url.protocol.replace(/:$/, ""),
+  );
   const method = request.method;
   const hasBody = method !== "GET" && method !== "HEAD";
   try {

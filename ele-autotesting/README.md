@@ -6,7 +6,7 @@ AI 测试用例生成工具. [产品说明书](https://elestyle.atlassian.net/wi
 
 ```
 [Node 容器 @hono/node-server] (esbuild bundle → dist/server.mjs)
- ├─ Hono API: /healthz /config.js /confluence-parse /http-proxy /stream-proxy
+ ├─ Hono API: /healthz /confluence-parse /http-proxy /stream-proxy
  │            /image-research/analyze /markdown-research /figma-parse /api/*
  ├─ 静态 serve → packages/web/dist (SPA, 未命中走 SPA index 兜底; 见 lib/static.ts)
  ├─ libSQL embedded (DATABASE_URL=file:/data/…) → 远程 KV (models/templates/history/prefs)
@@ -55,7 +55,6 @@ pnpm -F @prompt-optimizer/web dev
 ## 后端路由
 
 - `GET /healthz`: 存活检查
-- `GET /config.js`: 前端运行时配置脚本 (白名单 `VITE_*` 变量, 注入 `window.__RUNTIME_CONFIG__`)
 - `GET /confluence-parse?page_id=...`: 拉取 Confluence 页面 HTML
 - `ALL /http-proxy?targetUrl=...`: HTTP 代理
 - `ALL /stream-proxy?targetUrl=...`: SSE/流式代理
@@ -72,4 +71,4 @@ DEV_FALLBACK_EMAIL=you@elestyle.jp PORT=8787 node packages/server/dist/server.mj
 pnpm --filter @prompt-optimizer/server smoke                                          # 默认 ENDPOINT=127.0.0.1:8787
 ```
 
-`packages/server/scripts/smoke.mjs` 覆盖静态 SPA、SPA fallback、`/healthz`、`/config.js`、API 入参校验、markitdown `tools/list` 与 `tools/call(data: URI)`.
+`packages/server/scripts/smoke.mjs` 覆盖静态 SPA、SPA fallback、`/healthz`、API 入参校验、markitdown `tools/list` 与 `tools/call(data: URI)`.

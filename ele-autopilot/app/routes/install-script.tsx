@@ -1,5 +1,7 @@
 import type { LoaderFunctionArgs } from 'react-router';
 
+import { externalOrigin } from '@/lib/origin';
+
 const PKG_NAME = 'ele-autopilot-local';
 const BIN_NAME = 'ele-autopilot';
 
@@ -98,7 +100,7 @@ info "    run \\\`$BIN_NAME --help\\\` to verify."
 }
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const base = new URL(request.url).origin;
+  const base = externalOrigin(request);
   return new Response(renderScript(base), {
     headers: {
       'Content-Type': 'text/x-shellscript; charset=utf-8',
