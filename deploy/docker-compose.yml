@@ -84,7 +84,7 @@ services:
       PORT: "8080"
       DATABASE_URL: file:/data/autotesting.db
       AUTOPILOT_URL: http://autopilot:8080
-      METERSPHERE_URL: ${METERSPHERE_URL:-https://bi.elepay.link}
+      METERSPHERE_URL: ${METERSPHERE_URL:-https://qa.elepay.link}
       MARKITDOWN_URL: http://markitdown:8080
       # agentic-loop 联合迁移后设 (compose external network / service); 未就绪留空.
       AGENTIC_LOOP_URL: ${AGENTIC_LOOP_URL:-}

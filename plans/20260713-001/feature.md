@@ -67,7 +67,7 @@
 
 ## 3. 外部现实核查 (代码看不到, 已确认)
 
-- **MeterSphere 内网通路**: 内网可达域名 `bi.elepay.link`, `METERSPHERE_URL` 直接指该域名 (含 scheme). 注意: 这是**出站上游依赖**, 可为 https; 与"我方入口裸 http"不冲突.
+- **MeterSphere 内网通路**: 内网可达域名 `qa.elepay.link`, `METERSPHERE_URL` 直接指该域名 (含 scheme). 注意: 这是**出站上游依赖**, 可为 https; 与"我方入口裸 http"不冲突.
 - **agentic-loop backend**: 与本项目一起 Docker 化共部署, 通路随之解决 (compose network service name 或跨 compose external network, 与 ele-harness 迁移联合定). Phase A 不作外部依赖处理, 迁移日再定 URL.
 - **员工机接入**: 常驻同一 10.0.x.x 内网, 无 VPN. wheel / API 分发全走内网 URL, 不需要 GitHub Release fallback.
 - **内网域名 + TLS**: 随 Auth 方案去掉. 员工浏览器直接访问 `http://10.0.x.x:port`. 日后有合规需求再补 TLS.
@@ -80,7 +80,7 @@
 - **A1 · service binding + VPC → HTTP fetcher 抽象** (最低风险验证套路)
   - 影响: `gateway/workers/app.ts:forwardTo` (→ AUTOPILOT/AUTOTEST), `ele-autotesting/packages/server/src/routes/autopilot.ts` (→ AUTOPILOT), MeterSphere 调用点, agentic-loop 调用点.
   - 动作: 抽 `upstream(name, req)` factory. CF 分支 `binding.fetch(req)`; `<NAME>_URL` 存在时 `fetch(base + path, req)`. `env.AUTOPILOT.fetch('http://autopilot/api/...')` 本就是 fake host, 迁移日把 host 换成真 URL.
-  - 迁移后目标 URL: `AUTOPILOT_URL`/`AUTOTEST_URL` = compose service name; `METERSPHERE_URL` = `https://bi.elepay.link`; `AGENTIC_LOOP_URL` 联合迁移时定 (Phase A 抽象保持指向 VPC binding).
+  - 迁移后目标 URL: `AUTOPILOT_URL`/`AUTOTEST_URL` = compose service name; `METERSPHERE_URL` = `https://qa.elepay.link`; `AGENTIC_LOOP_URL` 联合迁移时定 (Phase A 抽象保持指向 VPC binding).
 
 - **A2 · Object Storage 接口**
   - 影响: `ele-autopilot/lib/screenshots.ts`, `ele-autopilot/app/routes/releases.local.$.tsx`.
@@ -118,7 +118,7 @@
   - **workerd 专有 API gotcha (移植前必查)**: `caches.default` (`ele-autotesting/packages/server/src/services/svgRenderer.ts:25`) node 无对应, 须换内存缓存或去缓存; `ExecutionContext` (三处 fetch 签名) 仅类型, node 下给 stub 或省略; markitdown DO 走 A5. 已确认**无 `waitUntil`**.
   - 基础镜像 `oven/bun:1` 或 `node:22`. 跨架构 dev/prod 用 `docker buildx --platform=<目标>` 构建 (让 `@libsql/client` native addon 装对二进制).
 - **静态资源**: autotesting `env.ASSETS.fetch` 兜底 → nginx serve 或 Hono `serveStatic('../web/dist')`.
-- **服务间通信**: compose 内部 DNS (`gateway`/`autopilot`/`autotesting`/`minio`/`markitdown`, 及联合部署后的 `agentic-loop`) 直连, `*_URL` 指 service name; MeterSphere 走 `https://bi.elepay.link`.
+- **服务间通信**: compose 内部 DNS (`gateway`/`autopilot`/`autotesting`/`minio`/`markitdown`, 及联合部署后的 `agentic-loop`) 直连, `*_URL` 指 service name; MeterSphere 走 `https://qa.elepay.link`.
 - **数据卷 (embedded 主路径)**:
   - autopilot 容器挂 volume `/data`, `LIBSQL_URL=file:/data/autopilot.db`; autotesting 同理 `file:/data/autotesting.db`. 各库随各自容器, 无独立 DB 容器.
   - migrations: 纯 SQLite 方言, 迁移日 `sqlite3 <db>.db < *.sql` 一次性导入 (或复用 `wrangler d1 migrations` 生成文件).

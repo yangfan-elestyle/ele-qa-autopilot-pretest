@@ -7,7 +7,7 @@ import { upstreamFetch } from '../lib/upstream.ts'
 /**
  * /api/ms — MeterSphere 反向代理.
  *
- * 链路: 浏览器 -> gateway -> autotesting server -> METERSPHERE_URL 内网直连 https://bi.elepay.link
+ * 链路: 浏览器 -> gateway -> autotesting server -> METERSPHERE_URL 内网直连 https://qa.elepay.link
  *
  * AK/SK 由 server 按 ownerId 从 libSQL (集成中心 MeterSphere Tab) 读出后做 AES-CBC 签名,
  * 浏览器侧不持有明文; 旧 X-MS-AK / X-MS-SK header 入参已废弃.

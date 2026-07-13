@@ -37,7 +37,7 @@ docker compose up -d
 ## go-live 一次性动作 (代码/编排已就绪, 以下需人工)
 
 1. **GHCR secret**: workflow push 镜像需仓库对 GHCR 有写权限 (`GITHUB_TOKEN` 默认可, 私有 registry 另配).
-2. **`.env`**: 填 `MINIO_ROOT_PASSWORD` / LLM / Confluence 凭据; 确认 `METERSPHERE_URL=https://bi.elepay.link` 内网可达; agentic-loop 迁移后填 `AGENTIC_LOOP_URL`.
+2. **`.env`**: 填 `MINIO_ROOT_PASSWORD` / LLM / Confluence 凭据; 确认 `METERSPHERE_URL=https://qa.elepay.link` 内网可达; agentic-loop 迁移后填 `AGENTIC_LOOP_URL`.
 3. **数据迁移** (从 CF 导出): D1 → `sqlite3 /var/lib/docker/volumes/deploy_autopilot_data/_data/autopilot.db < dump.sql` (含 `settings.llm_api_key`); autotesting 同理. R2 → `mc mirror` 到 MinIO 两 bucket. (库为空时 server 首启自动建表, 无历史数据可跳过.)
 4. **wheel 分发**: `autopilot-local` workflow 产出 wheel/sdist 发到 GitHub Release; 宿主侧把产物 `mc cp` 到 MinIO `ele-autopilot-releases/local/<ver>/` + 更新 `local/latest.txt` (CI 到不了内网 MinIO, 见 ../deploy.md).
 5. **员工机装 agent**: `curl -fsSL http://<内网入口>/install.sh | bash` (install.sh base URL 由 gateway 按 origin 下发, 自动适配内网地址).

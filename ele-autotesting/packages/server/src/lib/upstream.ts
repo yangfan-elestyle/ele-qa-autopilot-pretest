@@ -5,7 +5,7 @@ import type { Env } from '../types/env.ts'
  *
  * `<NAME>_URL` (含 scheme) 直连 global fetch.
  *   - AUTOPILOT_URL / AGENTIC_LOOP_URL: compose service (如 http://autopilot:8080).
- *   - METERSPHERE_URL: 内网可达域名 https://bi.elepay.link (出站上游, 可 https).
+ *   - METERSPHERE_URL: 内网可达域名 https://qa.elepay.link (出站上游, 可 https).
  *
  * `path` 必须以 `/` 开头 (可含 query).
  */
