@@ -27,20 +27,17 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# env files (opt-in .env.example committed)
+.env
+.env.*
+!.env.example
 
 # typescript
 *.tsbuildinfo
 
-# sqlite (legacy local dev, pre-Cloudflare)
+# libSQL / sqlite local data
 /data/
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
 *.db
-
-# Cloudflare Wrangler local state (miniflare D1 / R2 / KV)
-/.wrangler/
-.dev.vars
-.dev.vars.*

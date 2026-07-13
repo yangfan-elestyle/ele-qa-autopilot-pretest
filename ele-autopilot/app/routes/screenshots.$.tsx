@@ -1,6 +1,6 @@
 import type { LoaderFunctionArgs } from 'react-router';
 
-import { getBindings } from '@/lib/bindings';
+import { getScreenshotStore } from '@/lib/object-store';
 import { r2KeyFromRelPath } from '@/lib/screenshots';
 
 export async function loader({ params }: LoaderFunctionArgs) {
@@ -8,8 +8,7 @@ export async function loader({ params }: LoaderFunctionArgs) {
   const key = r2KeyFromRelPath(rel);
   if (!key) return new Response('Not found', { status: 404 });
 
-  const { SCREENSHOTS } = getBindings();
-  const obj = await SCREENSHOTS.get(key);
+  const obj = await getScreenshotStore().get(key);
   if (!obj) return new Response('Not found', { status: 404 });
 
   const headers = new Headers();

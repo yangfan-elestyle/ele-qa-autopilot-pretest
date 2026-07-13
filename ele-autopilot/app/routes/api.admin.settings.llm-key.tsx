@@ -13,13 +13,13 @@ function maskKey(value: string): string {
 
 const NO_STORE_HEADERS = { 'Cache-Control': 'no-store' };
 
-// 仅允许 @elestyle.jp SSO 已登录用户. gateway `/api/*` 全段 bypass + Everyone,
-// 业务 Worker 必须自己校验 CF Access cookie (浏览器从 Allow App 登录后携带 CF_Authorization).
+// 仅允许 @elestyle.jp 已登录用户. gateway 统一收口后注入 X-Auth-User-Email; 高敏感路由
+// 深度防御自校验该 header (直连下游需自带合法 header).
 const ALLOWED_EMAIL_SUFFIX = '@elestyle.jp';
 
-async function guard(request: Request, env: Env): Promise<Response | null> {
+async function guard(request: Request): Promise<Response | null> {
   try {
-    const user = await requireAccessUser(request, env);
+    const user = await requireAccessUser(request);
     requireEmailDomain(user, ALLOWED_EMAIL_SUFFIX);
     return null;
   } catch (res) {
@@ -30,8 +30,8 @@ async function guard(request: Request, env: Env): Promise<Response | null> {
 
 // GET ?raw=1 → { value: string } 明文; 默认 → { has_key, masked }.
 // 两种形态都强制 SSO 校验, raw 不可对外暴露.
-export async function loader({ request, context }: LoaderFunctionArgs) {
-  const denied = await guard(request, context.cloudflare.env);
+export async function loader({ request }: LoaderFunctionArgs) {
+  const denied = await guard(request);
   if (denied) return denied;
 
   try {
@@ -53,10 +53,10 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
 }
 
 // PUT { value: string } 写入; 空字符串视作清除. 同样强制 SSO.
-export async function action({ request, context }: ActionFunctionArgs) {
+export async function action({ request }: ActionFunctionArgs) {
   if (request.method !== 'PUT') return methodNotAllowed(['PUT']);
 
-  const denied = await guard(request, context.cloudflare.env);
+  const denied = await guard(request);
   if (denied) return denied;
 
   try {

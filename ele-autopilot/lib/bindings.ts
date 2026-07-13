@@ -1,12 +1,27 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 
+import type { Db } from './db/connection';
+import type { ObjectStore } from './object-store';
+
+// 迁移 (Phase B): D1Database → Db (libSQL adapter), R2Bucket → ObjectStore (MinIO).
+// server.ts 启动时建一次 client, 每个请求 runWithBindings 注入; loader/action 经 getDb()/
+// getScreenshotStore() 取用.
 export type AppBindings = {
-  DB: D1Database;
-  SCREENSHOTS: R2Bucket;
-  RELEASES: R2Bucket;
+  DB: Db;
+  SCREENSHOTS: ObjectStore;
+  RELEASES: ObjectStore;
 };
 
-const storage = new AsyncLocalStorage<AppBindings>();
+// server.ts 从源码 import 本模块, 而 RR 构建把本模块打进 build/server/index.js (bundle 自带
+// 一份副本). 两副本各自 `new AsyncLocalStorage()` 会导致 server.ts 存 store、bundle 内 loader
+// 取不到. 用全局符号注册表让两副本共享同一 ALS 实例.
+const ALS_KEY = Symbol.for('ele-autopilot.bindings.als');
+const globalRef = globalThis as unknown as Record<
+  symbol,
+  AsyncLocalStorage<AppBindings> | undefined
+>;
+const storage: AsyncLocalStorage<AppBindings> =
+  globalRef[ALS_KEY] ?? (globalRef[ALS_KEY] = new AsyncLocalStorage<AppBindings>());
 
 export function runWithBindings<T>(
   bindings: AppBindings,
@@ -18,7 +33,7 @@ export function runWithBindings<T>(
 export function getBindings(): AppBindings {
   const bindings = storage.getStore();
   if (!bindings) {
-    throw new Error('Cloudflare bindings not available; call runWithBindings() in worker entry');
+    throw new Error('bindings not available; call runWithBindings() in server entry');
   }
   return bindings;
 }

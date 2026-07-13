@@ -79,8 +79,8 @@ export async function getJobFromServer(jobId: Id): Promise<JobLite> {
 /**
  * 拉取集成中心保存的 LLM API Key 明文 (供 dispatch 注入到 local).
  *
- * - 走 `/api/admin/settings/llm-key?raw=1`; gateway `/api/*` bypass + Everyone,
- *   业务 Worker 在该路由内自验 CF_Authorization cookie, 仅 @elestyle.jp 通过.
+ * - 走 `/api/admin/settings/llm-key?raw=1`; gateway 统一收口后注入 X-Auth-User-Email,
+ *   该路由深度防御自验该 header, 仅 @elestyle.jp 通过.
  * - 空字符串 = 未配置.
  */
 async function fetchLlmApiKeyRaw(): Promise<string> {

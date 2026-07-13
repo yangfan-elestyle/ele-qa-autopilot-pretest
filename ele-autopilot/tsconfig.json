@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "ES2022",
     "lib": ["DOM", "DOM.Iterable", "ES2022"],
-    "types": ["vite/client", "node"],
+    "types": ["vite/client", "node", "bun"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -23,8 +23,7 @@
     "**/*.ts",
     "**/*.tsx",
     "**/*.mts",
-    ".react-router/types/**/*",
-    "worker-configuration.d.ts"
+    ".react-router/types/**/*"
   ],
   "exclude": ["node_modules", "build"]
 }
