@@ -30,15 +30,13 @@ function deriveFriendLink(origin: string): string | null {
 }
 
 export async function loader({ request, context }: Route.LoaderArgs) {
-  const { env } = context.cloudflare;
+  const { env } = context;
   const origin = new URL(request.url).origin;
   const friendLink = deriveFriendLink(origin);
   const userEmail = context.user?.email ?? null;
   let version: string | null = null;
   try {
-    const res = await env.AUTOPILOT.fetch(
-      new Request("https://autopilot.internal/releases/local/latest.txt"),
-    );
+    const res = await fetch(`${env.AUTOPILOT_URL}/releases/local/latest.txt`);
     if (res.ok) {
       const text = (await res.text()).trim();
       if (VERSION_RE.test(text)) version = text;
@@ -91,7 +89,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                 <span className="userchip-email">
                   {loaderData.userEmail.split("@")[0]}
                 </span>
-                <a className="logout-link" href="/cdn-cgi/access/logout">
+                <a className="logout-link" href="/logout">
                   登出
                 </a>
               </span>
