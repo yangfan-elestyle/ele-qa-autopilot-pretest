@@ -4,7 +4,7 @@ import { StorageError } from './errors'
 export type AuthHeaderProvider = () => Record<string, string>
 
 /**
- * RemoteStorageProvider — 通过 HTTP REST 把 KV 操作打到 Cloudflare Worker.
+ * RemoteStorageProvider — 通过 HTTP REST 把 KV 操作打到内网后端 (server).
  *
  * 服务端约定 (与 packages/server/src/routes/sync.ts 一一对应):
  *   GET    {base}/api/sync/items          -> { entries: Record<string,string> }
@@ -14,10 +14,10 @@ export type AuthHeaderProvider = () => Record<string, string>
  *   DELETE {base}/api/sync/items          (clear all for owner)
  *   POST   {base}/api/sync/batch          <- { ops: [{key, op, value?}] }
  *
- * 身份: 经 gateway 时由 Cloudflare Access 边缘注入 `cf-access-jwt-assertion`, 后端
- * `resolveOwner` 校验后写 ownerId=`google:<email>`. getAuthHeader() 默认空, 仅在扩展场景
+ * 身份: 经 gateway 时由 gateway 注入 `X-Auth-User-Email` header, 后端
+ * `resolveOwner` 据此写 ownerId=`google:<email>`. getAuthHeader() 默认空, 仅在扩展场景
  * (附加 Authorization 等) 或 dev 临时注入时返回非空对象.
- * 业务层只认 IStorageProvider, 不感知后端是 D1 还是 Dexie.
+ * 业务层只认 IStorageProvider, 不感知后端是 libSQL 还是 Dexie.
  */
 export class RemoteStorageProvider implements IStorageProvider {
   private readonly baseUrl: string

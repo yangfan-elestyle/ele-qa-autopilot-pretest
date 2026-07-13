@@ -9,8 +9,8 @@ const rootPkg = JSON.parse(
   readFileSync(resolve(__dirname, '../../package.json'), 'utf-8'),
 ) as { version: string }
 
-// dev 时所有同源 API 请求通过 vite proxy 转发到 wrangler dev (端口 8787)。
-// 生产环境前后端同源由 Workers Static Assets 直供，无需 proxy。
+// dev 时所有同源 API 请求通过 vite proxy 转发到本地后端 dev server (端口 8787)。
+// 生产环境前后端同源由后端静态 serve web/dist 直供，无需 proxy。
 const WORKER_DEV_TARGET = 'http://127.0.0.1:8787'
 
 const PROXIED_PATHS = [
@@ -32,7 +32,7 @@ export default defineConfig(({ command }) => {
   )
 
   return {
-    // 生产构建时挂在 /autotest/ 子路径下, 让 gateway (qa) 透过 service binding 转发到 ele-autotesting Worker.
+    // 生产构建时挂在 /autotest/ 子路径下, 让 gateway 经内网 HTTP 转发到 ele-autotesting server.
     // dev 模式保留根路径 '/' 避免本地访问 http://127.0.0.1:18181 时 404.
     base: command === 'build' ? '/autotest/' : '/',
     define: {

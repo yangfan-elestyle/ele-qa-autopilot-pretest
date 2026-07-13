@@ -49,7 +49,7 @@ export class StorageFactory {
   }
 
   /**
-   * 创建远程存储提供器 (Cloudflare D1 via Worker REST).
+   * 创建远程存储提供器 (远程存储 via 后端 REST).
    * remote 实例不缓存, 因为 baseUrl/getAuthHeader 可能因环境/登录态变化.
    */
   static createRemote(baseUrl: string, getAuthHeader: AuthHeaderProvider): RemoteStorageProvider {

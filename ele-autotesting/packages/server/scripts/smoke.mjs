@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-// End-to-end smoke test for the ele-autotesting Worker deployment.
+// End-to-end smoke test for the ele-autotesting server deployment.
 //
 //   ENDPOINT  default: http://127.0.0.1:8787
 //
-// 鉴权: 业务路由经 `resolveOwner` 校验 `cf-access-jwt-assertion` JWT, 取 email 作 ownerId.
-// smoke 跑本地 wrangler dev (不经 CF Access), 依赖 `ele-autotesting/.env` 内
+// 鉴权: 业务路由经 `resolveOwner` 读 gateway 注入的 `X-Auth-User-Email` header 取 email 作 ownerId.
+// smoke 直连本地 server (不经 gateway, 不带该 header), 依赖 `ele-autotesting/.env` 内
 // `DEV_FALLBACK_EMAIL` 兜底; 缺则全部 401 → FAIL.
-// 远程线上跑须自带 CF Access cookie / token, smoke 默认 ENDPOINT 用本地, 远程跑请单独验证.
+// 远程线上跑须经 gateway (或自带 `X-Auth-User-Email`), smoke 默认 ENDPOINT 用本地, 远程跑请单独验证.
 //
 // 重要: smoke 仅对自身写入的 keys (SMOKE_KEYS) 做 PUT/GET/batch/DELETE, list 用 "包含"
 // 断言而非 "等于" 断言. 绝不 DELETE /api/sync/items 全清 — 该 owner 通常对应 dev 真实账号,
@@ -121,7 +121,7 @@ await step('GET /unknown-api (404 json)', async () => {
     headers: { Accept: 'application/json' },
   })
   // 静态资源 SPA fallback 会接管未知路径并返回 index.html (200, text/html)，
-  // 这里通过 Accept: application/json 也无法绕过 (Workers Static Assets 不看 Accept)。
+  // 这里通过 Accept: application/json 也无法绕过 (后端静态 serve 不看 Accept)。
   // 因此 /unknown-api 仍走 SPA fallback，状态码 200 是预期行为。
   if (r.status !== 200) throw new Error(`status=${r.status}`)
   return 'spa fallback (expected)'
@@ -144,8 +144,8 @@ await step('POST /mcps/markitdown/mcp tools/list', async () => {
   return `tools=[${names.join(',')}]`
 })
 
-// ─── /api/sync (D1) smoke ────────────────────────────────────────────────
-// owner 由 resolveOwner 解析 cf-access-jwt-assertion 决定; 本地 dev 走 DEV_FALLBACK_EMAIL
+// ─── /api/sync (libSQL) smoke ────────────────────────────────────────────
+// owner 由 resolveOwner 读 `X-Auth-User-Email` 决定; 本地 dev 走 DEV_FALLBACK_EMAIL
 // 兜底. 不再注入 X-Device-Id. smoke 用固定 owner 跑, 仅操作自身 keys (见顶部说明).
 const SYNC_HEADERS = { 'Content-Type': 'application/json' }
 const SYNC_KEY = 'smoke-test-key'

@@ -6,9 +6,9 @@
 let configuredBasePath = ''
 
 /**
- * 业务 API 鉴权头. 经 gateway 时由 Cloudflare Access 在边缘注入 `cf-access-jwt-assertion`,
- * 后端 `resolveOwner` 自行校验; 浏览器侧通常不需要业务头, 保留 setAuthHeaders/getAuthHeaders
- * 接口仅供未来扩展 (如附加 Authorization Bearer 等场景) 或测试期注入.
+ * 业务 API 鉴权头. 经 gateway 时由 gateway 注入 `X-Auth-User-Email` header,
+ * 后端 `resolveOwner` 据此取 email; 浏览器侧通常不需要业务头 (gateway cookie 自动携带),
+ * 保留 setAuthHeaders/getAuthHeaders 接口仅供未来扩展 (如附加 Authorization Bearer 等场景) 或测试期注入.
  * LLM proxy (`/stream-proxy` / `/http-proxy`) 由 LLM SDK 内部 fetch 发起, 不参与注入,
  * 安全靠 `proxyGuard` SSRF 黑名单兜底.
  */
@@ -30,7 +30,7 @@ export const setProxyBasePath = (basePath: string): void => {
 export const getApiBasePath = (): string => configuredBasePath
 
 /**
- * 注册业务 API 鉴权头 (默认空). 经 gateway 时身份由 CF Access 边缘注入,
+ * 注册业务 API 鉴权头 (默认空). 经 gateway 时身份由 gateway 注入 `X-Auth-User-Email`,
  * 此接口仅用于将来扩展或 dev 临时附加自定义头.
  */
 export const setAuthHeaders = (headers: Record<string, string>): void => {

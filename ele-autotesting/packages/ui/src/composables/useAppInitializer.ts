@@ -20,19 +20,20 @@ import type { IModelManager, ITemplateManager, IHistoryManager, ILLMService, IPr
 import type { IPreferenceService } from '../types/services'
 
 /**
- * 身份注入由 Cloudflare Access 边缘完成: 用户经 gateway 访问时, CF Access 校验 Google
- * Workspace SSO cookie 后注入 `cf-access-jwt-assertion` header, 经 service binding 透传到
- * ele-autotesting Worker; 后端 `resolveOwner` (packages/server/src/middleware/auth.ts) 用
- * jose 校验后取 email → ownerId=`google:<email>`. 浏览器侧无需注入任何业务鉴权头.
+ * 身份注入由 gateway 统一收口: 员工经 gateway 访问时输入公司邮箱, gateway 自签明文 cookie,
+ * 转发下游时注入 `X-Auth-User-Email` header 到 ele-autotesting server; 后端 `resolveOwner`
+ * (packages/server/src/middleware/auth.ts) 读该 header 取 email → ownerId=`google:<email>`.
+ * 浏览器侧无需注入任何业务鉴权头 (gateway cookie 会自动携带).
  *
- * 本地 dev (wrangler dev, 不经 gateway / Access): 后端读 `DEV_FALLBACK_EMAIL` env 兜底.
+ * 本地 dev (直连后端, 不经 gateway): 后端读 `DEV_FALLBACK_EMAIL` env 兜底.
  */
 
 /**
  * 迁移标志 (localStorage key) 用的占位 owner. 浏览器侧拿不到真正的 email
- * (服务端才能 decode JWT), 用固定字符串 `cf-access` 作占位即可:
- * 同浏览器只对首次登录的账号迁移一次本地 Dexie → 云端, 后续切账号不重迁
- * (避免把 A 的本地残留误送到 B 的云端配置).
+ * (后端才从 `X-Auth-User-Email` 解析), 用固定字符串 `cf-access` 作占位即可.
+ * 注意: 这里的 `cf-access` 只是历史占位符, 与已下线的 CF Access 无关, 不能改动
+ * (改了会让存量用户重新迁移). 同浏览器只对首次登录的账号迁移一次本地 Dexie → 云端,
+ * 后续切账号不重迁 (避免把 A 的本地残留误送到 B 的云端配置).
  * 旧 SHARED_OWNER_ID 时代的 `shared-owner-v1` flag 不会命中, 用户首启自动重走一次迁移.
  */
 const MIGRATION_OWNER_KEY = 'cf-access'
@@ -48,7 +49,7 @@ function migrationFlagKey(ownerKey: string): string {
 const MIGRATE_BATCH_SIZE = 400
 
 /**
- * 一次性把本地 Dexie 中的数据上传到远端 D1.
+ * 一次性把本地 Dexie 中的数据上传到远端存储 (经后端 /api/sync).
  *
  * 行为:
  * - 已标记完成 → 直接跳过.
@@ -139,7 +140,7 @@ export function useAppInitializer(apiBase: string = '') {
   // 必须早于任何 createLLMService 调用, onMounted 内已经够早 (composable 顺序保证).
   const normalizedBase = apiBase.replace(/\/+$/, '')
   setProxyBasePath(normalizedBase)
-  // 身份头由 Cloudflare Access 边缘注入 (`cf-access-jwt-assertion`), 浏览器不必显式注入.
+  // 身份头由 gateway 注入 (`X-Auth-User-Email`, gateway cookie 自动携带), 浏览器不必显式注入.
   // setAuthHeaders 仍清一遍状态, 避免 HMR / 测试残留旧头.
   setAuthHeaders({})
 
@@ -160,8 +161,8 @@ export function useAppInitializer(apiBase: string = '') {
       let preferenceService: IPreferenceService
 
       console.log('[AppInitializer] 检测到Web环境，初始化完整服务...')
-      // 在Web环境中，所有数据走 Cloudflare D1 远程存储.
-      // 身份: 经 gateway 时由 CF Access 注入 `cf-access-jwt-assertion`, 后端 resolveOwner
+      // 在Web环境中，所有数据走远程存储 (经后端 /api/sync).
+      // 身份: 经 gateway 时由 gateway 注入 `X-Auth-User-Email`, 后端 resolveOwner
       // 取 email → ownerId=`google:<email>`. 浏览器侧 fetch 不显式带任何业务鉴权头.
       const remoteProvider = StorageFactory.createRemote(normalizedBase, () => ({}))
 

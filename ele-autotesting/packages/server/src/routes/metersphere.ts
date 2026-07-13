@@ -7,10 +7,9 @@ import { upstreamFetch } from '../lib/upstream.ts'
 /**
  * /api/ms — MeterSphere 反向代理.
  *
- * 链路: 浏览器 -> gateway -> autotesting Worker -> env.METERSPHERE (VPC) ->
- *       tunnel `ele-server` -> ele-fly cloudflared -> qa.elepay.link
+ * 链路: 浏览器 -> gateway -> autotesting server -> METERSPHERE_URL 内网直连 https://bi.elepay.link
  *
- * AK/SK 由 Worker 按 ownerId 从 D1 (集成中心 MeterSphere Tab) 读出后做 AES-CBC 签名,
+ * AK/SK 由 server 按 ownerId 从 libSQL (集成中心 MeterSphere Tab) 读出后做 AES-CBC 签名,
  * 浏览器侧不持有明文; 旧 X-MS-AK / X-MS-SK header 入参已废弃.
  *
  * 路由:
@@ -21,7 +20,7 @@ import { upstreamFetch } from '../lib/upstream.ts'
  *   GET  /api/ms/case/:id                单条用例详情 (prerequisite/steps/expectedResult/description)
  *   GET  /api/ms/default-template/:pid   项目默认模板 (从 data.id 取 templateId)
  *   POST /api/ms/module/add              新建模块 ({projectId, parentId='NONE', name})
- *   POST /api/ms/case/add                新建用例 (multipart, worker 内封 FormData)
+ *   POST /api/ms/case/add                新建用例 (multipart, server 内封 FormData)
  */
 
 type MsRouteEnv = {
@@ -31,7 +30,7 @@ type MsRouteEnv = {
 
 const router = new Hono<MsRouteEnv>()
 
-// MeterSphere 寻址 (CF binding 的真实域名 host / 迁移日的 METERSPHERE_URL) 收口到 lib/upstream.ts;
+// MeterSphere 寻址 (METERSPHERE_URL 内网直连) 收口到 lib/upstream.ts;
 // 这里只组 path + query, 由 upstreamFetch 决定 base.
 
 interface MsCallInit {
@@ -72,7 +71,7 @@ async function callMeterSphere(
 
   const upstream = await upstreamFetch(c.env, 'METERSPHERE', path, { method: init.method, headers, body })
   // MeterSphere v3 正常返 HTTP 200 + body { code: 100200 (MsHttpResultCode.SUCCESS), data, message };
-  // 错误时 code 为 1004xx / 1005xx, 后三位 == HTTP status. 本 Worker 不校验 code,
+  // 错误时 code 为 1004xx / 1005xx, 后三位 == HTTP status. 本 server 不校验 code,
   // 直接透传 status + body 给前端. 透传时去掉 set-cookie 等敏感 header, 留 content-type 即可.
   const respBody = await upstream.text()
   return new Response(respBody, {
@@ -82,7 +81,7 @@ async function callMeterSphere(
 }
 
 /**
- * 解析当前请求的 AK/SK: 按 ownerId 从 D1 集成中心配置读. 未配置时返 412 引导前端
+ * 解析当前请求的 AK/SK: 按 ownerId 从 libSQL 集成中心配置读. 未配置时返 412 引导前端
  * 提示用户去「集成中心 → MeterSphere」填写, 与 figma-parse 同口径; 前端不再透传 header.
  */
 async function getAkSk(c: Context<MsRouteEnv>): Promise<{ ak: string; sk: string } | Response> {
@@ -97,7 +96,7 @@ async function getAkSk(c: Context<MsRouteEnv>): Promise<{ ak: string; sk: string
 }
 
 router.get('/_smoke', async (c: Context<MsRouteEnv>) => {
-  // 不签名, 仅探链路. MeterSphere 根目录通常返登录页 200 或 401, 任一非 502 即证明 VPC 通.
+  // 不签名, 仅探链路. MeterSphere 根目录通常返登录页 200 或 401, 任一非 502 即证明内网直连通.
   try {
     const upstream = await upstreamFetch(c.env, 'METERSPHERE', '/', { method: 'GET' })
     const ct = upstream.headers.get('content-type') ?? ''
@@ -305,7 +304,7 @@ router.post('/module/add', async (c: Context<MsRouteEnv>) => {
  * POST /api/ms/case/add — 新建用例.
  *
  * 上游 `POST /functional/case/add` 是 `multipart/form-data` (`request` part = JSON 串).
- * worker 接 application/json (body 即上游 FunctionalCaseAddRequest 形状),
+ * server 接 application/json (body 即上游 FunctionalCaseAddRequest 形状),
  * 内部构造 FormData 转发, runtime 自动生成 boundary.
  *
  * 不接受 / 不转发附件 (files / caseDetailFileIds), 后续需要再扩.
