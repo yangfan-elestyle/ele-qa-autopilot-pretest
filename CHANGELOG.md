@@ -2,6 +2,12 @@
 
 QA AutoPilot 全仓统一变更日志. 四子项目 lockstep 同版本发布 (见 [workflow.md](./workflow.md)), 单条目按受影响子项目 (`gateway` / `autopilot` / `autopilot-local` / `autotesting`) 标注 scope; 多子项目同一改动只记一次.
 
+## [2.1.4] - 2026-07-14
+
+### Fixed
+
+- **autopilot-local**: install.sh 完成后自动 `uv tool update-shell`, 新开终端即可直接执行 `ele-autopilot`, 免手动 export PATH.
+
 ## [2.1.3] - 2026-07-14
 
 ### Fixed

@@ -75,8 +75,12 @@ else
   uv tool install --reinstall "$tmp_wheel"
 fi
 
+# 把 uv tool bin dir 写进 shell rc, 让新 shell 直接能跑 ele-autopilot. 幂等.
+uv tool update-shell >/dev/null 2>&1 || true
+
 info ""
 info "==> Done: $BIN_NAME $resolved installed."
+info "    新开终端 (或 source shell rc) 后可直接执行: $BIN_NAME"
 info "    升级: 重跑 curl -fsSL $BASE/install.sh | bash"
 `;
 }
