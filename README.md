@@ -2,7 +2,7 @@
 
 QA AutoPilot 合并仓库. `gateway` + 三个独立业务子项目并存; 非 monorepo workspace, 各自独立技术栈与包管.
 
-全栈 AI-only (Claude Code / Codex 维护). Agent 工作准则见 [AGENTS.md](./AGENTS.md), 发布流程见 [deploy.md](./deploy.md).
+全栈 AI-only (Claude Code / Codex 维护). Agent 工作准则见 [AGENTS.md](./AGENTS.md), 发布流程见 [workflow.md](./workflow.md).
 
 ## 子项目
 
@@ -14,7 +14,7 @@ QA AutoPilot 合并仓库. `gateway` + 三个独立业务子项目并存; 非 mo
 | [`ele-autopilot-local/`](./ele-autopilot-local) | 本地浏览器执行 agent (macOS) | Python 3.12 / uv + FastAPI + browser-use | 本机 `0.0.0.0:8000` |
 | [`ele-autotesting/`](./ele-autotesting) | AI 测试用例生成工具 | TS / pnpm + Vue3 + Hono | Docker (Node) + libSQL + markitdown sidecar |
 
-各子项目独立 README + AGENTS; 详细约束见子目录 `AGENTS.md`. 内网编排见 [deploy/](./deploy).
+各子项目自带 `README` (概览/运行) 与 `AGENTS` (红线, `CLAUDE.md` 软链同源), 见上表链接. 内网编排见 [deploy/](./deploy).
 
 ## 系统拓扑
 
@@ -48,4 +48,4 @@ QA AutoPilot 合并仓库. `gateway` + 三个独立业务子项目并存; 非 mo
 
 ## 发布
 
-四子项目版本号 **lockstep**, 单一 tag `vX.Y.Z` 触发三个 workflow (build+push 镜像; ele-autopilot-local wheel 随 autopilot 镜像构建). 流程 / 命令 / CHANGELOG 写作详见 [deploy.md](./deploy.md); 一次性 GHCR / `.env` 准备见 [setup.md](./setup.md); 内网编排见 [deploy/README.md](./deploy/README.md).
+四子项目版本号 **lockstep**, 单一 tag `vX.Y.Z` 触发三个 workflow (build+push 镜像; ele-autopilot-local wheel 随 autopilot 镜像构建). 流程 / 命令 / CHANGELOG 写作详见 [workflow.md](./workflow.md).

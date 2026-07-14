@@ -1,6 +1,6 @@
 # ele-autopilot-local
 
-macOS 本地浏览器自动化 HTTP 服务. `browser-use` + FastAPI + Gemini, uv. 打 tag 后 autopilot workflow 在镜像 localwheel 阶段构建本包 wheel 打进 autopilot 镜像; 用户从 gateway landing 一键安装 (install.sh 直连镜像内 FS).
+macOS 本地浏览器自动化 HTTP 服务. `browser-use` + FastAPI + Gemini, uv. 随 autopilot 镜像 lockstep 发布 (localwheel 阶段打 wheel 进镜像), 经 gateway landing 一键装; 发布流程见 [../workflow.md](../workflow.md).
 
 ## 安装
 

@@ -10,7 +10,7 @@
 4. 等三 workflow success (镜像推到 GHCR; agent wheel 已随 autopilot 镜像自带)
 5. 宿主 `cd deploy && docker compose pull && up -d` (拉新镜像滚动)
 
-> 一次性前置 (GHCR / `.env`) 见 [setup.md](./setup.md), 默认无需主动处理.
+> 一次性前置 (GHCR / `.env`) 见 [deploy/README.md](./deploy/README.md#go-live-一次性动作), 默认无需主动处理.
 
 ## 1. 写版本
 

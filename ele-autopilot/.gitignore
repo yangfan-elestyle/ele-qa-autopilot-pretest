@@ -27,10 +27,9 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (opt-in .env.example committed)
+# env files (env 收口在 deploy/; 见根 AGENTS)
 .env
 .env.*
-!.env.example
 
 # typescript
 *.tsbuildinfo

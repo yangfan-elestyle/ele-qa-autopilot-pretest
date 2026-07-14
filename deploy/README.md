@@ -4,7 +4,7 @@
 
 ## 拓扑
 
-- **nginx**: 唯一对外入口 (裸 http, 绑内网 IP). 全部转发 gateway.
+- **nginx**: 唯一对外入口 (裸 http, 绑内网 IP). 全部转发 gateway. 对外端口 = `.env` 的 `BIND_ADDR` / `HTTP_PORT` (默认 `:80`).
 - **gateway**: 身份收口 (cookie / X-Auth-User-Email) + 路径分发 + 静态 landing.
 - **autopilot** / **autotesting**: 业务, 各自 libSQL (`/data` volume) + 内网互通; **不对外**.
 - **markitdown**: markitdown-mcp sidecar; **不对外**.
@@ -26,7 +26,7 @@ docker compose ps             # 等 healthy
 
 ## 生产 (GHCR 镜像)
 
-CI (tag `vX.Y.Z`) build+push 四镜像到 GHCR (见 [../deploy.md](../deploy.md)). 宿主:
+CI (tag `vX.Y.Z`) build+push 四镜像到 GHCR (见 [../workflow.md](../workflow.md)). 宿主:
 
 ```bash
 cd deploy
@@ -35,9 +35,11 @@ docker compose pull
 docker compose up -d
 ```
 
-## go-live 一次性动作 (代码/编排已就绪, 以下需人工)
+## go-live 一次性动作
 
-1. **GHCR secret**: workflow push 镜像需仓库对 GHCR 有写权限 (`GITHUB_TOKEN` 默认可, 私有 registry 另配).
+代码 / 编排已就绪, 以下需人工:
+
+1. **GHCR 镜像**: workflow 用内置 `GITHUB_TOKEN` push 四镜像到 GHCR (`permissions: packages: write`, 无需额外 secret). 首次 push 后到仓库 `Packages` 把四镜像 (`ele-qa-gateway` / `ele-qa-autopilot` / `ele-qa-autotesting` / `ele-qa-markitdown`) 可见性设为宿主可拉; 私有则宿主 `docker login ghcr.io`.
 2. **`.env`**: 填 LLM / Confluence 凭据; 确认 `METERSPHERE_URL=https://qa.elepay.link` 内网可达; agentic-loop 就绪后填 `AGENTIC_LOOP_URL`.
 3. **agent wheel**: 随 autopilot 镜像自带 (镜像 localwheel 阶段 `uv build`), 无需人工分发; 版本随镜像 lockstep, install.sh 直连 `/releases/ele-autopilot-local.whl`.
 4. **员工机装 agent**: `curl -fsSL http://<内网入口>/install.sh | bash` (install.sh base URL 由 gateway 按 origin 下发, 自动适配内网地址).

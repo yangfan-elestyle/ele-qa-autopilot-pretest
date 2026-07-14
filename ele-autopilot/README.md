@@ -10,7 +10,7 @@ bun dev            # http://localhost:3000 (react-router dev, UI 开发)
 bun run smoke      # libSQL adapter 回归: batch 原子性 + FK 级联
 ```
 
-发布前验证 (lint / typecheck / build / smoke) 见 [deploy.md §本地验证](../deploy.md#2-本地验证). 完整服务 (server.ts + libSQL + 截图落卷) 起法见 `.env.example` 与 [deploy/README.md](../deploy/README.md).
+完整服务 (server.ts + libSQL + 截图落卷) 起法与运行时 env 见 [deploy/README.md](../deploy/README.md).
 
 React DevTools 独立窗口: 必须先 `bunx react-devtools` 再 `bun dev`, 反序无效.
 
@@ -27,7 +27,7 @@ sqlite3 /var/lib/docker/volumes/deploy_autopilot_data/_data/autopilot.db "SELECT
 # 查截图 (<jobTaskId>/<i>.png)
 docker compose exec autopilot ls -R /data/screenshots | head
 
-# 备份: 卷快照即含库 + 截图. 详见 deploy/README.md.
+# 备份: 卷快照即含库 + 截图.
 ```
 
 > `settings.llm_api_key` 存 libSQL, DB 备份/迁库时必须带走.

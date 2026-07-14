@@ -1,6 +1,6 @@
 # gateway
 
-内网唯一入口 (Bun Node server). React Router v7 (framework mode, SSR) + React 19, Bun. 无 DB / 对象存储 / secret; 只渲染 landing + 路由分发 + 身份收口. 部署形态见根 [AGENTS.md](../AGENTS.md#部署形态-内网单机-docker-compose) / [deploy/](../deploy).
+内网唯一入口 (Bun Node server). React Router v7 (framework mode, SSR) + React 19, Bun. 无 DB / 对象存储 / secret; 只渲染 landing + 路由分发 + 身份收口. 部署见 [deploy/](../deploy).
 
 ## 身份收口 (荣誉制, 仅 `@elestyle.jp`)
 
@@ -42,7 +42,5 @@ bun install
 bun run dev        # react-router dev (仅 landing 页 HMR; 完整代理行为看构建后 server.ts)
 bun run build      # 产物 build/{server,client}
 bun run typecheck
-bun run start      # bun server.ts (需 AUTOPILOT_URL / AUTOTEST_URL, 见 .env.example)
+bun run start      # bun server.ts (需 AUTOPILOT_URL / AUTOTEST_URL, 见 deploy/docker-compose.yml)
 ```
-
-发布前验证 / 部署见 [deploy.md](../deploy.md) 与 [deploy/README.md](../deploy/README.md).

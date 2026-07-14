@@ -1,7 +1,5 @@
 # Changelog
 
-写作规范见 [deploy.md §CHANGELOG 写作](../deploy.md#changelog-写作).
-
 ## [1.28.10] - 2026-07-13
 
 ### Added

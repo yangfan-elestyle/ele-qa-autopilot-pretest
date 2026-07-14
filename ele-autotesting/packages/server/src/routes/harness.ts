@@ -152,7 +152,7 @@ router.post('/oneshot', async (c: Context<HarnessHonoEnv>) => {
     upstreamBody.appendSystemPrompt = body.appendSystemPrompt
   }
 
-  // 下游经 AGENTIC_LOOP_URL 直连 agentic-loop (内网 HTTP; 尚未接通, 见 .env.example).
+  // 下游经 AGENTIC_LOOP_URL 直连 agentic-loop (内网 HTTP; 尚未接通, 见 deploy/docker-compose.yml).
   //
   // 用 SSE 流式 (accept: text/event-stream) 走 harness streamSSE 分支: 它每 15s 发
   // `: keepalive` 保活, 防止中间设备在长 turn 零数据期间判 idle 断连 (否则 fetch 抛

@@ -6,8 +6,7 @@ AI 测试用例生成工具. [产品说明书](https://elestyle.atlassian.net/wi
 
 ```
 [Node 容器 @hono/node-server] (esbuild bundle → dist/server.mjs)
- ├─ Hono API: /healthz /confluence-parse /http-proxy /stream-proxy
- │            /image-research/analyze /markdown-research /figma-parse /api/*
+ ├─ Hono API (见下 后端路由)
  ├─ 静态 serve → packages/web/dist (SPA, 未命中走 SPA index 兜底; 见 lib/static.ts)
  ├─ libSQL embedded (DATABASE_URL=file:/data/…) → 远程 KV (models/templates/history/prefs)
  └─ /mcps/markitdown/* → markitdown HTTP sidecar (MARKITDOWN_URL)
@@ -24,7 +23,6 @@ AI 测试用例生成工具. [产品说明书](https://elestyle.atlassian.net/wi
 ## 本地开发
 
 ```bash
-cp .env.example .env             # 按需填 QA_* / DEV_FALLBACK_EMAIL
 pnpm install
 pnpm run build:core && pnpm run build:ui && pnpm run build:server
 
@@ -39,7 +37,7 @@ pnpm -F @prompt-optimizer/web dev
 
 ## 环境变量
 
-运行时 env 见 [`.env.example`](./.env.example); 生产由 `deploy/.env` (compose) 注入.
+运行时 env 值见 [`deploy/docker-compose.yml`](../deploy/docker-compose.yml) (autotesting 服务), 凭据经 `deploy/.env` 注入; 下表速查:
 
 <!-- prettier-ignore -->
 | 变量 | 用途 |

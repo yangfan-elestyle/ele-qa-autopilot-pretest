@@ -1,6 +1,6 @@
 # AGENTS
 
-LLM 约束. 工程定位见下, 拓扑 / 子项目见 [README.md](./README.md), 发布流程见 [deploy.md](./deploy.md).
+LLM 约束. 工程定位见下, 拓扑 / 子项目见 [README.md](./README.md), 发布流程见 [workflow.md](./workflow.md).
 
 ## 工程定位
 
@@ -18,7 +18,7 @@ LLM 约束. 工程定位见下, 拓扑 / 子项目见 [README.md](./README.md), 
 ## 工作模式
 
 - 改子项目前 `cd <子目录>` 并读最近 `AGENTS.md`.
-- "改 X / 加 Y / 修 Z" 默认含完整闭环 (流程 / 版本规则 / commit & tag 命名 / CHANGELOG 写作 / workflow 触发面全见 [deploy.md](./deploy.md)): 改代码 -> 本地验证 -> 同步四 manifest 版本 + CHANGELOG -> `release: vX.Y.Z` commit -> annotated tag -> push branch + tag -> 等三个 workflow success.
+- "改 X / 加 Y / 修 Z" 默认含完整闭环 (流程 / 版本规则 / commit & tag 命名 / CHANGELOG 写作 / workflow 触发面全见 [workflow.md](./workflow.md)): 改代码 -> 本地验证 -> 同步四 manifest 版本 + CHANGELOG -> `release: vX.Y.Z` commit -> annotated tag -> push branch + tag -> 等三个 workflow success.
 - workflow 失败读 log 定位; 不卡在 "要不要 deploy".
 - 豁免闭环: 用户明示 "只改不发 / 先看看 / 本地试"; 或仅改文档 / prompt / 注释 / 本地脚本 / jjask.
 - 仅外部凭据 / 密钥 / 用户独有偏好缺失且无法从仓库 / git / jjask 推断时提问, 一次问完.
@@ -41,6 +41,5 @@ LLM 约束. 工程定位见下, 拓扑 / 子项目见 [README.md](./README.md), 
 
 ## 文件约定
 
-- `CLAUDE.md` = `AGENTS.md` symlink; `ele-autopilot/docs/CLAUDE.md` 用 `@AGENTS.md` import.
-- 各子项目 `.env.example` 是运行时配置事实源; secrets 经 `deploy/.env` (compose) 注入, 不提交.
-- 文档高密度: 能一行不写两行, 能列表不写段落; 子项目 AGENTS / README 不复述根 / deploy.md / setup.md 已写过的规则, 用 link 指回.
+- 文档高密度: 能一行不写两行, 能列表不写段落. 子项目 `README` = 概览 / 本地运行, `AGENTS` = 本项目独有红线 (通用 / 跨项目约束写本根, 不下沉).
+- 每个 md 对**自身职责自包含**; 仅跨域主题 (部署归 `deploy/`, 发布归 `workflow.md`) 才用指针, 且**单一指针**: 同一内容不双向指来指去 / 不一句塞多指针 / 不写无读者的指针 (如 CHANGELOG 勿指向自己的写作规范); 引他文档指其单一真源, 勿深锚进 AGENTS / 配置文件.

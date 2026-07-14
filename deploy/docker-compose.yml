@@ -5,6 +5,8 @@
 # 本地构建: `docker compose build`; 生产: 用 GHCR 镜像 `docker compose pull && up -d`
 # (把 *_IMAGE 指向 ghcr.io/<owner>/...:<tag>).
 
+name: ele-qa
+
 services:
   nginx:
     image: nginx:alpine
