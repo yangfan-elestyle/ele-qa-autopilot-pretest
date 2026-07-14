@@ -2,6 +2,12 @@
 
 QA AutoPilot 全仓统一变更日志. 四子项目 lockstep 同版本发布 (见 [workflow.md](./workflow.md)), 单条目按受影响子项目 (`gateway` / `autopilot` / `autopilot-local` / `autotesting`) 标注 scope; 多子项目同一改动只记一次.
 
+## [2.1.0] - 2026-07-14
+
+### Changed
+
+- **autopilot-local**: browser-use 升级到 0.13.4 (fix: 导航就绪检测 / markdown 抽取丢链接 / LLM 输出截断误判解析错误; keep BrowserError 可恢复), 同步升级 fastapi 0.139, uvicorn 0.51.
+
 ## [2.0.0] - 2026-07-14
 
 整栈部署形态从 Cloudflare Workers 迁移到内网单机 docker-compose (Node/Bun 容器); Web 界面对最终用户行为基本不变, 部署与运维方式完全改变.
