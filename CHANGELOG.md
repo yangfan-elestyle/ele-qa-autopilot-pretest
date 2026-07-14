@@ -2,6 +2,23 @@
 
 QA AutoPilot 全仓统一变更日志. 四子项目 lockstep 同版本发布 (见 [workflow.md](./workflow.md)), 单条目按受影响子项目 (`gateway` / `autopilot` / `autopilot-local` / `autotesting`) 标注 scope; 多子项目同一改动只记一次.
 
+## [2.0.0] - 2026-07-14
+
+整栈部署形态从 Cloudflare Workers 迁移到内网单机 docker-compose (Node/Bun 容器); Web 界面对最终用户行为基本不变, 部署与运维方式完全改变.
+
+### Changed
+
+- gateway / autopilot / autotesting 三服务由 Cloudflare Worker 改为 Bun/Node 容器, docker-compose 编排, 无公网入口; 唯一对外入口为 nginx 反代 gateway (裸 http, 绑内网 IP), 下游不暴露端口.
+- **autopilot** / **autotesting**: 持久化从 Cloudflare D1 改为 libSQL embedded (`file:`), 数据落宿主持久卷, server 首启自建表.
+- **autopilot**: 任务截图存储从对象存储 (R2) 改为本地持久卷 (`/data/screenshots`) 文件存储.
+- **autotesting**: MeterSphere 上游域名 `bi.elepay.link` → `qa.elepay.link`.
+- 版本管理统一: 根 `VERSION` 为唯一真值, `scripts/set-version.sh X.Y.Z` 一条命令同步四 manifest + uv.lock; 四子项目 CHANGELOG 合并为根单一文件.
+
+### Removed
+
+- 整栈不再依赖 Cloudflare 栈 (Workers / D1 / R2 / service binding); wrangler 配置与相关文档一并移除.
+- **autopilot-local**: 移除独立 releases 分发链, wheel 随 autopilot 镜像构建打入, `install.sh` 经网关直连下载.
+
 ## [1.28.10] - 2026-07-13
 
 ### Added
