@@ -4,7 +4,7 @@
 
 ## TL;DR
 
-1. 四 manifest 同 bump + 有改动的 CHANGELOG 加段
+1. `scripts/set-version.sh X.Y.Z` bump 版本 (根 VERSION + 四 manifest + uv.lock) + 根 `CHANGELOG.md` 加段
 2. 本地验证 (各项目 build / typecheck / smoke)
 3. `git commit -m "release: vX.Y.Z"` → `git tag -a vX.Y.Z -m "vX.Y.Z"` → `git push origin <branch> vX.Y.Z`
 4. 等三 workflow success (镜像推到 GHCR; agent wheel 已随 autopilot 镜像自带)
@@ -16,18 +16,21 @@
 
 - 默认 PATCH; 新功能 MINOR; 破坏性 DB schema / API 响应结构 MAJOR.
 - Tag 仅 `vX.Y.Z`; release commit 固定 `release: vX.Y.Z`; 其他改动用 Conventional Commits, 跨项目改动加 scope (`feat(gateway): ...`).
-- **四 manifest lockstep 同 bump** (tag 含 `v`, version 不含): `gateway/package.json` / `ele-autopilot/package.json` / `ele-autopilot-local/pyproject.toml` / `ele-autotesting/package.json`. 各 workflow 校验对应 manifest = tag 去 `v` (ele-autopilot-local 由 autopilot workflow 校验, 因 wheel 随其镜像构建), 不一致 fail.
-- `ele-autopilot-local/pyproject.toml` bump 后必须 `cd ele-autopilot-local && uv lock` 同步 `uv.lock` 里 project 自身 version (editable entry), 否则与 pyproject 脱节, `uv sync --locked/--frozen` 校验 fail. 仅 version 变时 diff 只该行, 不动依赖.
+- **版本唯一真值 = 根 `VERSION`** (纯 `X.Y.Z`, 不含 `v`); 四子项目 lockstep 同此号. bump 只跑一条命令, 不手改 manifest:
+  ```bash
+  scripts/set-version.sh X.Y.Z   # 写 VERSION + 三 package.json + pyproject.toml, 内部 uv lock 同步 uv.lock editable version
+  ```
+- 三 workflow 各先校验 `v$(cat VERSION)` = tag, 再校验对应 manifest = tag 去 `v` (ele-autopilot-local 由 autopilot workflow 校验, 因 wheel 随其镜像构建), 任一不一致 fail; 故 manifest 必须 = VERSION.
 
 ### CHANGELOG 写作
 
-面向使用者, 不是代码审计.
+单一根 `CHANGELOG.md`, 版本优先降序. 面向使用者, 不是代码审计.
 
-- 写: 新功能 / 行为修复 / 体验改进 / 安全 / 命令与入口迁移.
-- 不写: 文件路径 / 组件名 / CSS class / 重构细节 / 元叙述 / "跟随版本同步发布" 之类占位条目.
-- 单条 ≤ 2 行, 单版本 ≤ 5 条.
-- **完全省略本版本段** 仅限该子项目本次纯版本号 bump (无代码 / 公开 API / 配置 / CLI 行为变化, manifest 仍 lockstep); 公开 API 导出 / 配置入口 / 开发者命令的增删按 Added / Removed / Changed 写, 即便最终用户层透明.
-- 遵循 Keep a Changelog (Added / Changed / Fixed / Removed / Security); 中文行文, 术语保留原文.
+- 新版本加一个 `## [X.Y.Z] - YYYY-MM-DD` 段, 段内按 Keep a Changelog 类别 (Added / Changed / Fixed / Removed / Security) 分组.
+- 每条 bullet 标注受影响子项目 scope `- **<scope>**: ...` (`gateway` / `autopilot` / `autopilot-local` / `autotesting`); 多子项目同一改动只记一次, 可省 scope.
+- 写: 新功能 / 行为修复 / 体验改进 / 安全 / 命令与入口迁移. 不写: 文件路径 / 组件名 / CSS class / 重构细节 / 元叙述 / 占位条目.
+- 单条 ≤ 2 行, 单子项目单版本 ≤ 5 条; 纯版本号 bump 且无任何行为变化时可完全省略本版本段. 公开 API 导出 / 配置入口 / 开发者命令增删按 Added / Removed / Changed 写, 即便最终用户层透明.
+- 中文行文, 术语保留原文.
 
 ## 2. 本地验证
 

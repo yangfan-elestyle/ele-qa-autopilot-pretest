@@ -48,4 +48,4 @@ QA AutoPilot 合并仓库. `gateway` + 三个独立业务子项目并存; 非 mo
 
 ## 发布
 
-四子项目版本号 **lockstep**, 单一 tag `vX.Y.Z` 触发三个 workflow (build+push 镜像; ele-autopilot-local wheel 随 autopilot 镜像构建). 流程 / 命令 / CHANGELOG 写作详见 [workflow.md](./workflow.md).
+四子项目版本号 **lockstep**, 唯一真值 = 根 `VERSION` (由 `scripts/set-version.sh` 同步落四 manifest), 变更集中记于根 `CHANGELOG.md`. 单一 tag `vX.Y.Z` 触发三个 workflow (build+push 镜像; ele-autopilot-local wheel 随 autopilot 镜像构建). 流程 / 命令 / CHANGELOG 写作详见 [workflow.md](./workflow.md).
