@@ -33,6 +33,16 @@ jobs:
             exit 1
           fi
 
+      # wheel 由镜像 localwheel 阶段构建打进镜像; 校验 lockstep (取代原 autopilot-local.yml 的 tag 校验).
+      - name: Verify ele-autopilot-local version matches tag
+        run: |
+          pkg_version="$(python3 -c 'import tomllib; print(tomllib.load(open("ele-autopilot-local/pyproject.toml","rb"))["project"]["version"])')"
+          tag="${{ github.ref_name }}"
+          if [ "v${pkg_version}" != "${tag}" ]; then
+            echo "error: tag ${tag} does not match ele-autopilot-local/pyproject.toml version v${pkg_version}" >&2
+            exit 1
+          fi
+
       - name: Lowercase owner (GHCR requires lowercase)
         run: echo "OWNER=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
 
@@ -50,6 +60,9 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ele-autopilot
+          # ele-autopilot-local 源作命名上下文, Dockerfile localwheel 阶段 uv build wheel 打进镜像.
+          build-contexts: |
+            local=ele-autopilot-local
           platforms: linux/amd64
           push: true
           tags: |

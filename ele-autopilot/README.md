@@ -1,6 +1,6 @@
 # ele-autopilot
 
-QA 任务管理后台. React Router v7 (Framework mode) + React 19 + Ant Design + Tailwind, Bun. Phase B 运行时: Node/Bun 容器 + libSQL embedded (业务数据) + MinIO (截图/发布产物). 部署见 [deploy/](../deploy).
+QA 任务管理后台. React Router v7 (Framework mode) + React 19 + Ant Design + Tailwind, Bun. Phase B 运行时: Node/Bun 容器 + libSQL embedded (业务数据) + MinIO (截图). 部署见 [deploy/](../deploy).
 
 ## 开发
 
@@ -26,7 +26,6 @@ sqlite3 /var/lib/docker/volumes/deploy_autopilot_data/_data/autopilot.db "SELECT
 
 # 查/传对象 (mc = MinIO client)
 mc ls local/ele-autopilot-screenshots/
-mc cp ./file local/ele-autopilot-releases/local/<ver>/
 
 # 备份: 卷快照 (autopilot.db) + mc mirror bucket. 详见 deploy/README.md.
 ```

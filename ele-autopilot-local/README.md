@@ -1,6 +1,6 @@
 # ele-autopilot-local
 
-macOS 本地浏览器自动化 HTTP 服务. `browser-use` + FastAPI + Gemini, uv. 打 tag 后 Actions 构建 wheel 发到 GitHub Release; 宿主侧同步到内网 MinIO (`ele-autopilot-releases`), 用户从 gateway landing 一键安装.
+macOS 本地浏览器自动化 HTTP 服务. `browser-use` + FastAPI + Gemini, uv. 打 tag 后 autopilot workflow 在镜像 localwheel 阶段构建本包 wheel 打进 autopilot 镜像; 用户从 gateway landing 一键安装 (install.sh 直连镜像内 FS).
 
 ## 安装
 

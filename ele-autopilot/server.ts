@@ -39,7 +39,6 @@ const s3 = createS3Client({
 const bindings: AppBindings = {
   DB: createLibsqlDb(client),
   SCREENSHOTS: createS3Store(s3, env.SCREENSHOTS_BUCKET),
-  RELEASES: createS3Store(s3, env.RELEASES_BUCKET),
 };
 
 // --- RR handler + 静态 ---

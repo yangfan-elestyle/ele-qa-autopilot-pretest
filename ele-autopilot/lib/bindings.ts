@@ -5,11 +5,11 @@ import type { ObjectStore } from './object-store';
 
 // 迁移 (Phase B): D1Database → Db (libSQL adapter), R2Bucket → ObjectStore (MinIO).
 // server.ts 启动时建一次 client, 每个请求 runWithBindings 注入; loader/action 经 getDb()/
-// getScreenshotStore() 取用.
+// getScreenshotStore() 取用. 发布产物 (wheel) 不走对象存储, 由镜像构建期打进 /app/releases,
+// releases.$.tsx 直接读 FS.
 export type AppBindings = {
   DB: Db;
   SCREENSHOTS: ObjectStore;
-  RELEASES: ObjectStore;
 };
 
 // server.ts 从源码 import 本模块, 而 RR 构建把本模块打进 build/server/index.js (bundle 自带

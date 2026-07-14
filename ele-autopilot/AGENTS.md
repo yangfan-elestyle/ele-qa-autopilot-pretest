@@ -3,7 +3,7 @@
 ## Runtime (Bun Node server)
 
 - `server.ts`: Bun.serve 入口; 启动建 libSQL client + S3(MinIO) store, 跑 migrations, 每请求 `runWithBindings()` 注入后交 RR7 `createRequestHandler`; 静态托管 `build/client`. 无 `workers/`.
-- `lib/bindings.ts`: `AsyncLocalStorage<{DB, SCREENSHOTS, RELEASES}>` 容器 (用全局符号注册表, 让 server.ts 与 RR bundle 副本共享同一 ALS); 仅服务端 loader/action 使用.
+- `lib/bindings.ts`: `AsyncLocalStorage<{DB, SCREENSHOTS}>` 容器 (用全局符号注册表, 让 server.ts 与 RR bundle 副本共享同一 ALS); 仅服务端 loader/action 使用.
 - `lib/env.ts`: 运行时 env (DATABASE_URL / S3_* / bucket / 域); 见 `.env.example`.
 - `app/entry.server.tsx`: `renderToReadableStream` SSR + Ant Design cssinjs 抽取.
 - 客户端不可直连 DB/对象存储; 只能 fetch resource route.
@@ -34,7 +34,7 @@
 - 表: `folders` (`parent_id` 层级), `tasks` (`sub_ids` JSON 子任务链), `jobs`, `job_tasks`, `settings`. FK: `jobs.task_id`→tasks, `job_tasks.job_id`→jobs 均 CASCADE (libSQL 需 `PRAGMA foreign_keys=ON`, server 启动已设).
 - Schema 只做向后兼容迁移: `ALTER TABLE ... ADD COLUMN`; 禁止 `DROP` / `RENAME` 已有列. 新增按 `NNNN_desc.sql` 递增, server 首启幂等 apply.
 - prepared statement 只支持 `?` 位置绑定: `db.prepare(sql).bind(...).all()/first()/run()`; `batch()` = 原子写事务 (createJob 依赖, `bun run smoke` 回归).
-- 对象存储 bucket 名见 `.env.example` (`SCREENSHOTS_BUCKET` / `RELEASES_BUCKET`).
+- 对象存储 bucket 名见 `.env.example` (`SCREENSHOTS_BUCKET`); 发布产物 wheel 不走对象存储, 镜像构建期打进 `/app/releases` (`Dockerfile` localwheel 阶段, `app/routes/releases.$.tsx` 读 FS).
 - `/screenshots/*` 只读代理对象存储, 1 年 immutable cache; `r2KeyFromRelPath()` 必须防 `..` / 控制字符 / 非法字符.
 
 ## 编码

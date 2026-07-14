@@ -1,13 +1,13 @@
 # 发布流程 (lockstep)
 
-四项目 (gateway + 三业务) 版本号统一, 单一 `vX.Y.Z` tag 同步触发四 workflow (build + push 镜像 / 产物). 内网单机 docker-compose 部署见 [deploy/README.md](./deploy/README.md).
+四项目 (gateway + 三业务) 版本号统一, 单一 `vX.Y.Z` tag 同步触发三 workflow (build + push 镜像; ele-autopilot-local wheel 随 autopilot 镜像构建打进去). 内网单机 docker-compose 部署见 [deploy/README.md](./deploy/README.md).
 
 ## TL;DR
 
 1. 四 manifest 同 bump + 有改动的 CHANGELOG 加段
 2. 本地验证 (各项目 build / typecheck / smoke)
 3. `git commit -m "release: vX.Y.Z"` → `git tag -a vX.Y.Z -m "vX.Y.Z"` → `git push origin <branch> vX.Y.Z`
-4. 等四 workflow success (镜像推到 GHCR / wheel 发到 GitHub Release)
+4. 等三 workflow success (镜像推到 GHCR; agent wheel 已随 autopilot 镜像自带)
 5. 宿主 `cd deploy && docker compose pull && up -d` (拉新镜像滚动)
 
 > 一次性前置 (GHCR / MinIO / `.env`) 见 [setup.md](./setup.md), 默认无需主动处理.
@@ -16,7 +16,7 @@
 
 - 默认 PATCH; 新功能 MINOR; 破坏性 DB schema / API 响应结构 MAJOR.
 - Tag 仅 `vX.Y.Z`; release commit 固定 `release: vX.Y.Z`; 其他改动用 Conventional Commits, 跨项目改动加 scope (`feat(gateway): ...`).
-- **四 manifest lockstep 同 bump** (tag 含 `v`, version 不含): `gateway/package.json` / `ele-autopilot/package.json` / `ele-autopilot-local/pyproject.toml` / `ele-autotesting/package.json`. workflow 各自校验 manifest = tag 去 `v`, 不一致 fail.
+- **四 manifest lockstep 同 bump** (tag 含 `v`, version 不含): `gateway/package.json` / `ele-autopilot/package.json` / `ele-autopilot-local/pyproject.toml` / `ele-autotesting/package.json`. 各 workflow 校验对应 manifest = tag 去 `v` (ele-autopilot-local 由 autopilot workflow 校验, 因 wheel 随其镜像构建), 不一致 fail.
 - `ele-autopilot-local/pyproject.toml` bump 后必须 `cd ele-autopilot-local && uv lock` 同步 `uv.lock` 里 project 自身 version (editable entry), 否则与 pyproject 脱节, `uv sync --locked/--frozen` 校验 fail. 仅 version 变时 diff 只该行, 不动依赖.
 
 ### CHANGELOG 写作
@@ -67,11 +67,10 @@ git push origin <branch> vX.Y.Z
 
 > 用 annotated tag (`-a -m`): `tag.gpgsign=true` 时 lightweight tag 会被强制签名但缺 message → fail.
 
-push `v*` tag → `.github/workflows/{gateway,autopilot,autopilot-local,autotesting}.yml` 四 workflow 全部触发:
+push `v*` tag → `.github/workflows/{gateway,autopilot,autotesting}.yml` 三 workflow 全部触发:
 
 - `gateway`: `docker buildx build` → push `ghcr.io/<owner>/ele-qa-gateway:{<tag>,latest}`.
-- `autopilot`: `docker buildx build` → push `ghcr.io/<owner>/ele-qa-autopilot:{<tag>,latest}`. (migrations 不在 CI apply; server 首启自建表, 见 `lib/db/migrate.ts`.)
-- `autopilot-local`: `uv build` → `checksums.txt` → `gh release create` 上传 wheel/sdist/checksums 到 GitHub Release. **内网 MinIO 无公网入口, CI 到不了**; 宿主侧把 Release 产物 `mc cp` 到 MinIO `ele-autopilot-releases/local/<ver>/` + 更新 `local/latest.txt` (见 [deploy/README.md](./deploy/README.md)).
+- `autopilot`: `docker buildx build` → push `ghcr.io/<owner>/ele-qa-autopilot:{<tag>,latest}`. (migrations 不在 CI apply; server 首启自建表, 见 `lib/db/migrate.ts`.) 镜像 `localwheel` 阶段 `uv build` ele-autopilot-local wheel 打进 `/app/releases` (`ele-autopilot-local.whl` + `local/latest.txt`), install.sh 直连, 取代原 MinIO releases 分发链.
 - `autotesting`: `docker buildx build` → push `ele-qa-autotesting` + `ele-qa-markitdown` 两镜像.
 
 镜像默认 `linux/amd64` (改目标架构见 workflow `platforms:`). 发完 workflow, 宿主 `cd deploy && docker compose pull && up -d` 滚动.

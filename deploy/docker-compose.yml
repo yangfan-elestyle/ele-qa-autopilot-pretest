@@ -48,6 +48,9 @@ services:
     image: ${AUTOPILOT_IMAGE:-ele-qa-autopilot:local}
     build:
       context: ../ele-autopilot
+      # ele-autopilot-local 源作命名上下文, Dockerfile localwheel 阶段 uv build wheel 打进镜像.
+      additional_contexts:
+        local: ../ele-autopilot-local
     restart: unless-stopped
     environment:
       NODE_ENV: production
@@ -59,7 +62,6 @@ services:
       S3_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
       S3_FORCE_PATH_STYLE: "true"
       SCREENSHOTS_BUCKET: ${SCREENSHOTS_BUCKET:-ele-autopilot-screenshots}
-      RELEASES_BUCKET: ${RELEASES_BUCKET:-ele-autopilot-releases}
       ALLOWED_EMAIL_DOMAIN: ${ALLOWED_EMAIL_DOMAIN:-@elestyle.jp}
     volumes:
       - autopilot_data:/data
@@ -141,14 +143,12 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
       SCREENSHOTS_BUCKET: ${SCREENSHOTS_BUCKET:-ele-autopilot-screenshots}
-      RELEASES_BUCKET: ${RELEASES_BUCKET:-ele-autopilot-releases}
     entrypoint:
       - /bin/sh
       - -c
       - >
         until mc alias set local http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD"; do sleep 1; done;
         mc mb -p "local/$$SCREENSHOTS_BUCKET";
-        mc mb -p "local/$$RELEASES_BUCKET";
         exit 0;
     networks: [ele]
 

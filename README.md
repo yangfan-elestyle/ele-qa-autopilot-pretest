@@ -48,4 +48,4 @@ QA AutoPilot 合并仓库. `gateway` + 三个独立业务子项目并存; 非 mo
 
 ## 发布
 
-四子项目版本号 **lockstep**, 单一 tag `vX.Y.Z` 触发四个 workflow (build+push 镜像 / 产物). 流程 / 命令 / CHANGELOG 写作详见 [deploy.md](./deploy.md); 一次性 GHCR / MinIO / `.env` 准备见 [setup.md](./setup.md); 内网编排见 [deploy/README.md](./deploy/README.md).
+四子项目版本号 **lockstep**, 单一 tag `vX.Y.Z` 触发三个 workflow (build+push 镜像; ele-autopilot-local wheel 随 autopilot 镜像构建). 流程 / 命令 / CHANGELOG 写作详见 [deploy.md](./deploy.md); 一次性 GHCR / MinIO / `.env` 准备见 [setup.md](./setup.md); 内网编排见 [deploy/README.md](./deploy/README.md).

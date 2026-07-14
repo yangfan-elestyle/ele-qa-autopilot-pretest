@@ -6,7 +6,7 @@
 - LLM API Key 仅由 autopilot 集成中心通过 `/autopilot/run` payload `llm_api_key` 下发, 无本地 env fallback; `_init_llm()` 缺 key 抛错.
 - 默认可视化运行: `headless=false`; `JobConfig.headless=true` 才无头.
 - 安装 / 运行 / 构建都用 `uv`; 缺 `uv` 时按 Astral 官方安装脚本.
-- 发布产物 (Phase B): workflow `uv build` → 发 GitHub Release; 宿主侧同步到内网 MinIO `ele-autopilot-releases/local/<ver>/` (CI 到不了内网, 见 ../deploy.md).
+- 发布产物: autopilot 镜像 localwheel 阶段 `uv build` 把本包 wheel 打进 autopilot 镜像 `/app/releases`; 用户经 gateway landing 的 `install.sh` 一键装 (直连镜像内 FS). 无独立 workflow / 对象存储, 版本随 autopilot 镜像 lockstep. 见 ../deploy.md.
 
 ## 执行链路
 

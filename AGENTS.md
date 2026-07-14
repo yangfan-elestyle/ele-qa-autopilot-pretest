@@ -18,7 +18,7 @@ LLM 约束. 工程定位见下, 拓扑 / 子项目见 [README.md](./README.md), 
 ## 工作模式
 
 - 改子项目前 `cd <子目录>` 并读最近 `AGENTS.md`.
-- "改 X / 加 Y / 修 Z" 默认含完整闭环 (流程 / 版本规则 / commit & tag 命名 / CHANGELOG 写作 / workflow 触发面全见 [deploy.md](./deploy.md)): 改代码 -> 本地验证 -> 同步四 manifest 版本 + CHANGELOG -> `release: vX.Y.Z` commit -> annotated tag -> push branch + tag -> 等四个 workflow success.
+- "改 X / 加 Y / 修 Z" 默认含完整闭环 (流程 / 版本规则 / commit & tag 命名 / CHANGELOG 写作 / workflow 触发面全见 [deploy.md](./deploy.md)): 改代码 -> 本地验证 -> 同步四 manifest 版本 + CHANGELOG -> `release: vX.Y.Z` commit -> annotated tag -> push branch + tag -> 等三个 workflow success.
 - workflow 失败读 log 定位; 不卡在 "要不要 deploy".
 - 豁免闭环: 用户明示 "只改不发 / 先看看 / 本地试"; 或仅改文档 / prompt / 注释 / 本地脚本 / jjask.
 - 仅外部凭据 / 密钥 / 用户独有偏好缺失且无法从仓库 / git / jjask 推断时提问, 一次问完.

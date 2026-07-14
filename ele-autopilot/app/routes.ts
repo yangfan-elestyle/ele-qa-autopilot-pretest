@@ -28,8 +28,8 @@ export default [
   // Static screenshot files (对象存储 bucket ele-autopilot-screenshots, URL 形如 /screenshots/{job_task_id}/{i}.png)
   route('screenshots/*', 'routes/screenshots.$.tsx'),
 
-  // ele-autopilot-local 发布产物代理 (对象存储 bucket ele-autopilot-releases, URL 形如 /releases/local/{version}/{file})
-  route('releases/local/*', 'routes/releases.local.$.tsx'),
+  // ele-autopilot-local 发布产物 (镜像构建期打进 /app/releases/local; 合规 wheel + latest.txt, install.sh / landing 消费)
+  route('releases/*', 'routes/releases.$.tsx'),
 
   // ele-autopilot-local 安装脚本 (loader 动态生成, BASE_URL 自带)
   route('install.sh', 'routes/install-script.tsx'),

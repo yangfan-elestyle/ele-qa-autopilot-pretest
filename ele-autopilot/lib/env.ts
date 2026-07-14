@@ -10,7 +10,6 @@ export interface Env {
   S3_SECRET_ACCESS_KEY: string;
   S3_FORCE_PATH_STYLE: boolean;
   SCREENSHOTS_BUCKET: string;
-  RELEASES_BUCKET: string;
   ALLOWED_EMAIL_DOMAIN: string;
   PORT: number;
 }
@@ -32,7 +31,6 @@ export function readEnv(): Env {
     S3_SECRET_ACCESS_KEY: required("S3_SECRET_ACCESS_KEY", e.S3_SECRET_ACCESS_KEY),
     S3_FORCE_PATH_STYLE: (e.S3_FORCE_PATH_STYLE ?? "true").toLowerCase() !== "false",
     SCREENSHOTS_BUCKET: (e.SCREENSHOTS_BUCKET ?? "").trim() || "ele-autopilot-screenshots",
-    RELEASES_BUCKET: (e.RELEASES_BUCKET ?? "").trim() || "ele-autopilot-releases",
     ALLOWED_EMAIL_DOMAIN: domain.startsWith("@") ? domain : `@${domain}`,
     PORT: Number(e.PORT) || 8080,
   };

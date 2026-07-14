@@ -40,7 +40,7 @@ await client.execute('PRAGMA foreign_keys=ON');
 await runMigrations(client);
 
 const noopStore = {} as ObjectStore;
-const bindings = { DB: createLibsqlDb(client), SCREENSHOTS: noopStore, RELEASES: noopStore };
+const bindings = { DB: createLibsqlDb(client), SCREENSHOTS: noopStore };
 
 await runWithBindings(bindings, async () => {
   // 真实链路: folder -> task -> createJob (batch: jobs + job_tasks 原子写)

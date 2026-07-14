@@ -12,8 +12,8 @@ import { getBindings } from './bindings';
  * 对象存储 seam (MinIO 实现).
  *
  * 抽象出本仓实际用到的对象存储表面 (put / get / list / delete + httpMetadata / httpEtag),
- * `createS3Store()` 用 aws-sdk-v3 打到 MinIO (S3 兼容). screenshots.ts / releases.local
- * 调用不改. 仅覆盖用到的字段, 不追平完整 API.
+ * `createS3Store()` 用 aws-sdk-v3 打到 MinIO (S3 兼容). 仅 screenshots.ts 使用 (发布产物
+ * wheel 不走对象存储, 镜像构建期打进 /app/releases). 仅覆盖用到的字段, 不追平完整 API.
  */
 
 export interface StoredObject {
@@ -156,8 +156,4 @@ export function createS3Store(client: S3Client, bucket: string): ObjectStore {
 
 export function getScreenshotStore(): ObjectStore {
   return getBindings().SCREENSHOTS;
-}
-
-export function getReleaseStore(): ObjectStore {
-  return getBindings().RELEASES;
 }

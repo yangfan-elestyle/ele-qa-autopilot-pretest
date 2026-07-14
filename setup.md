@@ -24,5 +24,5 @@ docker compose up -d
 ## 数据迁移 (仅从旧 CF 环境搬)
 
 - D1 → `sqlite3 <volume>/autopilot.db < dump.sql` (含 `settings.llm_api_key`); autotesting 同理.
-- R2 → `mc mirror` 到 MinIO 两 bucket.
+- R2 → `mc mirror` 到 MinIO screenshots bucket (releases 已改为随 autopilot 镜像自带, 无需迁).
 - 全新部署无需此步.
