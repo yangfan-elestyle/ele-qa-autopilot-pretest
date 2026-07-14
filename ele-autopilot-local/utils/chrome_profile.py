@@ -27,10 +27,26 @@ _SESSION_RESTORE_NAMES = frozenset({
     "Sessions",
 })
 
+# 自动化不需要浏览器扩展；剔除后减少 profile 体积并避免扩展 UI 干扰 Agent。
+_EXTENSION_NAMES = frozenset({
+    "Extensions",
+    "Extension State",
+    "Extension Rules",
+    "Extension Scripts",
+    "Extension Activity",
+    "Extension Activity-journal",
+    "Extension Cookies",
+    "Extension Cookies-journal",
+    "Local Extension Settings",
+    "Sync Extension Settings",
+    "Managed Extension Settings",
+    "DNR Extension Rules",
+})
 
-def _ignore_session_files(_dir: str, entries: list[str]) -> set[str]:
-    """copytree ignore 回调：排除 Chrome 会话恢复相关文件/目录，避免复制后打开旧 tabs。"""
-    return _SESSION_RESTORE_NAMES & set(entries)
+
+def _ignore_copy_entries(_dir: str, entries: list[str]) -> set[str]:
+    """copytree ignore 回调：排除会话恢复文件与扩展相关目录。"""
+    return (_SESSION_RESTORE_NAMES | _EXTENSION_NAMES) & set(entries)
 
 
 def seed_persistent_profile_if_needed(
@@ -61,7 +77,7 @@ def seed_persistent_profile_if_needed(
                 src_profile_dir,
                 dst_profile_dir,
                 dirs_exist_ok=True,
-                ignore=_ignore_session_files,
+                ignore=_ignore_copy_entries,
             )
         else:
             dst_profile_dir.mkdir(parents=True, exist_ok=True)

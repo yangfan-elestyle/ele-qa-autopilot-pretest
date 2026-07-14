@@ -237,7 +237,11 @@ class TaskRunner:
             profile_directory=profile_directory,
             headless=self.config.headless,
             keep_alive=False,
-            args=["--start-maximized", "--test-type=webdriver"],
+            args=[
+                "--start-maximized",
+                "--test-type=webdriver",
+                "--disable-extensions",
+            ],
         )
 
     async def _cleanup(self, browser: Browser | None):

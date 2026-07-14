@@ -2,6 +2,12 @@
 
 QA AutoPilot 全仓统一变更日志. 四子项目 lockstep 同版本发布 (见 [workflow.md](./workflow.md)), 单条目按受影响子项目 (`gateway` / `autopilot` / `autopilot-local` / `autotesting`) 标注 scope; 多子项目同一改动只记一次.
 
+## [2.1.1] - 2026-07-14
+
+### Changed
+
+- **autopilot-local**: 首次种子复制系统 Chrome profile 时不再包含浏览器扩展; Chrome 启动加 `--disable-extensions`, 存量已种子 profile 也不再加载扩展 (自动化不需要).
+
 ## [2.1.0] - 2026-07-14
 
 ### Changed
