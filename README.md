@@ -10,7 +10,7 @@ QA AutoPilot 合并仓库. `gateway` + 三个独立业务子项目并存; 非 mo
 | 子目录 | 角色 | 技术栈 | 部署目标 |
 |---|---|---|---|
 | [`gateway/`](./gateway) | 内网入口 + 路由分发 + 身份收口 | TS / Bun + RR7 | Docker (Bun) |
-| [`ele-autopilot/`](./ele-autopilot) | 任务管理中心 + Web 后台 | TS / Bun + RR7 + React 19 + AntD + Tailwind | Docker (Bun) + libSQL + MinIO |
+| [`ele-autopilot/`](./ele-autopilot) | 任务管理中心 + Web 后台 | TS / Bun + RR7 + React 19 + AntD + Tailwind | Docker (Bun) + libSQL + 截图落卷 |
 | [`ele-autopilot-local/`](./ele-autopilot-local) | 本地浏览器执行 agent (macOS) | Python 3.12 / uv + FastAPI + browser-use | 本机 `0.0.0.0:8000` |
 | [`ele-autotesting/`](./ele-autotesting) | AI 测试用例生成工具 | TS / pnpm + Vue3 + Hono | Docker (Node) + libSQL + markitdown sidecar |
 
@@ -30,7 +30,7 @@ QA AutoPilot 合并仓库. `gateway` + 三个独立业务子项目并存; 非 mo
                           │   │    │
                  ┌────────▼┐ ┌▼────────────┐ (landing)
                  │autotest │ │ ele-autopilot│
-                 │ing      │ │ +libSQL+MinIO│ ◄────┐
+                 │ing      │ │ +libSQL      │ ◄────┐
                  │+libSQL  │ └──────────────┘      │ HTTP callback
                  │+markitd.│                       │
                  └─────────┘          ┌────────────┴────────┐
@@ -48,4 +48,4 @@ QA AutoPilot 合并仓库. `gateway` + 三个独立业务子项目并存; 非 mo
 
 ## 发布
 
-四子项目版本号 **lockstep**, 单一 tag `vX.Y.Z` 触发三个 workflow (build+push 镜像; ele-autopilot-local wheel 随 autopilot 镜像构建). 流程 / 命令 / CHANGELOG 写作详见 [deploy.md](./deploy.md); 一次性 GHCR / MinIO / `.env` 准备见 [setup.md](./setup.md); 内网编排见 [deploy/README.md](./deploy/README.md).
+四子项目版本号 **lockstep**, 单一 tag `vX.Y.Z` 触发三个 workflow (build+push 镜像; ele-autopilot-local wheel 随 autopilot 镜像构建). 流程 / 命令 / CHANGELOG 写作详见 [deploy.md](./deploy.md); 一次性 GHCR / `.env` 准备见 [setup.md](./setup.md); 内网编排见 [deploy/README.md](./deploy/README.md).

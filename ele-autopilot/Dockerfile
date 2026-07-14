@@ -1,4 +1,4 @@
-# ele-autopilot — Bun Node server (libSQL embedded + S3/MinIO).
+# ele-autopilot — Bun Node server (libSQL embedded + 截图落卷 /data).
 # 跨架构构建用 docker buildx --platform=<目标> (让 @libsql/client native addon 装对二进制).
 
 # ---- 阶段: 构建 ele-autopilot-local wheel, 打进镜像供内网 install.sh 直连 ----
@@ -33,5 +33,5 @@ ENV DATABASE_URL=file:/data/autopilot.db
 VOLUME ["/data"]
 EXPOSE 8080
 
-# server.ts: 建 libSQL+S3 client, 跑 migrations, RR7 handler + runWithBindings.
+# server.ts: 建 libSQL client + 截图 FS store, 跑 migrations, RR7 handler + runWithBindings.
 CMD ["bun", "server.ts"]

@@ -1,19 +1,16 @@
-import {
-  DeleteObjectsCommand,
-  GetObjectCommand,
-  ListObjectsV2Command,
-  PutObjectCommand,
-  S3Client,
-} from '@aws-sdk/client-s3';
+import { mkdir, readdir, rm, rmdir, stat, writeFile } from 'node:fs/promises';
+import { dirname, join, normalize, sep } from 'node:path';
 
 import { getBindings } from './bindings';
 
 /**
- * 对象存储 seam (MinIO 实现).
+ * 对象存储 seam (文件系统实现).
  *
- * 抽象出本仓实际用到的对象存储表面 (put / get / list / delete + httpMetadata / httpEtag),
- * `createS3Store()` 用 aws-sdk-v3 打到 MinIO (S3 兼容). 仅 screenshots.ts 使用 (发布产物
- * wheel 不走对象存储, 镜像构建期打进 /app/releases). 仅覆盖用到的字段, 不追平完整 API.
+ * 内网单机 docker-compose 部署, 截图是可再生的任务产物, 落到 autopilot 持久卷
+ * (`/data/screenshots`) 即可 —— 无需 MinIO/S3 那套 (server + one-shot 建 bucket +
+ * aws-sdk + 6 个 env). 保留 put/get/list/delete seam (原 R2/MinIO 表面), 仅换实现;
+ * screenshots.ts / screenshots.$.tsx 不动. 若将来 autopilot 需多副本水平扩展,
+ * 换回 S3 store 即可 (seam 未变). 发布产物 wheel 不走这里, 镜像构建期打进 /app/releases.
  */
 
 export interface StoredObject {
@@ -53,18 +50,7 @@ export interface ObjectStore {
   delete(keys: string | string[]): Promise<void>;
 }
 
-export interface S3Config {
-  endpoint: string;
-  region: string;
-  accessKeyId: string;
-  secretAccessKey: string;
-  forcePathStyle: boolean;
-}
-
-// S3 单次 DeleteObjects 上限 1000 keys.
-const DELETE_CHUNK = 1000;
-
-function toBody(
+function toWritable(
   value: ReadableStream | ArrayBuffer | ArrayBufferView | string,
 ): Uint8Array | string {
   if (typeof value === 'string') return value;
@@ -77,79 +63,86 @@ function toBody(
   throw new Error('ObjectStore.put: ReadableStream body 暂不支持');
 }
 
-function isNotFound(err: unknown): boolean {
-  const e = err as { name?: string; $metadata?: { httpStatusCode?: number } };
-  return e?.name === 'NoSuchKey' || e?.$metadata?.httpStatusCode === 404;
+function isEnoent(err: unknown): boolean {
+  return (err as NodeJS.ErrnoException)?.code === 'ENOENT';
 }
 
-export function createS3Client(cfg: S3Config): S3Client {
-  return new S3Client({
-    endpoint: cfg.endpoint,
-    region: cfg.region,
-    credentials: { accessKeyId: cfg.accessKeyId, secretAccessKey: cfg.secretAccessKey },
-    forcePathStyle: cfg.forcePathStyle,
-  });
+/**
+ * key -> 绝对路径, 并做越界围栏. S3 把 `../` 当字面量, 文件系统不会 —— 写侧
+ * (writeScreenshotToR2 的 jobTaskId) 未清洗, 这里用与 server.ts serveStatic 同款
+ * `normalize + startsWith(base+sep)` 守住, 越界 key 直接抛错 (由 externalizeScreenshots
+ * 逐张 try-catch 兜住, 单张置 null 不打断整条 callback).
+ */
+function resolveKey(base: string, key: string): string {
+  const full = normalize(join(base, key));
+  if (full !== base && !full.startsWith(base + sep)) {
+    throw new Error(`ObjectStore: 非法 key 越界: ${JSON.stringify(key)}`);
+  }
+  return full;
 }
 
-export function createS3Store(client: S3Client, bucket: string): ObjectStore {
+export function createFsStore(root: string): ObjectStore {
+  const base = normalize(root);
+
   return {
-    async put(key, value, options) {
-      await client.send(
-        new PutObjectCommand({
-          Bucket: bucket,
-          Key: key,
-          Body: toBody(value),
-          ContentType: options?.httpMetadata?.contentType,
-        }),
-      );
+    async put(key, value, _options) {
+      const full = resolveKey(base, key);
+      await mkdir(dirname(full), { recursive: true });
+      await writeFile(full, toWritable(value));
     },
 
     async get(key) {
+      const full = resolveKey(base, key);
+      let st;
       try {
-        const res = await client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
-        if (!res.Body) return null;
-        return {
-          body: (res.Body as { transformToWebStream(): ReadableStream }).transformToWebStream(),
-          httpMetadata: { contentType: res.ContentType },
-          httpEtag: res.ETag ?? '',
-        };
+        st = await stat(full);
       } catch (err) {
-        if (isNotFound(err)) return null;
+        if (isEnoent(err)) return null;
         throw err;
       }
-    },
-
-    async list(options) {
-      const res = await client.send(
-        new ListObjectsV2Command({
-          Bucket: bucket,
-          Prefix: options?.prefix,
-          ContinuationToken: options?.cursor,
-          MaxKeys: options?.limit,
-        }),
-      );
+      if (!st.isFile()) return null;
+      // 全部为 png; contentType 固定, screenshots.$.tsx 也默认 image/png.
       return {
-        objects: (res.Contents ?? [])
-          .map((o) => o.Key)
-          .filter((k): k is string => !!k)
-          .map((key) => ({ key })),
-        truncated: !!res.IsTruncated,
-        cursor: res.NextContinuationToken,
+        body: Bun.file(full).stream(),
+        httpMetadata: { contentType: 'image/png' },
+        httpEtag: `W/"${st.size}-${Math.trunc(st.mtimeMs)}"`,
       };
     },
 
-    async delete(keys) {
-      const list = Array.isArray(keys) ? keys : [keys];
-      if (list.length === 0) return;
-      for (let i = 0; i < list.length; i += DELETE_CHUNK) {
-        const chunk = list.slice(i, i + DELETE_CHUNK);
-        await client.send(
-          new DeleteObjectsCommand({
-            Bucket: bucket,
-            Delete: { Objects: chunk.map((Key) => ({ Key })), Quiet: true },
-          }),
-        );
+    // 仅 deleteScreenshotsByJobTaskIds 调用, prefix 恒为 "<jobTaskId>/" (对应一层目录,
+    // 内部截图文件平铺 <i>.png). readdir 即可; 单机量小, 无需 cursor/分页.
+    async list(options) {
+      const prefix = options?.prefix ?? '';
+      const dir = resolveKey(base, prefix);
+      let entries;
+      try {
+        entries = await readdir(dir, { withFileTypes: true });
+      } catch (err) {
+        if (isEnoent(err)) return { objects: [], truncated: false };
+        throw err;
       }
+      const norm = prefix === '' || prefix.endsWith('/') ? prefix : `${prefix}/`;
+      const objects = entries
+        .filter((e) => e.isFile())
+        .map((e) => ({ key: `${norm}${e.name}` }));
+      return { objects, truncated: false };
+    },
+
+    async delete(keys) {
+      const list = (Array.isArray(keys) ? keys : [keys]).filter(Boolean);
+      if (list.length === 0) return;
+      const dirs = new Set<string>();
+      await Promise.all(
+        list.map(async (key) => {
+          const full = resolveKey(base, key);
+          dirs.add(dirname(full));
+          await rm(full, { force: true });
+        }),
+      );
+      // 删空后清掉 <jobTaskId>/ 空目录 (非空/不存在忽略); 不动 base 本身.
+      await Promise.all(
+        [...dirs].map((d) => (d === base ? null : rmdir(d).catch(() => {}))),
+      );
     },
   };
 }

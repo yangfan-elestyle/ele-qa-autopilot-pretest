@@ -2,11 +2,11 @@
 
 ## Runtime (Bun Node server)
 
-- `server.ts`: Bun.serve 入口; 启动建 libSQL client + S3(MinIO) store, 跑 migrations, 每请求 `runWithBindings()` 注入后交 RR7 `createRequestHandler`; 静态托管 `build/client`. 无 `workers/`.
+- `server.ts`: Bun.serve 入口; 启动建 libSQL client + 截图 FS store, 跑 migrations, 每请求 `runWithBindings()` 注入后交 RR7 `createRequestHandler`; 静态托管 `build/client`. 无 `workers/`.
 - `lib/bindings.ts`: `AsyncLocalStorage<{DB, SCREENSHOTS}>` 容器 (用全局符号注册表, 让 server.ts 与 RR bundle 副本共享同一 ALS); 仅服务端 loader/action 使用.
-- `lib/env.ts`: 运行时 env (DATABASE_URL / S3_* / bucket / 域); 见 `.env.example`.
+- `lib/env.ts`: 运行时 env (DATABASE_URL / SCREENSHOTS_DIR / 域); 见 `.env.example`.
 - `app/entry.server.tsx`: `renderToReadableStream` SSR + Ant Design cssinjs 抽取.
-- 客户端不可直连 DB/对象存储; 只能 fetch resource route.
+- 客户端不可直连 DB/截图存储; 只能 fetch resource route.
 
 ## 目录
 
@@ -16,7 +16,7 @@
 - `app/admin/`: 后台 UI 模块 (`_components` / `_data` / `_hooks` / `_services` / `_utils` / `_theme`).
 - `app/lib/api-shared.ts`: API helper (`jsonResponse`, `parseListParams`, `withContentRange`, `mapDbErrorToStatus`).
 - `lib/db/`: 数据访问层; `getDb()` 从 ALS 取 libSQL adapter (`connection.ts#createLibsqlDb`), `queryAll/queryGet/queryRun` 全 async. `migrate.ts` = 启动 migration runner.
-- `lib/object-store.ts`: `ObjectStore` seam + `createS3Store` (aws-sdk-v3 → MinIO). `lib/screenshots.ts`: base64 截图写对象存储, DB 存 `/screenshots/<jobTaskId>/<i>.png`.
+- `lib/object-store.ts`: `ObjectStore` seam + `createFsStore` (截图落 `SCREENSHOTS_DIR`, `node:fs`; put/get/list/delete). `lib/screenshots.ts`: base64 截图写盘, DB 存 `/screenshots/<jobTaskId>/<i>.png`.
 - `migrations/`: `NNNN_description.sql` (纯 SQLite 方言); server 首启幂等 apply.
 
 ## API
@@ -34,8 +34,8 @@
 - 表: `folders` (`parent_id` 层级), `tasks` (`sub_ids` JSON 子任务链), `jobs`, `job_tasks`, `settings`. FK: `jobs.task_id`→tasks, `job_tasks.job_id`→jobs 均 CASCADE (libSQL 需 `PRAGMA foreign_keys=ON`, server 启动已设).
 - Schema 只做向后兼容迁移: `ALTER TABLE ... ADD COLUMN`; 禁止 `DROP` / `RENAME` 已有列. 新增按 `NNNN_desc.sql` 递增, server 首启幂等 apply.
 - prepared statement 只支持 `?` 位置绑定: `db.prepare(sql).bind(...).all()/first()/run()`; `batch()` = 原子写事务 (createJob 依赖, `bun run smoke` 回归).
-- 对象存储 bucket 名见 `.env.example` (`SCREENSHOTS_BUCKET`); 发布产物 wheel 不走对象存储, 镜像构建期打进 `/app/releases` (`Dockerfile` localwheel 阶段, `app/routes/releases.$.tsx` 读 FS).
-- `/screenshots/*` 只读代理对象存储, 1 年 immutable cache; `r2KeyFromRelPath()` 必须防 `..` / 控制字符 / 非法字符.
+- 截图落盘目录见 `.env.example` (`SCREENSHOTS_DIR`, 默认 `/data/screenshots`, 随 autopilot 卷); 发布产物 wheel 同样不走对象存储, 镜像构建期打进 `/app/releases` (`Dockerfile` localwheel 阶段, `app/routes/releases.$.tsx` 读 FS).
+- `/screenshots/*` 只读代理截图存储, 1 年 immutable cache; 读侧 `r2KeyFromRelPath()` + 写侧 `createFsStore` 内 `resolveKey` 均须防 `..` / 控制字符 / 非法字符越界.
 
 ## 编码
 

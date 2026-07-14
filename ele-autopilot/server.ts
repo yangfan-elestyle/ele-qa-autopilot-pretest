@@ -1,5 +1,5 @@
 // ele-autopilot — Node/Bun HTTP 入口.
-// 启动时建 libSQL client (file:) + S3 store (MinIO) 各一次, 跑 migrations,
+// 启动时建 libSQL client (file:) + 截图 FS store 各一次, 跑 migrations,
 // 每个请求经 runWithBindings 注入 bindings 后交给 RR7 handler. 静态资源由 build/client 托管.
 
 import { createRequestHandler, type ServerBuild } from 'react-router';
@@ -11,7 +11,7 @@ import { readEnv, type Env } from './lib/env';
 import { runWithBindings, type AppBindings } from './lib/bindings';
 import { createLibsqlDb } from './lib/db/connection';
 import { runMigrations } from './lib/db/migrate';
-import { createS3Client, createS3Store } from './lib/object-store';
+import { createFsStore } from './lib/object-store';
 
 declare module 'react-router' {
   interface AppLoadContext {
@@ -28,17 +28,9 @@ const client = createClient({ url: env.DATABASE_URL });
 await client.execute('PRAGMA foreign_keys=ON');
 await runMigrations(client);
 
-const s3 = createS3Client({
-  endpoint: env.S3_ENDPOINT,
-  region: env.S3_REGION,
-  accessKeyId: env.S3_ACCESS_KEY_ID,
-  secretAccessKey: env.S3_SECRET_ACCESS_KEY,
-  forcePathStyle: env.S3_FORCE_PATH_STYLE,
-});
-
 const bindings: AppBindings = {
   DB: createLibsqlDb(client),
-  SCREENSHOTS: createS3Store(s3, env.SCREENSHOTS_BUCKET),
+  SCREENSHOTS: createFsStore(env.SCREENSHOTS_DIR),
 };
 
 // --- RR handler + 静态 ---
