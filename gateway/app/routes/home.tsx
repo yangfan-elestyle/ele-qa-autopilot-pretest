@@ -254,18 +254,44 @@ export default function Home({ loaderData }: Route.ComponentProps) {
   );
 }
 
+function fallbackCopy(text: string): boolean {
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed";
+    ta.style.top = "0";
+    ta.style.left = "-9999px";
+    document.body.appendChild(ta);
+    ta.select();
+    ta.setSelectionRange(0, text.length);
+    const ok = document.execCommand("copy");
+    document.body.removeChild(ta);
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
 function Step({ num, title, cmd }: { num: number; title: string; cmd: string }) {
   const [copied, setCopied] = useState(false);
 
   function copy() {
-    if (typeof navigator === "undefined" || !navigator.clipboard) return;
-    navigator.clipboard
-      .writeText(cmd)
-      .then(() => {
-        setCopied(true);
-        window.setTimeout(() => setCopied(false), 1200);
-      })
-      .catch(() => {});
+    if (typeof window === "undefined") return;
+    const done = (ok: boolean) => {
+      if (!ok) return;
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1200);
+    };
+    // 内网 HTTP 部署下 navigator.clipboard 不可用, 需 textarea + execCommand 降级.
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(cmd).then(
+        () => done(true),
+        () => done(fallbackCopy(cmd)),
+      );
+      return;
+    }
+    done(fallbackCopy(cmd));
   }
 
   return (

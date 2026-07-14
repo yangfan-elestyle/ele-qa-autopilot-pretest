@@ -2,6 +2,12 @@
 
 QA AutoPilot 全仓统一变更日志. 四子项目 lockstep 同版本发布 (见 [workflow.md](./workflow.md)), 单条目按受影响子项目 (`gateway` / `autopilot` / `autopilot-local` / `autotesting`) 标注 scope; 多子项目同一改动只记一次.
 
+## [2.1.2] - 2026-07-14
+
+### Fixed
+
+- **gateway**: 首页「安装本地 agent」步骤的复制按钮在内网 HTTP 部署下点击无效 (非 secure context 下 `navigator.clipboard` 不可用直接 return); 现降级到 `textarea` + `execCommand('copy')`.
+
 ## [2.1.1] - 2026-07-14
 
 ### Changed
