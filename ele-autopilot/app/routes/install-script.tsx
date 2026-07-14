@@ -65,7 +65,15 @@ info "==> Downloading"
 curl -fsSL --retry 3 -o "$tmp_wheel" "$wheel_url" || err "download failed: $wheel_url"
 
 info "==> Installing"
-uv tool install --reinstall "$tmp_wheel"
+if [ "$(uname -sm)" = "Darwin x86_64" ]; then
+  # Intel Mac 无 cryptography>=45 预编译 wheel, 走 sdist 需 rust/openssl. 降到 44.x (最后一个含 macosx_x86_64 wheel 的系列).
+  info "    note:  Intel Mac detected, pinning cryptography<45"
+  overrides="$tmpdir/overrides.txt"
+  printf 'cryptography<45\n' > "$overrides"
+  uv tool install --reinstall --overrides "$overrides" "$tmp_wheel"
+else
+  uv tool install --reinstall "$tmp_wheel"
+fi
 
 info ""
 info "==> Done: $BIN_NAME $resolved installed."

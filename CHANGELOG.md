@@ -2,6 +2,12 @@
 
 QA AutoPilot 全仓统一变更日志. 四子项目 lockstep 同版本发布 (见 [workflow.md](./workflow.md)), 单条目按受影响子项目 (`gateway` / `autopilot` / `autopilot-local` / `autotesting`) 标注 scope; 多子项目同一改动只记一次.
 
+## [2.1.3] - 2026-07-14
+
+### Fixed
+
+- **autopilot-local**: Intel Mac 装机 install.sh 自动 pin `cryptography<45`, 绕开 macOS x86_64 无 cryptography 49 预编译 wheel 导致的 sdist + Rust 编译失败.
+
 ## [2.1.2] - 2026-07-14
 
 ### Fixed
