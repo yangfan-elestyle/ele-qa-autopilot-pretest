@@ -11,7 +11,7 @@ import { AUTH_HEADER } from './constants';
 export type AccessUser = { email: string };
 
 /**
- * 身份来源 seam. Phase B 实现 = 读 X-Auth-User-Email header.
+ * 身份来源 seam: 读 gateway 注入的 X-Auth-User-Email header.
  *   - 无凭据 → null (由 requireAccessUser 决定是否 401)
  */
 export interface AuthProvider {

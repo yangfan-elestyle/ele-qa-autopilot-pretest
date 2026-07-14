@@ -1,6 +1,6 @@
 # ele-autopilot
 
-QA 任务管理后台. React Router v7 (Framework mode) + React 19 + Ant Design + Tailwind, Bun. Phase B 运行时: Node/Bun 容器 + libSQL embedded (业务数据) + 截图落持久卷 (`/data/screenshots`). 部署见 [deploy/](../deploy).
+QA 任务管理后台. React Router v7 (Framework mode) + React 19 + Ant Design + Tailwind, Bun. 运行时: Node/Bun 容器 + libSQL embedded (业务数据) + 截图落持久卷 (`/data/screenshots`). 部署见 [deploy/](../deploy).
 
 ## 开发
 
@@ -30,4 +30,4 @@ docker compose exec autopilot ls -R /data/screenshots | head
 # 备份: 卷快照即含库 + 截图. 详见 deploy/README.md.
 ```
 
-> `settings.llm_api_key` 存 libSQL, DB 迁移/备份时必须带走.
+> `settings.llm_api_key` 存 libSQL, DB 备份/迁库时必须带走.

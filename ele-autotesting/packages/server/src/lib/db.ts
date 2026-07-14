@@ -1,11 +1,12 @@
 import type { Client, InArgs, InValue } from '@libsql/client'
 
 /**
- * DB 客户端 seam (A3 → Phase B libSQL 实现).
+ * DB 客户端 seam (libSQL 实现).
  *
- * `Db` 只覆盖本仓实际用到的 D1 表面 (prepare / bind / all / first / run / batch +
- * `.results` + `.meta.changes`). `createLibsqlDb()` 把 D1 fluent 翻成 `@libsql/client` 的
- * execute/batch, route 代码不改. batch 原子性 (sync.ts /batch) 用 `batch(stmts, 'write')`
+ * `Db` = 本仓统一 fluent 接口 (prepare / bind / all / first / run / batch +
+ * `.results` + `.meta.changes`), 只覆盖 route 层实际用到的方法.
+ * `createLibsqlDb()` 把 fluent 语法翻成 `@libsql/client` 的 execute / batch.
+ * batch 原子性 (sync.ts /batch) 用 `batch(stmts, 'write')`
  * (隐式写事务, 任一条失败整批回滚) 坐实.
  */
 

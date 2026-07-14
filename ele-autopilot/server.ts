@@ -24,7 +24,7 @@ const MODE = process.env.NODE_ENV === 'development' ? 'development' : 'productio
 
 // --- 数据面初始化 (启动一次) ---
 const client = createClient({ url: env.DATABASE_URL });
-// D1 默认开启 FK, libSQL 默认关闭; 显式开启以保 jobs→job_tasks 等 CASCADE 语义.
+// libSQL 默认关闭 FK; 显式开启以保 jobs→job_tasks 等 CASCADE 语义.
 await client.execute('PRAGMA foreign_keys=ON');
 await runMigrations(client);
 

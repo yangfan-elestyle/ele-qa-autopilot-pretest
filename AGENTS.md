@@ -37,7 +37,7 @@ LLM 约束. 工程定位见下, 拓扑 / 子项目见 [README.md](./README.md), 
 
 - 内网单机 docker-compose (见 [deploy/](./deploy)), **无公网入口**. 唯一对外 = nginx 反代 gateway (裸 http, 绑内网 IP); 下游一律不暴露端口.
 - gateway / autopilot / autotesting = Node/Bun 容器; 持久化 libSQL embedded (`file:`); 截图落 autopilot 持久卷 (`/data/screenshots`, 无对象存储服务); markitdown HTTP sidecar; 身份 gateway 自签 cookie + `X-Auth-User-Email` header 荣誉制.
-- **禁止引入 Cloudflare 栈** (已彻底迁出, 勿回流): wrangler / `wrangler.jsonc` / `worker-configuration.d.ts` / `@cloudflare/*` / D1 / R2 / Durable Object / VPC binding.
+- **不引入 Cloudflare Workers 栈**: wrangler / `wrangler.jsonc` / `worker-configuration.d.ts` / `@cloudflare/*` / D1 / R2 / Durable Object / VPC binding (本项目 Node/Bun + Docker 内网部署, 不适用).
 
 ## 文件约定
 

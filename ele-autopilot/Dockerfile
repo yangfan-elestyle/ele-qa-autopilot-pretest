@@ -23,7 +23,7 @@ COPY . .
 RUN bun run build
 
 # ele-autopilot-local 发布产物: /app/releases/ele-autopilot-local.whl + /app/releases/local/latest.txt
-# (releases.$.tsx 读 FS). 取代原 MinIO releases bucket + 宿主 mc cp 分发链.
+# (releases.$.tsx 读 FS).
 COPY --from=localwheel /out ./releases
 
 ENV NODE_ENV=production

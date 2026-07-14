@@ -31,10 +31,8 @@ import type { IPreferenceService } from '../types/services'
 /**
  * 迁移标志 (localStorage key) 用的占位 owner. 浏览器侧拿不到真正的 email
  * (后端才从 `X-Auth-User-Email` 解析), 用固定字符串 `cf-access` 作占位即可.
- * 注意: 这里的 `cf-access` 只是历史占位符, 与已下线的 CF Access 无关, 不能改动
- * (改了会让存量用户重新迁移). 同浏览器只对首次登录的账号迁移一次本地 Dexie → 云端,
- * 后续切账号不重迁 (避免把 A 的本地残留误送到 B 的云端配置).
- * 旧 SHARED_OWNER_ID 时代的 `shared-owner-v1` flag 不会命中, 用户首启自动重走一次迁移.
+ * 注意: 这个字符串是稳定占位符, 勿改 (改了会让存量用户重新迁移一次本地 Dexie → 云端).
+ * 同浏览器只对首次登录的账号迁移一次, 后续切账号不重迁 (避免把 A 的本地残留误送到 B 的云端配置).
  */
 const MIGRATION_OWNER_KEY = 'cf-access'
 

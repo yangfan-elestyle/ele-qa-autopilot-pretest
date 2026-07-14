@@ -10,7 +10,7 @@ export interface Env {
   // 下游内网 HTTP base (含 scheme, compose service). 寻址见 lib/upstream.ts.
   AUTOPILOT_URL: string
   METERSPHERE_URL: string
-  // agentic-loop (ele-harness 后端) 联合迁移后指 compose service; 未就绪时留空, harness 路由自守卫.
+  // agentic-loop (ele-harness 后端) 就绪后指 compose service; 未就绪时留空, harness 路由自守卫.
   AGENTIC_LOOP_URL?: string
 
   // markitdown sidecar HTTP 端点 (compose service).

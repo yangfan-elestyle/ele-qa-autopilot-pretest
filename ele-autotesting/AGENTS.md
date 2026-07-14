@@ -19,7 +19,7 @@
 - 身份: gateway 统一收口后注入 `X-Auth-User-Email` header → `middleware/auth.ts` 读得 email → `ownerId=google:<email>` 写 `c.var.ownerId`. 无第三方 IdP / JWT 校验.
 - 缺 header: 看 `env.DEV_FALLBACK_EMAIL` (仅本地直连 dev 用, 生产不设); 缺则 401.
 - 生产路径前缀 `/autotest` (gateway 转发时剥掉); web `BASE_URL`, UI `apiBase`, core `setProxyBasePath()` 必须同步. LLM proxy `/stream-proxy` / `/http-proxy` 也须带 `/autotest` 前缀, 否则 gateway 转给 AUTOPILOT.
-- 历史 `device:shared-owner-v1` 数据已弃用; 前端 `migrationFlagKey` 用固定占位 `cf-access` (仅历史命名, 勿改值, 改了会触发存量用户重迁移).
+- 前端 `migrationFlagKey` 用固定占位 `cf-access` (勿改值, 改了会触发存量用户本地→云端重同步).
 
 ## 命令
 
@@ -31,6 +31,6 @@ pnpm run typecheck   # server tsc --noEmit
 pnpm -F @prompt-optimizer/{core,ui,web} test
 ```
 
-## 迁移
+## Schema
 
 - schema 在 `packages/server/migrations/*.sql` (纯 SQLite 方言); 新 migration 按 `0003_xxx.sql` 递增. server 首启 `lib/migrate.ts` 幂等 apply, 无需 CI. `sync.ts` /batch 依赖 libSQL `batch('write')` 原子性.

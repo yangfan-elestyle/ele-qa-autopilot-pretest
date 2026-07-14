@@ -33,7 +33,7 @@ jobs:
             exit 1
           fi
 
-      # wheel 由镜像 localwheel 阶段构建打进镜像; 校验 lockstep (取代原 autopilot-local.yml 的 tag 校验).
+      # wheel 由镜像 localwheel 阶段构建打进镜像; 校验 lockstep 版本.
       - name: Verify ele-autopilot-local version matches tag
         run: |
           pkg_version="$(python3 -c 'import tomllib; print(tomllib.load(open("ele-autopilot-local/pyproject.toml","rb"))["project"]["version"])')"
@@ -55,7 +55,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # 迁移: migrations 不再在 CI apply (库在内网容器 volume); server 首启自建表 (lib/db/migrate.ts).
+      # migrations 不在 CI apply (库在内网容器 volume); server 首启自建表 (lib/db/migrate.ts).
       - name: Build & push
         uses: docker/build-push-action@v6
         with:

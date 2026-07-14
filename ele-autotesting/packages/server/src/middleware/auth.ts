@@ -5,7 +5,7 @@ import { AUTH_HEADER } from '../lib/constants.ts'
 /**
  * resolveOwner — 把请求映射成一个稳定的 ownerId 字符串.
  *
- * 身份链路 (Phase B):
+ * 身份链路:
  *   1. 用户经 gateway 访问; gateway 统一收口鉴权 (cookie / 荣誉制 header) 后, 转发到
  *      autotesting 时注入 `X-Auth-User-Email` header.
  *   2. 本中间件读该 header 拿 email, 写入 `c.set('ownerId', 'google:<email>')`.
@@ -26,7 +26,7 @@ export interface AuthProvider {
 }
 
 /**
- * 身份来源 seam (A4 → Phase B header 实现). gateway 收口后注入 X-Auth-User-Email;
+ * 身份来源 seam: 读 gateway 收口后注入的 X-Auth-User-Email header;
  * 下游荣誉制信任, 读一次 email.
  */
 function verifyHeader(c: Context<HonoEnv>): VerifyOutcome {

@@ -1,6 +1,6 @@
 // DB 冒烟测试: 用真实 migrations + 真实 lib/db 代码坐实 libSQL adapter 的
 // batch 原子性 (createJob) + FK CASCADE (jobs→job_tasks). 无外部依赖 (临时 file: DB).
-// 迁移日/回归用: `bun run smoke`. 见 plan §0.2.
+// 回归用: `bun run smoke`.
 import { createClient } from '@libsql/client';
 import { rmSync } from 'node:fs';
 

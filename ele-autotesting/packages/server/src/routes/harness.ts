@@ -7,7 +7,7 @@ import { upstreamFetch } from '../lib/upstream.ts'
  * /api/harness/oneshot — 代理到 ele-harness agentic-loop `/v1/oneshot`.
  *
  * 链路: 浏览器 -> gateway -> autotesting -> AGENTIC_LOOP_URL (内网 HTTP) ->
- *       ele-harness agentic-loop 后端 (联合迁移后 compose service / 内网地址)
+ *       ele-harness agentic-loop 后端 (compose service / 内网地址)
  *
  * 内网直连不套鉴权, 仅作链路打通; 后续要套权限层再在上游加 service token.
  *
@@ -21,8 +21,8 @@ import { upstreamFetch } from '../lib/upstream.ts'
  *
  * 传输: 用 SSE (accept: text/event-stream) + quiet 模式调 harness. harness 全程
  * 只发 15s 一次的 `: keepalive` 保活 + 末尾一个 final 事件, 省去中间事件回传带宽.
- * (保活最初为熬过 CF Tunnel 约 5min 的零数据 idle 断连; 迁内网 HTTP 后是否仍必要
- * 取决于 agentic-loop 联调时的实际链路超时, 待确认, 保活无害故保留.)
+ * (保活防止上游链路在长 turn 零数据期间被中间设备判 idle 断连; 内网直连下是否仍必要
+ * 取决于 agentic-loop 联调时的实际链路超时, 保活无害故保留.)
  * 本服务只转发, 不做长循环.
  */
 
@@ -62,8 +62,8 @@ function extractLastAssistantText(events: OneshotEvent[]): string {
 /**
  * 读 harness SSE 流, 累积 oneshot 事件.
  *
- * - 跳过 `: keepalive` 注释行 (harness streamSSE 每 15s 一次; 原为重置 CF Tunnel
- *   的 idle 超时, 迁内网后实际作用待上游联调确认, 保活本身无害).
+ * - 跳过 `: keepalive` 注释行 (harness streamSSE 每 15s 一次; 防止中间设备判 idle
+ *   断连, 保活本身无害).
  * - quiet 模式 (本路由默认开): harness 末尾只发一个 `{ type:'final', text, sessionId }`,
  *   中间事件不传输; 识别后经 final 返回, 调用方直接取 text.
  * - harness 内部异常以 `{ type:'error', message }` 事件下发, 提取为 error, 由调用方转 502.
@@ -155,9 +155,8 @@ router.post('/oneshot', async (c: Context<HarnessHonoEnv>) => {
   // 下游经 AGENTIC_LOOP_URL 直连 agentic-loop (内网 HTTP; 尚未接通, 见 .env.example).
   //
   // 用 SSE 流式 (accept: text/event-stream) 走 harness streamSSE 分支: 它每 15s 发
-  // `: keepalive` 保活. 原动因是熬过 CF Tunnel 约 5min 的零数据 idle 断连 (否则长 turn
-  // 期间连接零数据被判 idle, fetch 抛 "Network connection lost"); 迁内网后是否仍需
-  // 取决于联调时的链路超时, 保活无害故保留.
+  // `: keepalive` 保活, 防止中间设备在长 turn 零数据期间判 idle 断连 (否则 fetch 抛
+  // "Network connection lost"); 内网直连下是否仍需取决于联调时的链路超时, 保活无害故保留.
   let upstream: Response
   try {
     upstream = await upstreamFetch(c.env, 'AGENTIC_LOOP', '/v1/oneshot', {

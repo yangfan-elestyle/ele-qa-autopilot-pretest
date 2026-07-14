@@ -7,10 +7,9 @@ import { getBindings } from './bindings';
  * 对象存储 seam (文件系统实现).
  *
  * 内网单机 docker-compose 部署, 截图是可再生的任务产物, 落到 autopilot 持久卷
- * (`/data/screenshots`) 即可 —— 无需 MinIO/S3 那套 (server + one-shot 建 bucket +
- * aws-sdk + 6 个 env). 保留 put/get/list/delete seam (原 R2/MinIO 表面), 仅换实现;
- * screenshots.ts / screenshots.$.tsx 不动. 若将来 autopilot 需多副本水平扩展,
- * 换回 S3 store 即可 (seam 未变). 发布产物 wheel 不走这里, 镜像构建期打进 /app/releases.
+ * (`/data/screenshots`). seam 保留 put / get / list / delete, 若将来 autopilot
+ * 需多副本水平扩展, 换 S3 store 时 lib/screenshots.ts 与 screenshots.$.tsx 不动.
+ * 发布产物 wheel 不走这里, 镜像构建期打进 /app/releases.
  */
 
 export interface StoredObject {

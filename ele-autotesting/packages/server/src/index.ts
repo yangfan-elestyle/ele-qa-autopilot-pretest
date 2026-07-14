@@ -22,7 +22,7 @@ const WEB_DIST_DIR =
 const PORT = Number(e.PORT) || 8080
 
 const client = createClient({ url: DATABASE_URL })
-// D1 默认开 FK, libSQL 默认关; 显式开启 (autotesting schema 目前无 FK, 前瞻一致).
+// libSQL 默认关闭 FK; 显式开启 (autotesting schema 目前无 FK, 前瞻一致).
 await client.execute('PRAGMA foreign_keys=ON')
 await runMigrations(client, MIGRATIONS_DIR)
 

@@ -3,14 +3,13 @@ import type { Client, InArgs, InValue } from '@libsql/client';
 import { getBindings } from '../bindings';
 
 /**
- * DB 客户端 seam (A3 → Phase B libSQL 实现).
+ * DB 客户端 seam (libSQL 实现).
  *
- * `Db` 只覆盖本仓实际用到的 D1 表面 (prepare / bind / all / first / run / batch +
- * `.results` + `.meta.changes`), 不追平 D1 全 API (未用 raw / dump / exec / last_row_id).
- *
- * `createLibsqlDb()` 把 D1 fluent (`prepare().bind().all()`) 翻成 `@libsql/client` 的
- * `execute / batch`, lib/db 与 route 代码不改. batch 原子性用 `batch(stmts, 'write')`
- * (隐式写事务, 任一条失败整体回滚) 坐实 —— createJob (jobs.ts) 依赖此语义.
+ * `Db` = 本仓统一 fluent 接口 (prepare / bind / all / first / run / batch +
+ * `.results` + `.meta.changes`), 只覆盖 lib/db 与 route 层实际用到的方法.
+ * `createLibsqlDb()` 把 fluent 语法翻成 `@libsql/client` 的 `execute / batch`.
+ * batch 原子性用 `batch(stmts, 'write')` (隐式写事务, 任一条失败整体回滚)
+ * 坐实 —— createJob (jobs.ts) 依赖此语义.
  */
 
 export interface DbMeta {
@@ -36,7 +35,7 @@ export interface Db {
   ): Promise<DbResult<T>[]>;
 }
 
-// D1 prepared statement 仅支持位置占位符 `?`, 与 libSQL 一致. 绑定值原样透传.
+// prepared statement 仅支持位置占位符 `?`; 绑定值原样透传.
 class LibsqlStatement implements DbPreparedStatement {
   constructor(
     private readonly client: Client,
