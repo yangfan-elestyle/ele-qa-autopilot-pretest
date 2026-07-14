@@ -59,6 +59,8 @@ jobs:
         with:
           context: gateway
           platforms: linux/amd64
+          # 单架构镜像; 关掉默认 provenance attestation, 避免 GHCR 出现 unknown/unknown 条目.
+          provenance: false
           push: true
           tags: |
             ghcr.io/${{ env.OWNER }}/ele-qa-gateway:${{ github.ref_name }}
