@@ -18,8 +18,7 @@
 ```bash
 cd deploy
 cp .env.example .env          # 填 LLM/Confluence 凭据等
-docker compose build
-docker compose up -d
+docker compose up -d --build
 docker compose ps             # 等 healthy
 # 访问 http://<BIND_ADDR>:<HTTP_PORT>/ (默认 :80)
 ```

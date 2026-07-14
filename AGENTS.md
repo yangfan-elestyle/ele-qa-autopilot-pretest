@@ -33,11 +33,10 @@ LLM 约束. 工程定位见下, 拓扑 / 子项目见 [README.md](./README.md), 
 - 根 `.gitignore` 兜底; 子目录 `.gitignore` 是本项目事实源.
 - GitHub workflow 只放根 `.github/workflows/`.
 
-## 部署形态 (内网单机 docker-compose)
+## 部署形态硬约束
 
-- 内网单机 docker-compose (见 [deploy/](./deploy)), **无公网入口**. 唯一对外 = nginx 反代 gateway (裸 http, 绑内网 IP); 下游一律不暴露端口.
-- gateway / autopilot / autotesting = Node/Bun 容器; 持久化 libSQL embedded (`file:`); 截图落 autopilot 持久卷 (`/data/screenshots`, 无对象存储服务); markitdown HTTP sidecar; 身份 gateway 自签 cookie + `X-Auth-User-Email` header 荣誉制.
-- **不引入 Cloudflare Workers 栈**: wrangler / `wrangler.jsonc` / `worker-configuration.d.ts` / `@cloudflare/*` / D1 / R2 / Durable Object / VPC binding (本项目 Node/Bun + Docker 内网部署, 不适用).
+- 内网单机 docker-compose, **无公网入口**; 仅 nginx (反代 gateway) publish 端口, **下游一律不暴露端口** — 否则任何人直连下游自带 `X-Auth-User-Email` 即冒充, 荣誉制收口当场破 (拓扑详见 [deploy/](./deploy)).
+- **不引入 Cloudflare / Workers 栈** (本项目 Node/Bun + Docker 内网部署, 不适用).
 
 ## 文件约定
 

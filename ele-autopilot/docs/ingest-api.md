@@ -94,50 +94,22 @@
 
 ## curl 示例
 
-### 1. 仅 tasks
+`tasks` / `chain` 至少一个非空, 可单独或同时传:
 
 ```bash
 curl -X POST "$BASE/api/v1/ingest/tasks" -H 'Content-Type: application/json' -d '{
   "source": "autotesting",
   "folder_path": ["AI 用例", "登录"],
-  "tasks": [
-    { "title": "登录失败", "text": "输入错误密码确认有提示" }
-  ]
-}'
-```
-
-### 2. 仅 chain
-
-```bash
-curl -X POST "$BASE/api/v1/ingest/tasks" -H 'Content-Type: application/json' -d '{
-  "source": "autotesting",
-  "folder_path": ["AI 用例", "登录"],
+  "tasks": [{ "title": "登录失败", "text": "输入错误密码确认有提示" }],
   "chain": {
     "title": "登录回归链",
     "text": "登录 → 下单 → 退出",
-    "subs": [
-      { "title": "step1", "text": "..." },
-      { "title": "step2", "text": "..." }
-    ]
+    "subs": [{ "title": "step1", "text": "..." }, { "title": "step2", "text": "..." }]
   }
 }'
 ```
 
-### 3. tasks + chain 混合
-
-```bash
-curl -X POST "$BASE/api/v1/ingest/tasks" -H 'Content-Type: application/json' -d '{
-  "source": "autotesting",
-  "folder_path": ["AI 用例", "登录"],
-  "tasks": [{ "text": "独立 task" }],
-  "chain": {
-    "text": "chain 主体",
-    "subs": [{ "text": "sub a" }, { "text": "sub b" }]
-  }
-}'
-```
-
-`$BASE` 取值: 本地 dev `http://localhost:3000`, 内网 gateway 入口 (如 `http://<内网 IP>`; ingest 走 gateway bypass).
+`$BASE`: 本地 dev `http://localhost:3000`, 内网 gateway 入口 (如 `http://<内网 IP>`; ingest 走 gateway bypass).
 
 ## UI 表现
 

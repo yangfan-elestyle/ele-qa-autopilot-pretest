@@ -67,6 +67,7 @@ data/
 .env.local
 .env.*.local
 *.local
+*.local.md
 !*.template
 !*.example
 !env.local.example
