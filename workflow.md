@@ -76,7 +76,7 @@ push `v*` tag → `.github/workflows/{gateway,autopilot,autotesting}.yml` 三 wo
 - `autopilot`: `docker buildx build` → push `ghcr.io/<owner>/ele-qa-autopilot:{<tag>,latest}`. (migrations 不在 CI apply; server 首启自建表, 见 `lib/db/migrate.ts`.) 镜像 `localwheel` 阶段 `uv build` ele-autopilot-local wheel 打进 `/app/releases` (`ele-autopilot-local.whl` + `local/latest.txt`), install.sh 直连.
 - `autotesting`: `docker buildx build` → push `ele-qa-autotesting` + `ele-qa-markitdown` 两镜像.
 
-镜像默认 `linux/amd64` (改目标架构见 workflow `platforms:`). 发完 workflow, 宿主 `cd deploy && docker compose pull && up -d` 滚动.
+镜像默认 `linux/amd64` (改目标架构见 workflow `platforms:`).
 
 ## 4. amend 修上版 bug
 
